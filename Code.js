@@ -628,3 +628,86 @@ function getJapaneseHolidays(yearMonth) {
     return { success: true, holidays: {} };
   }
 }
+
+/**
+ * 指定された年月の休業日を取得する関数
+ */
+function getClosedDays(yearMonth) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("休業日");
+    if (!sheet) {
+      return { success: true, closedDays: [] };
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    var closedDays = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      var workDate = data[i][1];
+      if (!workDate) continue;
+      
+      var d = new Date(workDate);
+      if (isNaN(d.getTime())) continue;
+      
+      var y = d.getFullYear();
+      var m = ('0' + (d.getMonth() + 1)).slice(-2);
+      var day = ('0' + d.getDate()).slice(-2);
+      var dateStr = y + '-' + m + '-' + day;
+      
+      if (dateStr.indexOf(yearMonth) === 0) {
+        closedDays.push(dateStr);
+      }
+    }
+    
+    return { success: true, closedDays: closedDays };
+  } catch (error) {
+    return { success: false, closedDays: [], message: error.message };
+  }
+}
+
+/**
+ * 休業日のトグル（登録または解除）を行う関数
+ */
+function toggleClosedDay(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("休業日");
+    if (!sheet) {
+      sheet = ss.insertSheet("休業日");
+      sheet.appendRow(["holidayId", "workDate"]);
+    }
+    
+    var values = sheet.getDataRange().getValues();
+    var targetDateStr = data.workDate;
+    var rowIndex = -1;
+    
+    for (var i = 1; i < values.length; i++) {
+      var existingDate = new Date(values[i][1]);
+      var targetDate = new Date(targetDateStr);
+      
+      if (
+        !isNaN(existingDate.getTime()) &&
+        existingDate.getFullYear() === targetDate.getFullYear() &&
+        existingDate.getMonth() === targetDate.getMonth() &&
+        existingDate.getDate() === targetDate.getDate()
+      ) {
+        rowIndex = i + 1; // スプレッドシートの行番号
+        break;
+      }
+    }
+    
+    if (rowIndex !== -1) {
+      // すでに存在する場合は削除（休業日解除）
+      sheet.deleteRow(rowIndex);
+      return { success: true, status: "removed", message: "営業日に戻しました" };
+    } else {
+      // 存在しない場合は追加（休業日設定）
+      var holidayId = "hol_" + Utilities.getUuid().substring(0, 8);
+      sheet.appendRow([holidayId, targetDateStr]);
+      return { success: true, status: "added", message: "休業日に設定しました" };
+    }
+  } catch (error) {
+    return { success: false, message: "エラー: " + error.message };
+  }
+}
