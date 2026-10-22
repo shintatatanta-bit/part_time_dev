@@ -197,7 +197,7 @@
       <h3>📋 登録済みスタッフ一覧</h3>
       <div style="overflow-x: auto;">
         <table>
-          <thead><tr><th>名前</th><th>アカウント</th><th>個別URL</th><th>操作</th></tr></thead>
+          <thead><tr><th>名前</th><th>アカウント</th><th>表示文字</th><th>個別URL</th><th>操作</th></tr></thead>
           <tbody id="staffTableBody"><tr><td colspan="4" style="text-align: center;">読み込み中...</td></tr></tbody>
         </table>
       </div>
@@ -291,24 +291,7 @@
           .withSuccessHandler(function(staffList) {
             cachedStaffList = staffList;
             
-            var tbody = document.getElementById('staffTableBody');
-            if (staffList.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">登録されているスタッフがいません</td></tr>';
-            } else {
-              var html = '';
-              staffList.forEach(function(staff) {
-                html += '<tr>';
-                html += '<td>' + escapeHtml(staff.staffName) + ' (' + escapeHtml(staff.displayChar) + ')</td>';
-                html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
-                html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
-                html += '<td>';
-                html += '<button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';
-                html += '<button class="secondary" style="background: #e74c3c; margin-left: 4px;" onclick="deleteStaff(\'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\')">削除</button>';
-                html += '</td>';
-                html += '</tr>';
-              });
-              tbody.innerHTML = html;
-            }
+            
 
             var chipsContainer = document.getElementById('staffChipsContainer');
             if (staffList.length === 0) {
@@ -759,6 +742,26 @@
           var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
           return chars[tag] || tag;
         });
+      }
+
+      // スタッフの表示文字を更新する関数
+      function updateChar(staffId) {
+        var inputVal = document.getElementById('char-' + staffId).value;
+        if (!inputVal) {
+          alert('表示文字を入力してください。');
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              alert(res.message);
+              loadStaffList(); // リロードしてパレットやカレンダーに即時反映
+            } else {
+              alert(res.message);
+            }
+          })
+          .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
       }
     </script>
   </body>

@@ -581,3 +581,29 @@ function saveAllSchedules(data) {
     return { success: false, message: "保存エラー: " + error.message };
   }
 }
+
+/**
+ * スタッフの「カレンダー表示文字」を更新する関数
+ */
+function updateStaffDisplayChar(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("スタッフマスタ");
+    if (!sheet) {
+      return { success: false, message: "「スタッフマスタ」シートが見つかりません。" };
+    }
+    
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(data.staffId)) {
+        // H列（インデックス7、8列目）に表示文字を書き込む
+        sheet.getRange(i + 1, 8).setValue(data.displayChar);
+        return { success: true, message: "表示文字を更新しました！" };
+      }
+    }
+    
+    return { success: false, message: "対象のスタッフが見つかりませんでした。" };
+  } catch (error) {
+    return { success: false, message: "更新エラー: " + error.message };
+  }
+}
