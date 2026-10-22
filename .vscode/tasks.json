@@ -4,7 +4,7 @@
         {
             "label": "GAS & Git 一括デプロイ",
             "type": "shell",
-            "command": "clasp push; git add .; git commit -m \"自動デプロイ＆バックアップ\"; git push",
+            "command": "clasp push; git add .; git commit -m \"${input:commitMessage}\"; git push",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -14,6 +14,13 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "commitMessage",
+            "type": "promptString",
+            "description": "今回の変更メモ（コミットメッセージ）を入力してください："
         }
     ]
 }
