@@ -286,6 +286,7 @@
           .withSuccessHandler(function(staffList) {
             cachedStaffList = staffList;
             
+            // 1. スタッフ一覧テーブルの描画（削除ボタン付き）
             var tbody = document.getElementById('staffTableBody');
             if (staffList.length === 0) {
               tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">登録されているスタッフがいません</td></tr>';
@@ -296,12 +297,16 @@
                 html += '<td>' + escapeHtml(staff.staffName) + ' (' + escapeHtml(staff.displayChar) + ')</td>';
                 html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
                 html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
-                html += '<td><button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button></td>';
+                html += '<td>';
+                html += '<button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';
+                html += '<button class="secondary" style="background: #e74c3c; margin-left: 4px;" onclick="deleteStaff(\'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\')">削除</button>';
+                html += '</td>';
                 html += '</tr>';
               });
               tbody.innerHTML = html;
             }
 
+            // 2. カレンダー用のスタッフチップ（パレット）の描画
             var chipsContainer = document.getElementById('staffChipsContainer');
             if (staffList.length === 0) {
               chipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">スタッフが登録されていません</span>';
@@ -318,6 +323,25 @@
             loadCalendar();
           })
           .getStaffList();
+      }
+
+      // スタッフ削除を実行する関数
+      function deleteStaff(staffId, staffName) {
+        if (!confirm('スタッフ「' + staffName + '」を削除してもよろしいですか？')) {
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              alert(res.message);
+              loadStaffList(); // 一覧とカレンダーを再読込
+              fetchSummary();  // 集計も更新
+            } else {
+              alert(res.message);
+            }
+          })
+          .deleteStaffById(staffId);
       }
 
       function onDragStart(event, staffId, staffName, displayChar) {
