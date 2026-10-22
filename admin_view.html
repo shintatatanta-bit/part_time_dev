@@ -97,6 +97,16 @@
       .url-cell { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .flex-row { display: flex; gap: 8px; }
       .flex-col { flex: 1; }
+
+      /* スタッフパレットを上部に固定（追従）させるスタイル */
+      .staff-chips-wrapper {
+        position: sticky;
+        top: 10px;
+        z-index: 99;
+        background: #f4f7f6;
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
     </style>
   </head>
   <body>
@@ -125,9 +135,11 @@
         <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
       </div>
 
-      <label style="margin-top: 10px;">スタッフパレット (ドラッグ＆ドロップまたはクリックで配置)</label>
-      <div id="staffChipsContainer" class="staff-chips">
-        <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
+      <div class="staff-chips-wrapper">
+        <label style="margin-top: 0;">スタッフパレット (ドラッグ＆ドロップまたはクリックで配置)</label>
+        <div id="staffChipsContainer" class="staff-chips">
+          <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
+        </div>
       </div>
 
       <p style="font-size: 0.75rem; color: #888; margin: 4px 0 8px 0;">💡 スタッフを選ばずに日付枠をクリックすると休業日を切り替えられます。スタッフを選択してクリックするとシフトが配置されます。</p>
