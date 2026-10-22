@@ -561,26 +561,24 @@ function getJapaneseHolidays(yearMonth) {
     var startDate = new Date(year, month - 1, 1);
     var endDate = new Date(year, month, 0, 23, 59, 59);
     
-    // Googleのカレンダーサービスから日本の祝日カレンダーを取得
     var holidayCalendar = CalendarApp.getCalendarById('ja.japanese#holiday@group.v.calendar.google.com');
     var holidayMap = {};
     
     if (holidayCalendar) {
       var events = holidayCalendar.getEvents(startDate, endDate);
       events.forEach(function(event) {
-        var evDate = event.getStartDay(); // 祝日の日付
+        var evDate = event.getStartDay();
         var y = evDate.getFullYear();
         var m = ('0' + (evDate.getMonth() + 1)).slice(-2);
         var d = ('0' + evDate.getDate()).slice(-2);
         var dateStr = y + '-' + m + '-' + d;
         
-        holidayMap[dateStr] = event.getTitle(); // 例: "文化の日"
+        holidayMap[dateStr] = event.getTitle();
       });
     }
     
     return { success: true, holidays: holidayMap };
   } catch (error) {
-    // カレンダーIDが取得できないなどの環境エラー時は空を返す
     return { success: true, holidays: {} };
   }
 }

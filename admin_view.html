@@ -218,7 +218,7 @@
             </tr>
           </thead>
           <tbody id="staffTableBody">
-            <tr><td colspan="4" style="text-align: center;">読み込み中...</td></tr>
+            <tr><td colspan="4" style="text-align: center;">登録されているスタッフがいません</td></tr>
           </tbody>
         </table>
       </div>
@@ -227,7 +227,7 @@
     <script>
       var cachedStaffList = [];
       var cachedShiftsData = []; 
-      var cachedHolidaysMap = {}; // 祝日データキャッシュ
+      var cachedHolidaysMap = {}; 
       var selectedStaffForClick = null;
       var pendingPlacement = null;
       var currentViewMode = 'grid'; 
@@ -485,7 +485,6 @@
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
 
-        // 祝日データとシフトデータを同時に取得
         google.script.run
           .withSuccessHandler(function(holidayRes) {
             cachedHolidaysMap = holidayRes.success ? holidayRes.holidays : {};
@@ -508,7 +507,6 @@
         }
       }
 
-      // 📅 格子カレンダーの描画
       function renderGridCalendar() {
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
@@ -590,7 +588,6 @@
         grid.innerHTML = html;
       }
 
-      // 📋 縦並びリストカレンダーの描画
       function renderListCalendar() {
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
