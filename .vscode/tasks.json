@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "GAS & Git 一括デプロイ",
+            "type": "shell",
+            "command": "clasp push; git add .; git commit -m \"自動デプロイ＆バックアップ\"; git push",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ]
+}
