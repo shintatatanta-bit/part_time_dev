@@ -54,18 +54,24 @@
       .cal-header-cell:nth-child(1) { color: #c0392b; }
       .cal-header-cell:nth-child(7) { color: #2980b9; }
       
-      .cal-cell { min-height: 75px; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; box-sizing: border-box; position: relative; transition: background 0.15s, border-color 0.15s; }
+      .cal-cell { min-height: 80px; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; box-sizing: border-box; position: relative; transition: background 0.15s, border-color 0.15s; }
       .cal-cell.other-month { background: #f9f9f9; opacity: 0.5; }
       .cal-cell.drag-over { background: #e8f8f5 !important; border: 2px dashed #27ae60 !important; }
-      .cal-date-num { font-size: 0.75rem; font-weight: bold; color: #555; margin-bottom: 2px; }
+      
+      .cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+      .cal-date-num { font-size: 0.75rem; font-weight: bold; color: #555; }
+      .cal-date-num.sun-or-hol { color: #c0392b; } /* 日曜・祝日は赤色 */
+      .cal-date-num.sat { color: #2980b9; }
+      .holiday-name { font-size: 0.65rem; color: #c0392b; font-weight: bold; }
 
       /* 縦並びリスト形式用スタイル */
       .list-view-container { display: flex; flex-direction: column; gap: 4px; }
       .list-row { display: flex; align-items: center; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px 10px; min-height: 45px; transition: background 0.15s, border-color 0.15s; box-sizing: border-box; }
       .list-row.drag-over { background: #e8f8f5 !important; border: 2px dashed #27ae60 !important; }
-      .list-date-col { width: 120px; font-weight: bold; font-size: 0.85rem; color: #333; display: flex; align-items: center; gap: 8px; }
-      .list-date-col.sun { color: #c0392b; }
+      .list-date-col { width: 150px; font-weight: bold; font-size: 0.85rem; color: #333; display: flex; align-items: center; gap: 8px; }
+      .list-date-col.sun-or-hol { color: #c0392b; }
       .list-date-col.sat { color: #2980b9; }
+      .list-holiday-label { font-size: 0.7rem; color: #c0392b; font-weight: normal; }
       .list-badge-col { flex-grow: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 32px; }
 
       .shift-badge-container { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -220,10 +226,11 @@
 
     <script>
       var cachedStaffList = [];
-      var cachedShiftsData = []; // シフト生データキャッシュ
+      var cachedShiftsData = []; 
+      var cachedHolidaysMap = {}; // 祝日データキャッシュ
       var selectedStaffForClick = null;
       var pendingPlacement = null;
-      var currentViewMode = 'grid'; // 'grid' または 'list'
+      var currentViewMode = 'grid'; 
 
       window.onload = function() {
         var now = new Date();
@@ -237,7 +244,6 @@
         fetchSummary();
       };
 
-      // ビュー（表示形式）の切り替え関数
       function switchView(mode) {
         currentViewMode = mode;
         var tabGrid = document.getElementById('tabGrid');
@@ -259,7 +265,6 @@
         renderCurrentView();
       }
 
-      // 🖨️ 別ウィンドウを開いて印刷する関数
       function openPrintPreview(size) {
         var ym = document.getElementById('calendarMonth').value;
         if (!ym) {
@@ -269,7 +274,6 @@
         var parts = ym.split('-');
         var titleText = parts[0] + '年 ' + Number(parts[1]) + '月度 アルバイト勤務シフト予定表';
         
-        // 常に格子状カレンダーのHTMLを元に印刷用ウィンドウを作成
         var gridHtml = document.getElementById('calendarGrid').outerHTML;
         var printWin = window.open('', '_blank', 'width=1100,height=800');
         
@@ -290,7 +294,10 @@
         printWin.document.write('.cal-header-cell:nth-child(7) { color: #2980b9; }');
         printWin.document.write('.cal-cell { min-height: ' + cellMinHeight + '; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px; box-sizing: border-box; position: relative; }');
         printWin.document.write('.cal-cell.other-month { background: #f9f9f9; opacity: 0.3; }');
-        printWin.document.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #555; margin-bottom: 4px; }');
+        printWin.document.write('.cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }');
+        printWin.document.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #555; }');
+        printWin.document.write('.cal-date-num.sun-or-hol { color: #c0392b; }');
+        printWin.document.write('.holiday-name { font-size: 0.6rem; color: #c0392b; font-weight: bold; }');
         printWin.document.write('.shift-badge-container { display: flex; flex-wrap: wrap; gap: 4px; }');
         printWin.document.write('.shift-badge { background: #27ae60 !important; color: white !important; font-size: ' + fontSizeBadge + '; padding: 3px 6px; border-radius: 4px; display: inline-flex; align-items: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }');
         printWin.document.write('.del-x { display: none; }');
@@ -478,15 +485,21 @@
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
 
+        // 祝日データとシフトデータを同時に取得
         google.script.run
-          .withSuccessHandler(function(res) {
-            cachedShiftsData = res.success ? res.shifts : [];
-            renderCurrentView();
+          .withSuccessHandler(function(holidayRes) {
+            cachedHolidaysMap = holidayRes.success ? holidayRes.holidays : {};
+            
+            google.script.run
+              .withSuccessHandler(function(shiftRes) {
+                cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
+                renderCurrentView();
+              })
+              .getShiftSchedule(yearMonthVal);
           })
-          .getShiftSchedule(yearMonthVal);
+          .getJapaneseHolidays(yearMonthVal);
       }
 
-      // 現在選ばれているビューに応じて描画を分岐
       function renderCurrentView() {
         if (currentViewMode === 'grid') {
           renderGridCalendar();
@@ -532,9 +545,21 @@
           var mStr = String(month).padStart(2, '0');
           var dStr = String(day).padStart(2, '0');
           var dateStr = year + '-' + mStr + '-' + dStr;
+          
+          var dObj = new Date(year, month - 1, day);
+          var isSun = (dObj.getDay() === 0);
+          var holidayName = cachedHolidaysMap[dateStr] || '';
+          var isSunOrHol = isSun || (holidayName !== '');
+
+          var dateNumClass = isSunOrHol ? 'cal-date-num sun-or-hol' : (dObj.getDay() === 6 ? 'cal-date-num sat' : 'cal-date-num');
 
           html += '<div class="cal-cell" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
-          html += '<div class="cal-date-num">' + day + '</div>';
+          html += '<div class="cal-date-header">';
+          html += '<span class="' + dateNumClass + '">' + day + '</span>';
+          if (holidayName) {
+            html += '<span class="holiday-name">' + escapeHtml(holidayName) + '</span>';
+          }
+          html += '</div>';
           html += '<div class="shift-badge-container">';
 
           if (shiftMap[dateStr]) {
@@ -595,12 +620,15 @@
           var dayOfWeekNum = dObj.getDay();
           var dayOfWeekStr = weekDays[dayOfWeekNum];
           
-          var dateClass = '';
-          if (dayOfWeekNum === 0) dateClass = ' sun';
-          else if (dayOfWeekNum === 6) dateClass = ' sat';
+          var holidayName = cachedHolidaysMap[dateStr] || '';
+          var isSun = (dayOfWeekNum === 0);
+          var isSunOrHol = isSun || (holidayName !== '');
+
+          var dateClass = isSunOrHol ? ' sun-or-hol' : (dayOfWeekNum === 6 ? ' sat' : '');
+          var holidayDisplay = holidayName ? ' <span class="list-holiday-label">(' + escapeHtml(holidayName) + ')</span>' : '';
 
           html += '<div class="list-row" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
-          html += '<div class="list-date-col' + dateClass + '">' + month + '/' + day + ' (' + dayOfWeekStr + ')</div>';
+          html += '<div class="list-date-col' + dateClass + '">' + month + '/' + day + ' (' + dayOfWeekStr + ')' + holidayDisplay + '</div>';
           html += '<div class="list-badge-col"><div class="shift-badge-container">';
 
           if (shiftMap[dateStr]) {
