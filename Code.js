@@ -781,3 +781,81 @@ function saveAllSchedules(data) {
     return { success: false, message: "保存エラー: " + error.message };
   }
 }
+
+/**
+ * staffIdを指定してスタッフマスタからスタッフを削除する関数
+ */
+function deleteStaffById(staffId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("スタッフマスタ");
+    if (!sheet) {
+      return { success: false, message: "「スタッフマスタ」シートが見つかりません。" };
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(staffId)) {
+        sheet.deleteRow(i + 1); // 2行目がスプレッドシートの行番号 2
+        return { success: true, message: "スタッフを削除しました" };
+      }
+    }
+    
+    return { success: false, message: "削除対象のスタッフが見つかりませんでした。" };
+  } catch (error) {
+    return { success: false, message: "削除エラー: " + error.message };
+  }
+}
+```[cite: 6]
+
+---
+
+### 📝 2. `admin_view.html` の修正（削除ボタンの追加）
+
+`admin_view.html` の中にある `loadStaffList()` 関数の中の、スタッフ一覧テーブルのHTMLを生成している部分と、削除を実行するスクリプトを以下のように変更します。
+
+#### ① `loadStaffList()` 内のテーブル生成部分の書き換え
+（変更前：`操作` 列にコピーボタンだけがある部分）
+```javascript
+              staffList.forEach(function(staff) {
+                html += '<tr>';
+                html += '<td>' + escapeHtml(staff.staffName) + ' (' + escapeHtml(staff.displayChar) + ')</td>';
+                html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
+                html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
+                // 変更後：コピーボタンの隣に「削除」ボタンを追加
+                html += '<td>';
+                html += '<button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';
+                html += '<button class="secondary" style="background: #e74c3c;" onclick="deleteStaff(\'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\')">削除</button>';
+                html += '</td>';
+                html += '</tr>';
+              });
+```[cite: 4]
+
+#### ② `<script>` タグ内の適当な場所（末尾付近など）に削除実行関数を追加
+```javascript
+      // スタッフ削除用関数
+      function deleteStaff(staffId, staffName) {
+        if (!confirm('スタッフ「' + staffName + '」を削除してもよろしいですか？')) {
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              alert(res.message);
+              loadStaffList(); // 一覧を再読み込み
+              fetchSummary();  // 集計も更新
+            } else {
+              alert(res.message);
+            }
+          })
+          .deleteStaffById(staffId);
+      }
+```[cite: 4]
+
+---
+
+### 🚀 適用後の手順
+1. `Code.js` と `admin_view.html` をそれぞれ保存します。
+2. Apps Scriptエディタからデプロイを **[新バージョン]** で更新します[cite: 12]。
+3. 管理者画面を再読み込み（F5）すると、スタッフ一覧の操作列に赤色の **[削除]** ボタンが追加され、確認画面を経てスムーズにスタッフを削除できるようになります！
