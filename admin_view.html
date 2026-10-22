@@ -460,7 +460,7 @@
                   }
                   html += '<div class="shift-badge" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
                   html += '<span>' + escapeHtml(dispChar) + '</span>';
-                  html += '<span class="del-x" style="cursor:pointer; margin-left:2px; font-weight:bold;" onclick="event.stopPropagation(); removeShift(\'' + dateStr + '\', \'' + sh.staffId + '\')">×</span>';
+                  html += '<span class="del-x" style="cursor:pointer; margin-left:4px; font-weight:bold;" onclick="event.stopPropagation(); removeShiftById(\'' + sh.shiftId + '\')">×</span>';
                   html += '</div>';
                 });
               }
@@ -613,6 +613,18 @@
           var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
           return chars[tag] || tag;
         });
+      }
+
+      function removeShiftById(shiftId) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              loadCalendar();
+            } else {
+              alert(res.message);
+            }
+          })
+          .deleteShiftById(shiftId);
       }
     </script>
   </body>

@@ -523,3 +523,28 @@ function saveShiftsBatch(shifts) {
     return { success: false, message: "一括保存エラー: " + error.message };
   }
 }
+
+/**
+ * shiftIdを指定してシフト予定を削除する関数
+ */
+function deleteShiftById(shiftId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("シフト予定");
+    if (!sheet) {
+      return { success: false, message: "「シフト予定」シートが見つかりません。" };
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(shiftId)) {
+        sheet.deleteRow(i + 1); // 2行目がスプレッドシートの行番号 2 (配列インデックス+1)
+        return { success: true, message: "シフトを削除しました" };
+      }
+    }
+    
+    return { success: false, message: "削除対象のシフトが見つかりませんでした。" };
+  } catch (error) {
+    return { success: false, message: "削除エラー: " + error.message };
+  }
+}
