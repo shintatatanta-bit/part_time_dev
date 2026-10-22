@@ -589,7 +589,9 @@
           html += '<div class="shift-badge-container">';
 
           if (shiftMap[dateStr]) {
-            shiftMap[dateStr].forEach(function(sh) {
+            // 登録順にソートしてからバッジを生成
+            var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
+            sortedShifts.forEach(function(sh) {
               var dispChar = sh.staffName.substring(0, 1);
               for (var s = 0; s < cachedStaffList.length; s++) {
                 if (cachedStaffList[s].staffId === sh.staffId) {
@@ -598,9 +600,9 @@
                 }
               }
               html += '<div class="shift-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
-html += '<span>' + escapeHtml(dispChar) + '</span>';
-html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-html += '</div>';
+              html += '<span>' + escapeHtml(dispChar) + '</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '</div>';
             });
           }
 
@@ -659,7 +661,9 @@ html += '</div>';
           html += '<div class="list-badge-col"><div class="shift-badge-container">';
 
           if (shiftMap[dateStr]) {
-            shiftMap[dateStr].forEach(function(sh) {
+            // 登録順にソートしてからバッジを生成
+            var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
+            sortedShifts.forEach(function(sh) {
               var dispChar = sh.staffName.substring(0, 1);
               for (var s = 0; s < cachedStaffList.length; s++) {
                 if (cachedStaffList[s].staffId === sh.staffId) {
@@ -668,9 +672,9 @@ html += '</div>';
                 }
               }
               html += '<div class="shift-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
-html += '<span>' + escapeHtml(sh.staffName) + ' [' + escapeHtml(dispChar) + ']</span>';
-html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-html += '</div>';
+              html += '<span>' + escapeHtml(sh.staffName) + ' [' + escapeHtml(dispChar) + ']</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '</div>';
             });
           }
 
@@ -762,6 +766,8 @@ html += '</div>';
           return chars[tag] || tag;
         });
       }
+
+      
     </script>
   </body>
 </html>
