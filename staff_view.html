@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>管理者ダッシュボード</title>
+    <style>
+      body { font-family: sans-serif; margin: 0; padding: 12px; background: #f4f7f6; color: #333; }
+      h2 { color: #2c3e50; font-size: 1.1rem; margin-bottom: 10px; }
+      h3 { font-size: 0.95rem; color: #34495e; margin: 0 0 8px 0; }
+      .card { background: #fff; padding: 14px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      label { display: block; margin-top: 8px; font-weight: bold; font-size: 0.8rem; color: #555; }
+      input, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+      button { background: #3498db; color: white; border: none; padding: 10px; border-radius: 4px; font-size: 0.95rem; cursor: pointer; width: 100%; margin-top: 10px; }
+      button.secondary { background: #2ecc71; width: auto; padding: 6px 10px; font-size: 0.8rem; margin-top: 0; }
+      button.search-btn { background: #e67e22; margin-top: 10px; }
+      
+      .quick-btns { display: flex; gap: 8px; margin-top: 8px; }
+      .quick-btns button { background: #95a5a6; margin-top: 0; font-size: 0.8rem; padding: 6px; }
+      
+      .staff-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+      .staff-header { padding: 12px 14px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+      .staff-header:active { background: #f0f0f0; }
+      .staff-info h4 { margin: 0 0 4px 0; font-size: 1rem; color: #2c3e50; }
+      .staff-info p { margin: 0; font-size: 0.75rem; color: #666; }
+      .staff-summary-badge { text-align: right; }
+      .badge-main { font-weight: bold; font-size: 0.85rem; color: #2980b9; }
+      .badge-sub { font-size: 0.75rem; color: #555; margin-top: 2px; }
+      
+      .staff-details { display: none; padding: 12px; background: #fff; border-top: 1px solid #eee; }
+      .staff-card.open .staff-details { display: block; }
+      .staff-card.open .staff-header { background: #eef5fb; }
+      
+      /* --- シフトカレンダー用スタイル --- */
+      .calendar-controls { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; }
+      .staff-chip { background: #3498db; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: grab; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+      .staff-chip:active { cursor: grabbing; background: #2980b9; }
+      
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+      .cal-header-cell { text-align: center; font-weight: bold; font-size: 0.8rem; padding: 4px; background: #eaeded; border-radius: 4px; }
+      .cal-header-cell:nth-child(1) { color: #c0392b; } /* 日曜 */
+      .cal-header-cell:nth-child(7) { color: #2980b9; } /* 土曜 */
+      
+      .cal-cell { min-height: 75px; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; box-sizing: border-box; position: relative; }
+      .cal-cell.other-month { background: #f9f9f9; opacity: 0.5; }
+      .cal-date-num { font-size: 0.75rem; font-weight: bold; color: #555; margin-bottom: 2px; }
+      .shift-badge-container { display: flex; flex-wrap: wrap; gap: 3px; }
+      .shift-badge { background: #27ae60; color: white; font-size: 0.75rem; padding: 2px 5px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+      .shift-badge .del-x { font-size: 0.65rem; opacity: 0.8; }
+      .shift-badge:hover { background: #c0392b; }
+
+      table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.8rem; }
+      th, td { border: 1px solid #e0e0e0; padding: 6px; text-align: left; }
+      th { background-color: #f8f9fa; color: #333; }
+      .url-cell { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .flex-row { display: flex; gap: 8px; }
+      .flex-col { flex: 1; }
+    </style>
+  </head>
+  <body>
+    <h2>🛠️ 管理者ダッシュボード</h2>
+    
+    <!-- 📅 シフト予定カレンダー作成カード -->
+    <div class="card">
+      <h3>📅 シフト予定カレンダー (A3印刷対応)</h3>
+      <div class="calendar-controls">
+        <label style="margin:0; white-space:nowrap;">対象月:</label>
+        <input type="month" id="calendarMonth" onchange="loadCalendar()">
+      </div>
+
+      <label style="margin-top: 10px;">スタッフパレット (ドラッグ＆ドロップまたはクリックで配置)</label>
+      <div id="staffChipsContainer" class="staff-chips">
+        <!-- 動的読み込み -->
+      </div>
+
+      <p style="font-size: 0.75rem; color: #888; margin: 4px 0 8px 0;">💡 スタッフをカレンダーの日付枠にドラッグするか、スタッフ名→日付の順にクリックして配置できます。配置済みバッジをクリックすると削除できます。</p>
+
+      <!-- カレンダーグリッド (日〜土) -->
+      <div class="cal-grid" id="calendarGrid">
+        <!-- 曜日ヘッダー -->
+        <div class="cal-header-cell">日</div>
+        <div class="cal-header-cell">月</div>
+        <div class="cal-header-cell">火</div>
+        <div class="cal-header-cell">水</div>
+        <div class="cal-header-cell">木</div>
+        <div class="cal-header-cell">金</div>
+        <div class="cal-header-cell">土</div>
+        <!-- 日付セルがここに生成されます -->
+      </div>
+    </div>
+
+    <!-- 📊 期間別 勤怠集計カード -->
+    <div class="card">
+      <h3>📊 月半期別 勤怠集計＆詳細確認</h3>
+      <div class="flex-row">
+        <div class="flex-col">
+          <label>開始日</label>
+          <input type="date" id="startDate">
+        </div>
+        <div class="flex-col">
+          <label>終了日</label>
+          <input type="date" id="endDate">
+        </div>
+      </div>
+      
+      <div class="quick-btns">
+        <button type="button" onclick="setPeriod('first')">📅 今月 前半 (1日〜15日)</button>
+        <button type="button" onclick="setPeriod('second')">📅 今月 後半 (16日〜末日)</button>
+      </div>
+
+      <button class="search-btn" onclick="fetchSummary()">この期間で集計する</button>
+      
+      <p style="font-size: 0.75rem; color: #888; margin: 10px 0 4px 0;">👇 スタッフ名をタップすると日別の勤務詳細が開きます</p>
+      
+      <div id="summaryCardContainer" style="margin-top: 6px;">
+        <div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div>
+      </div>
+    </div>
+
+    <!-- 新規スタッフ登録カード -->
+    <div class="card">
+      <h3>➕ 新規スタッフ登録 ＆ URL発行</h3>
+      <form id="staffForm">
+        <label>スタッフ氏名</label>
+        <input type="text" id="staffName" placeholder="例: 山田 花子" required>
+        
+        <label>LINEユーザーID (Uから始まる文字列)</label>
+        <input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
+        
+        <label>割当LINEアカウント</label>
+        <select id="assignedAccount">
+          <!-- 動的読み込み -->
+        </select>
+        
+        <button type="button" onclick="registerStaff()">スタッフを登録して専用URLを発行</button>
+      </form>
+    </div>
+
+    <!-- 登録済みスタッフ一覧カード -->
+    <div class="card">
+      <h3>📋 登録済みスタッフ一覧</h3>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>名前</th>
+              <th>アカウント</th>
+              <th>個別URL</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="staffTableBody">
+            <tr><td colspan="4" style="text-align: center;">読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      var cachedStaffList = [];
+      var selectedStaffForClick = null; // クリック配置用
+
+      window.onload = function() {
+        // カレンダーの初期月を設定（今月）
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, '0');
+        document.getElementById('calendarMonth').value = y + '-' + m;
+
+        loadStaffList();
+        loadAccountOptions();
+        setPeriod('first');
+        fetchSummary();
+      };
+
+      function loadStaffList() {
+        google.script.run
+          .withSuccessHandler(function(staffList) {
+            cachedStaffList = staffList;
+            
+            // 1. スタッフ一覧テーブルの描画
+            var tbody = document.getElementById('staffTableBody');
+            if (staffList.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">登録されているスタッフがいません</td></tr>';
+            } else {
+              var html = '';
+              staffList.forEach(function(staff) {
+                html += '<tr>';
+                html += '<td>' + escapeHtml(staff.staffName) + ' (' + escapeHtml(staff.displayChar) + ')</td>';
+                html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
+                html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
+                html += '<td><button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button></td>';
+                html += '</tr>';
+              });
+              tbody.innerHTML = html;
+            }
+
+            // 2. カレンダー用のスタッフチップ（パレット）の描画
+            var chipsContainer = document.getElementById('staffChipsContainer');
+            if (staffList.length === 0) {
+              chipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">スタッフが登録されていません</span>';
+            } else {
+              var chipsHtml = '';
+              staffList.forEach(function(staff) {
+                chipsHtml += '<div class="staff-chip" draggable="true" ondragstart="onDragStart(event, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')" onclick="selectStaffForClick(this, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\')">';
+                chipsHtml += '[' + escapeHtml(staff.displayChar) + '] ' + escapeHtml(staff.staffName);
+                chipsHtml += '</div>';
+              });
+              chipsContainer.innerHTML = chipsHtml;
+            }
+
+            // カレンダーを描画
+            loadCalendar();
+          })
+          .getStaffList();
+      }
+
+      // --- ドラッグ＆ドロップ関連 ---
+      function onDragStart(event, staffId, staffName, displayChar) {
+        event.dataTransfer.setData('text/plain', JSON.stringify({
+          staffId: staffId,
+          staffName: staffName,
+          displayChar: displayChar
+        }));
+      }
+
+      function onDragOver(event) {
+        event.preventDefault();
+      }
+
+      function onDrop(event, dateStr) {
+        event.preventDefault();
+        var dataStr = event.dataTransfer.getData('text/plain');
+        if (!dataStr) return;
+        var data = JSON.parse(dataStr);
+        saveShiftToBackend(dateStr, data.staffId, data.staffName);
+      }
+
+      // --- クリック配置サポート ---
+      function selectStaffForClick(elem, staffId, staffName) {
+        var chips = document.querySelectorAll('.staff-chip');
+        chips.forEach(function(c) { c.style.border = 'none'; });
+        
+        if (selectedStaffForClick && selectedStaffForClick.staffId === staffId) {
+          selectedStaffForClick = null;
+          alert('配置選択を解除しました');
+        } else {
+          selectedStaffForClick = { staffId: staffId, staffName: staffName };
+          elem.style.border = '2px solid #e74c22';
+          alert(staffName + 'さんを選択しました。配置したいカレンダーの日付枠をクリックしてください。');
+        }
+      }
+
+      function onCellClick(dateStr) {
+        if (selectedStaffForClick) {
+          saveShiftToBackend(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName);
+        }
+      }
+
+      function saveShiftToBackend(workDate, staffId, staffName) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              loadCalendar(); // カレンダー再描画
+            } else {
+              alert(res.message);
+            }
+          })
+          .saveShift({ workDate: workDate, staffId: staffId, staffName: staffName });
+      }
+
+      function removeShift(workDate, staffId) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              loadCalendar();
+            } else {
+              alert(res.message);
+            }
+          })
+          .deleteShift({ workDate: workDate, staffId: staffId });
+      }
+
+      // --- カレンダー描画メイン ---
+      function loadCalendar() {
+        var yearMonthVal = document.getElementById('calendarMonth').value;
+        if (!yearMonthVal) return;
+
+        var parts = yearMonthVal.split('-');
+        var year = Number(parts[0]);
+        var month = Number(parts[1]);
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            var shifts = res.success ? res.shifts : [];
+            
+            // シフトマップを作成 (key: "yyyy-MM-dd", value: array of shifts)
+            var shiftMap = {};
+            shifts.forEach(function(s) {
+              if (!shiftMap[s.workDate]) shiftMap[s.workDate] = [];
+              shiftMap[s.workDate].push(s);
+            });
+
+            var grid = document.getElementById('calendarGrid');
+            
+            // ヘッダー（日〜土）を残して既存の日付セルをクリア
+            var headerHtml = '';
+            var headers = grid.querySelectorAll('.cal-header-cell');
+            headers.forEach(function(h) { headerHtml += h.outerHTML; });
+            var html = headerHtml;
+
+            // 月の初日と最終日
+            var firstDayObj = new Date(year, month - 1, 1);
+            var lastDayObj = new Date(year, month, 0);
+            var firstDayOfWeek = firstDayObj.getDay(); // 0(日)〜6(土)
+            var totalDays = lastDayObj.getDate();
+
+            // 前月のはみ出し日数分
+            var prevLastDayObj = new Date(year, month - 1, 0);
+            var prevLastDay = prevLastDayObj.getDate();
+
+            for (var i = 0; i < firstDayOfWeek; i++) {
+              var pDay = prevLastDay - (firstDayOfWeek - 1 - i);
+              html += '<div class="cal-cell other-month"><div class="cal-date-num">' + pDay + '</div></div>';
+            }
+
+            // 当月の日付セル
+            for (var day = 1; day <= totalDays; day++) {
+              var mStr = String(month).padStart(2, '0');
+              var dStr = String(day).padStart(2, '0');
+              var dateStr = year + '-' + mStr + '-' + dStr;
+
+              html += '<div class="cal-cell" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
+              html += '<div class="cal-date-num">' + day + '</div>';
+              html += '<div class="shift-badge-container">';
+
+              if (shiftMap[dateStr]) {
+                shiftMap[dateStr].forEach(function(sh) {
+                  // スタッフマスタから表示文字を探す
+                  var dispChar = sh.staffName.substring(0, 1);
+                  for (var s = 0; s < cachedStaffList.length; s++) {
+                    if (cachedStaffList[s].staffId === sh.staffId) {
+                      dispChar = cachedStaffList[s].displayChar;
+                      break;
+                    }
+                  }
+                  html += '<div class="shift-badge" onclick="event.stopPropagation(); removeShift(\'' + dateStr + '\', \'' + sh.staffId + '\')" title="クリックで削除: ' + escapeHtml(sh.staffName) + '">';
+                  html += escapeHtml(dispChar) + '<span class="del-x">×</span>';
+                  html += '</div>';
+                });
+              }
+
+              html += '</div></div>';
+            }
+
+            // 翌月のはみ出し日数分（グリッドを綺麗に埋める）
+            var totalCellsCount = firstDayOfWeek + totalDays;
+            var remainingCells = (totalCellsCount % 7 === 0) ? 0 : 7 - (totalCellsCount % 7);
+            for (var n = 1; n <= remainingCells; n++) {
+              html += '<div class="cal-cell other-month"><div class="cal-date-num">' + n + '</div></div>';
+            }
+
+            grid.innerHTML = html;
+          })
+          .getShiftSchedule(yearMonthVal);
+      }
+
+      // --- 既存の補助関数 ---
+      function setPeriod(type) {
+        var now = new Date();
+        var year = now.getFullYear();
+        var month = String(now.getMonth() + 1).padStart(2, '0');
+        
+        if (type === 'first') {
+          document.getElementById('startDate').value = year + '-' + month + '-01';
+          document.getElementById('endDate').value = year + '-' + month + '-15';
+        } else if (type === 'second') {
+          var lastDayObj = new Date(year, now.getMonth() + 1, 0);
+          var lastDay = year + '-' + month + '-' + String(lastDayObj.getDate()).padStart(2, '0');
+          document.getElementById('startDate').value = year + '-' + month + '-16';
+          document.getElementById('endDate').value = lastDay;
+        }
+        fetchSummary();
+      }
+
+      function loadAccountOptions() {
+        google.script.run
+          .withSuccessHandler(function(accounts) {
+            var select = document.getElementById('assignedAccount');
+            var html = '';
+            accounts.forEach(function(acc) {
+              html += '<option value="' + escapeHtml(acc) + '">' + escapeHtml(acc) + '</option>';
+            });
+            select.innerHTML = html;
+          })
+          .getAccountList();
+      }
+
+      function fetchSummary() {
+        var start = document.getElementById('startDate').value;
+        var end = document.getElementById('endDate').value;
+        var container = document.getElementById('summaryCardContainer');
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div>';
+        
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) {
+              container.innerHTML = '<div style="text-align: center; padding: 20px; color: red; font-size: 0.85rem;">' + res.message + '</div>';
+              return;
+            }
+            var list = res.summary;
+            if (list.length === 0) {
+              container.innerHTML = '<div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">スタッフデータがありません</div>';
+              return;
+            }
+            var html = '';
+            list.forEach(function(item) {
+              html += '<div class="staff-card" id="card-' + item.staffId + '">';
+              html += '<div class="staff-header" onclick="toggleCard(\'card-' + item.staffId + '\')">';
+              html += '<div class="staff-info">';
+              html += '<h4>' + escapeHtml(item.staffName) + ' <span style="font-size:0.75rem; font-weight:normal; color:#666;">(' + escapeHtml(item.assignedAccount) + ')</span></h4>';
+              html += '<p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p>';
+              html += '</div>';
+              html += '<div class="staff-summary-badge">';
+              html += '<div class="badge-main">交通費: ¥' + item.totalCost.toLocaleString() + '</div>';
+              html += '<div class="badge-sub">休憩合計: ' + item.totalBreakHoursStr + '</div>';
+              html += '<div style="font-size: 0.7rem; color: #888; margin-top:2px;">詳細 ▼</div>';
+              html += '</div>';
+              html += '</div>';
+              
+              html += '<div class="staff-details">';
+              if (item.records.length === 0) {
+                html += '<p style="font-size:0.8rem; color:#888; text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
+              } else {
+                html += '<table>';
+                html += '<thead><tr><th>勤務日</th><th>時間</th><th>休憩</th><th>交通費</th></tr></thead>';
+                html += '<tbody>';
+                item.records.forEach(function(rec) {
+                  html += '<tr>';
+                  html += '<td>' + rec.workDate + '</td>';
+                  html += '<td>' + rec.startTime + ' 〜 ' + rec.endTime + '</td>';
+                  html += '<td>' + rec.breakTime + '分</td>';
+                  html += '<td>¥' + rec.transportCost.toLocaleString() + '</td>';
+                  html += '</tr>';
+                });
+                html += '</tbody>';
+                html += '</table>';
+              }
+              html += '</div>';
+              html += '</div>';
+            });
+            container.innerHTML = html;
+          })
+          .getKintaiSummary(start, end);
+      }
+
+      function toggleCard(cardId) {
+        var card = document.getElementById(cardId);
+        card.classList.toggle('open');
+      }
+
+      function registerStaff() {
+        var formData = {
+          staffName: document.getElementById('staffName').value,
+          lineUserId: document.getElementById('lineUserId').value,
+          assignedAccount: document.getElementById('assignedAccount').value
+        };
+        if (!formData.staffName || !formData.lineUserId) {
+          alert('スタッフ氏名とLINEユーザーIDは必須です。');
+          return;
+        }
+        var btn = event.target;
+        btn.disabled = true;
+        btn.innerText = '登録中...';
+        google.script.run
+          .withSuccessHandler(function(response) {
+            if (response.success) {
+              alert(response.message);
+              document.getElementById('staffForm').reset();
+              loadStaffList();
+              fetchSummary();
+            } else {
+              alert(response.message);
+            }
+            btn.disabled = false;
+            btn.innerText = 'スタッフを登録して専用URLを発行';
+          })
+          .registerNewStaff(formData);
+      }
+
+      function copyUrl(url) {
+        navigator.clipboard.writeText(url).then(function() {
+          alert('専用URLをコピーしました！');
+        });
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>'"]/g, function(tag) {
+          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+          return chars[tag] || tag;
+        });
+      }
+    </script>
+  </body>
+</html>
