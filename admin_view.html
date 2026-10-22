@@ -352,22 +352,37 @@
         }));
       }
 
-      function onDragOver(event) { event.preventDefault(); }
-
-      function onDragEnter(event) {
-        event.preventDefault();
-        var target = event.target.closest('.cal-cell') || event.target.closest('.list-row');
-        if (target && !target.classList.contains('other-month')) target.classList.add('drag-over');
+      function onDragStart(event, staffId, staffName, displayChar) {
+        event.dataTransfer.setData('text/plain', JSON.stringify({
+          staffId: staffId,
+          staffName: staffName,
+          displayChar: displayChar
+        }));
       }
 
-      function onDragLeave(event) {
+      // 🔄 修正：ドラッグ中のチラつきを完全に防ぐスムーズなハイライト制御
+      function onDragOver(event) {
+        event.preventDefault();
+        
+        // 一度すべての枠から drag-over を外す
+        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) {
+          el.classList.remove('drag-over');
+        });
+
+        // 現在マウスがあるセル（または行）だけに drag-over を付与する
         var target = event.target.closest('.cal-cell') || event.target.closest('.list-row');
-        if (target) target.classList.remove('drag-over');
+        if (target && !target.classList.contains('other-month')) {
+          target.classList.add('drag-over');
+        }
       }
 
       function onDrop(event, dateStr) {
         event.preventDefault();
-        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
+        // ドロップ時にすべてのハイライトを消去
+        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) {
+          el.classList.remove('drag-over');
+        });
+
         var dataStr = event.dataTransfer.getData('text/plain');
         if (!dataStr) return;
         var data = JSON.parse(dataStr);
