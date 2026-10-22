@@ -458,8 +458,9 @@
                       break;
                     }
                   }
-                  html += '<div class="shift-badge" onclick="event.stopPropagation(); removeShift(\'' + dateStr + '\', \'' + sh.staffId + '\')" title="クリックで削除: ' + escapeHtml(sh.staffName) + '">';
-                  html += escapeHtml(dispChar) + '<span class="del-x">×</span>';
+                  html += '<div class="shift-badge" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
+                  html += '<span>' + escapeHtml(dispChar) + '</span>';
+                  html += '<span class="del-x" style="cursor:pointer; margin-left:2px; font-weight:bold;" onclick="event.stopPropagation(); removeShift(\'' + dateStr + '\', \'' + sh.staffId + '\')">×</span>';
                   html += '</div>';
                 });
               }
