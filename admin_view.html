@@ -558,10 +558,10 @@
                   break;
                 }
               }
-              html += '<div class="shift-badge" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
-              html += '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="event.stopPropagation(); removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-              html += '</div>';
+              html += '<div class="shift-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
+html += '<span>' + escapeHtml(dispChar) + '</span>';
+html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+html += '</div>';
             });
           }
 
@@ -628,10 +628,10 @@
                   break;
                 }
               }
-              html += '<div class="shift-badge" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
-              html += '<span>' + escapeHtml(sh.staffName) + ' [' + escapeHtml(dispChar) + ']</span>';
-              html += '<span class="del-x" onclick="event.stopPropagation(); removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-              html += '</div>';
+              html += '<div class="shift-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
+html += '<span>' + escapeHtml(sh.staffName) + ' [' + escapeHtml(dispChar) + ']</span>';
+html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+html += '</div>';
             });
           }
 
