@@ -39,7 +39,6 @@
       .calendar-controls-left { display: flex; gap: 8px; align-items: center; }
       .calendar-controls-right { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
       
-      /* ビュー切り替えタブボタン */
       .view-tabs { display: flex; gap: 4px; background: #eaeded; padding: 3px; border-radius: 6px; }
       .view-tab-btn { background: transparent; color: #555; border: none; padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; margin-top: 0; width: auto; font-weight: bold; }
       .view-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -54,9 +53,9 @@
       .cal-header-cell:nth-child(1) { color: #c0392b; }
       .cal-header-cell:nth-child(7) { color: #2980b9; }
       
-      .cal-cell { min-height: 80px; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; box-sizing: border-box; position: relative; transition: background 0.15s, border-color 0.15s; }
+      .cal-cell { min-height: 80px; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; box-sizing: border-box; position: relative; transition: background 0.1s; }
       .cal-cell.other-month { background: #f9f9f9; opacity: 0.5; }
-      .cal-cell.closed-day { background: #e5e7eb !important; border: 1px dashed #9ca3af !important; } /* 休業日の背景色 */
+      .cal-cell.closed-day { background: #e5e7eb !important; border: 1px dashed #9ca3af !important; }
       .cal-cell.drag-over { background: #e8f8f5 !important; border: 2px dashed #27ae60 !important; }
       
       .cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
@@ -68,7 +67,7 @@
 
       /* 縦並びリスト形式用スタイル */
       .list-view-container { display: flex; flex-direction: column; gap: 4px; }
-      .list-row { display: flex; align-items: center; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px 10px; min-height: 45px; transition: background 0.15s, border-color 0.15s; box-sizing: border-box; }
+      .list-row { display: flex; align-items: center; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px 10px; min-height: 45px; transition: background 0.1s; box-sizing: border-box; }
       .list-row.closed-day { background: #e5e7eb !important; border: 1px dashed #9ca3af !important; }
       .list-row.drag-over { background: #e8f8f5 !important; border: 2px dashed #27ae60 !important; }
       .list-date-col { width: 180px; font-weight: bold; font-size: 0.85rem; color: #333; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -103,14 +102,12 @@
   <body>
     <h2>🛠️ 管理者ダッシュボード</h2>
     
-    <!-- 📅 シフト予定カレンダー作成カード -->
     <div class="card">
       <div class="calendar-controls">
         <div class="calendar-controls-left">
           <h3 style="margin:0;">📅 シフト予定管理</h3>
           <input type="month" id="calendarMonth" onchange="loadCalendar()" style="width: 140px; padding: 4px;">
           
-          <!-- 🔀 表示形式切替タブ -->
           <div class="view-tabs">
             <button id="tabGrid" class="view-tab-btn active" onclick="switchView('grid')">📅 格子カレンダー</button>
             <button id="tabList" class="view-tab-btn" onclick="switchView('list')">📋 縦並びリスト</button>
@@ -125,12 +122,11 @@
 
       <label style="margin-top: 10px;">スタッフパレット (ドラッグ＆ドロップまたはクリックで配置)</label>
       <div id="staffChipsContainer" class="staff-chips">
-        <!-- 動的読み込み -->
+        <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
       </div>
 
-      <p style="font-size: 0.75rem; color: #888; margin: 4px 0 8px 0;">💡 スタッフを選ばずに日付枠をクリックすると、その日を<b>「休業日（オフ）」</b>に切り替えられます。スタッフを選んだ状態でクリックするとシフトが配置されます。</p>
+      <p style="font-size: 0.75rem; color: #888; margin: 4px 0 8px 0;">💡 スタッフを選ばずに日付枠をクリックすると休業日を切り替えられます。スタッフを選択してクリックするとシフトが配置されます。</p>
 
-      <!-- 📅 格子カレンダービュー -->
       <div class="cal-grid" id="calendarGrid">
         <div class="cal-header-cell">日</div>
         <div class="cal-header-cell">月</div>
@@ -141,13 +137,10 @@
         <div class="cal-header-cell">土</div>
       </div>
 
-      <!-- 📋 縦並びリストビュー -->
-      <div id="calendarList" class="list-view-container" style="display: none;">
-        <!-- リスト行がここに動的生成されます -->
-      </div>
+      <div id="calendarList" class="list-view-container" style="display: none;"></div>
     </div>
 
-    <!-- 選択用ポップアップモーダル -->
+    <!-- モーダル・その他カードの定義は省略せず記述 -->
     <div id="shiftModal" class="modal-overlay">
       <div class="modal-content">
         <h4 id="modalTitle">シフト配置の確認</h4>
@@ -160,69 +153,36 @@
       </div>
     </div>
     
-    <!-- 📊 期間別 勤怠集計カード -->
     <div class="card">
       <h3>📊 月半期別 勤怠集計＆詳細確認</h3>
       <div class="flex-row">
-        <div class="flex-col">
-          <label>開始日</label>
-          <input type="date" id="startDate">
-        </div>
-        <div class="flex-col">
-          <label>終了日</label>
-          <input type="date" id="endDate">
-        </div>
+        <div class="flex-col"><label>開始日</label><input type="date" id="startDate"></div>
+        <div class="flex-col"><label>終了日</label><input type="date" id="endDate"></div>
       </div>
-      
       <div class="quick-btns">
         <button type="button" onclick="setPeriod('first')">📅 今月 前半 (1日〜15日)</button>
         <button type="button" onclick="setPeriod('second')">📅 今月 後半 (16日〜末日)</button>
       </div>
-
       <button class="search-btn" onclick="fetchSummary()">この期間で集計する</button>
-      
-      <p style="font-size: 0.75rem; color: #888; margin: 10px 0 4px 0;">👇 スタッフ名をタップすると日別の勤務詳細が開きます</p>
-      
-      <div id="summaryCardContainer" style="margin-top: 6px;">
-        <div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div>
-      </div>
+      <div id="summaryCardContainer" style="margin-top: 6px;"><div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div></div>
     </div>
 
-    <!-- 新規スタッフ登録カード -->
     <div class="card">
       <h3>➕ 新規スタッフ登録 ＆ URL発行</h3>
       <form id="staffForm">
-        <label>スタッフ氏名</label>
-        <input type="text" id="staffName" placeholder="例: 山田 花子" required>
-        
-        <label>LINEユーザーID (Uから始まる文字列)</label>
-        <input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
-        
-        <label>割当LINEアカウント</label>
-        <select id="assignedAccount">
-          <!-- 動的読み込み -->
-        </select>
-        
+        <label>スタッフ氏名</label><input type="text" id="staffName" placeholder="例: 山田 花子" required>
+        <label>LINEユーザーID</label><input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
+        <label>割当LINEアカウント</label><select id="assignedAccount"></select>
         <button type="button" onclick="registerStaff()">スタッフを登録して専用URLを発行</button>
       </form>
     </div>
 
-    <!-- 登録済みスタッフ一覧カード -->
     <div class="card">
       <h3>📋 登録済みスタッフ一覧</h3>
       <div style="overflow-x: auto;">
         <table>
-          <thead>
-            <tr>
-              <th>名前</th>
-              <th>アカウント</th>
-              <th>個別URL</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="staffTableBody">
-            <tr><td colspan="4" style="text-align: center;">読み込み中...</td></tr>
-          </tbody>
+          <thead><tr><th>名前</th><th>アカウント</th><th>個別URL</th><th>操作</th></tr></thead>
+          <tbody id="staffTableBody"><tr><td colspan="4" style="text-align: center;">読み込み中...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -231,7 +191,7 @@
       var cachedStaffList = [];
       var cachedShiftsData = []; 
       var cachedHolidaysMap = {}; 
-      var cachedClosedDays = []; // 休業日データキャッシュ
+      var cachedClosedDays = []; 
       var selectedStaffForClick = null;
       var pendingPlacement = null;
       var currentViewMode = 'grid'; 
@@ -271,10 +231,7 @@
 
       function openPrintPreview(size) {
         var ym = document.getElementById('calendarMonth').value;
-        if (!ym) {
-          alert('対象月を選択してください。');
-          return;
-        }
+        if (!ym) { alert('対象月を選択してください。'); return; }
         var parts = ym.split('-');
         var titleText = parts[0] + '年 ' + Number(parts[1]) + '月度 アルバイト勤務シフト予定表';
         
@@ -285,9 +242,7 @@
         var fontSizeNum = (size === 'A4') ? '0.8rem' : '1rem';
         var fontSizeBadge = (size === 'A4') ? '0.75rem' : '0.9rem';
 
-        printWin.document.write('<!DOCTYPE html><html><head>');
-        printWin.document.write('<meta charset="utf-8">');
-        printWin.document.write('<title>' + titleText + '</title>');
+        printWin.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titleText + '</title>');
         printWin.document.write('<style>');
         printWin.document.write('@page { size: ' + size + ' landscape; margin: 10mm; }');
         printWin.document.write('body { font-family: sans-serif; margin: 0; padding: 5px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; box-sizing: border-box; }');
@@ -305,15 +260,12 @@
         printWin.document.write('.holiday-name { font-size: 0.6rem; color: #c0392b; font-weight: bold; }');
         printWin.document.write('.closed-label { font-size: 0.6rem; color: #4b5563; font-weight: bold; background: #d1d5db; padding: 1px 4px; border-radius: 3px; }');
         printWin.document.write('.shift-badge-container { display: flex; flex-wrap: wrap; gap: 4px; }');
-        printWin.document.write('.shift-badge { background: #27ae60 !important; color: white !important; font-size: ' + fontSizeBadge + '; padding: 3px 6px; border-radius: 4px; display: inline-flex; align-items: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }');
+        printWin.document.write('.shift-badge { background: #27ae60 !important; color: white !important; font-size: ' + fontSizeBadge + '; padding: 3px 6px; border-radius: 4px; display: inline-flex; align-items: center; }');
         printWin.document.write('.del-x { display: none; }');
-        printWin.document.write('</style>');
-        printWin.document.write('</head><body>');
+        printWin.document.write('</style></head><body>');
         printWin.document.write('<h2>' + titleText + '</h2>');
         printWin.document.write(gridHtml);
-        printWin.document.write('<script>');
-        printWin.document.write('window.onload = function() { window.print(); window.close(); };');
-        printWin.document.write('<\/script>');
+        printWin.document.write('<script>window.onload = function() { window.print(); window.close(); };<\/script>');
         printWin.document.write('</body></html>');
         printWin.document.close();
       }
@@ -365,31 +317,22 @@
         }));
       }
 
-      function onDragOver(event) {
-        event.preventDefault();
-      }
+      function onDragOver(event) { event.preventDefault(); }
 
       function onDragEnter(event) {
         event.preventDefault();
         var target = event.target.closest('.cal-cell') || event.target.closest('.list-row');
-        if (target && !target.classList.contains('other-month')) {
-          target.classList.add('drag-over');
-        }
+        if (target && !target.classList.contains('other-month')) target.classList.add('drag-over');
       }
 
       function onDragLeave(event) {
         var target = event.target.closest('.cal-cell') || event.target.closest('.list-row');
-        if (target) {
-          target.classList.remove('drag-over');
-        }
+        if (target) target.classList.remove('drag-over');
       }
 
       function onDrop(event, dateStr) {
         event.preventDefault();
-        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) {
-          el.classList.remove('drag-over');
-        });
-
+        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
         var dataStr = event.dataTransfer.getData('text/plain');
         if (!dataStr) return;
         var data = JSON.parse(dataStr);
@@ -402,7 +345,7 @@
         
         if (selectedStaffForClick && selectedStaffForClick.staffId === staffId) {
           selectedStaffForClick = null;
-          alert('配置選択を解除しました（この状態で日付をクリックすると「休業日」の切り替えができます）');
+          alert('配置選択を解除しました');
         } else {
           selectedStaffForClick = { staffId: staffId, staffName: staffName, displayChar: displayChar };
           elem.style.border = '2px solid #e74c22';
@@ -410,21 +353,22 @@
         }
       }
 
-      // 日付枠クリック時の挙動：スタッフ未選択なら「休業日切替」、選択中なら「シフト配置」
+      // ⚡ 超高速化：クリック時に画面上の見た目を即座に変更し、裏でサーバーと通信する
       function onCellClick(dateStr) {
         if (selectedStaffForClick) {
           openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
         } else {
-          // スタッフ未選択時は休業日をトグル
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.success) {
-                loadCalendar();
-              } else {
-                alert(res.message);
-              }
-            })
-            .toggleClosedDay({ workDate: dateStr });
+          // 1. ローカルのキャッシュを瞬時に書き換えて再描画（画面のもたつきをゼロにする）
+          var index = cachedClosedDays.indexOf(dateStr);
+          if (index !== -1) {
+            cachedClosedDays.splice(index, 1);
+          } else {
+            cachedClosedDays.push(dateStr);
+          }
+          renderCurrentView(); // 即座に画面に反映！
+
+          // 2. 裏で非同期にサーバー側を更新
+          google.script.run.toggleClosedDay({ workDate: dateStr });
         }
       }
 
@@ -446,24 +390,19 @@
         closeModal();
 
         if (mode === 'single') {
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.success) loadCalendar();
-              else alert(res.message);
-            })
-            .saveShift({ workDate: p.dateStr, staffId: p.staffId, staffName: p.staffName });
+          // ⚡ ローカル即時反映
+          var tempId = "temp_" + Math.random();
+          if (!cachedShiftsData.some(function(s) { return s.workDate === p.dateStr && s.staffId === p.staffId; })) {
+            cachedShiftsData.push({ shiftId: tempId, workDate: p.dateStr, staffId: p.staffId, staffName: p.staffName });
+            renderCurrentView();
+          }
+          google.script.run.withSuccessHandler(function() { loadCalendar(); }).saveShift({ workDate: p.dateStr, staffId: p.staffId, staffName: p.staffName });
         } else if (mode === 'weekly') {
           var dates = getSameDayOfWeekInMonth(p.dateStr);
           var shiftPayloads = dates.map(function(dStr) {
             return { workDate: dStr, staffId: p.staffId, staffName: p.staffName };
           });
-
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.success) loadCalendar();
-              else alert(res.message);
-            })
-            .saveShiftsBatch(shiftPayloads);
+          google.script.run.withSuccessHandler(function() { loadCalendar(); }).saveShiftsBatch(shiftPayloads);
         }
       }
 
@@ -472,7 +411,6 @@
         var targetDayOfWeek = targetDate.getDay();
         var year = targetDate.getFullYear();
         var month = targetDate.getMonth();
-        
         var dates = [];
         var lastDay = new Date(year, month + 1, 0).getDate();
         
@@ -487,31 +425,23 @@
         return dates;
       }
 
+      // ⚡ 削除も即時反映
       function removeShiftById(shiftId) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.success) {
-              loadCalendar();
-            } else {
-              alert(res.message);
-            }
-          })
-          .deleteShiftById(shiftId);
+        cachedShiftsData = cachedShiftsData.filter(function(s) { return s.shiftId !== shiftId; });
+        renderCurrentView();
+        google.script.run.deleteShiftById(shiftId);
       }
 
       function loadCalendar() {
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
 
-        // 祝日、休業日、シフトデータを順番に取得して描画
         google.script.run
           .withSuccessHandler(function(holidayRes) {
             cachedHolidaysMap = holidayRes.success ? holidayRes.holidays : {};
-            
             google.script.run
               .withSuccessHandler(function(closedRes) {
                 cachedClosedDays = closedRes.success ? closedRes.closedDays : [];
-                
                 google.script.run
                   .withSuccessHandler(function(shiftRes) {
                     cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
@@ -532,7 +462,6 @@
         }
       }
 
-      // 📅 格子カレンダーの描画
       function renderGridCalendar() {
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
@@ -556,7 +485,6 @@
         var lastDayObj = new Date(year, month, 0);
         var firstDayOfWeek = firstDayObj.getDay();
         var totalDays = lastDayObj.getDate();
-
         var prevLastDayObj = new Date(year, month - 1, 0);
         var prevLastDay = prevLastDayObj.getDate();
 
@@ -582,12 +510,8 @@
           html += '<div class="' + cellClass + '" ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
           html += '<div class="cal-date-header">';
           html += '<span class="' + dateNumClass + '">' + day + '</span>';
-          if (holidayName) {
-            html += '<span class="holiday-name">' + escapeHtml(holidayName) + '</span>';
-          }
-          if (isClosed) {
-            html += '<span class="closed-label">休業日</span>';
-          }
+          if (holidayName) html += '<span class="holiday-name">' + escapeHtml(holidayName) + '</span>';
+          if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
           html += '<div class="shift-badge-container">';
 
@@ -619,7 +543,6 @@
         grid.innerHTML = html;
       }
 
-      // 📋 縦並びリストカレンダーの描画
       function renderListCalendar() {
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
@@ -636,7 +559,6 @@
         var lastDayObj = new Date(year, month, 0);
         var totalDays = lastDayObj.getDate();
         var weekDays = ["日", "月", "火", "水", "木", "金", "土"];
-        
         var listContainer = document.getElementById('calendarList');
         var html = '';
 
@@ -689,7 +611,6 @@
         var now = new Date();
         var year = now.getFullYear();
         var month = String(now.getMonth() + 1).padStart(2, '0');
-        
         if (type === 'first') {
           document.getElementById('startDate').value = year + '-' + month + '-01';
           document.getElementById('endDate').value = year + '-' + month + '-15';
@@ -703,16 +624,12 @@
       }
 
       function loadAccountOptions() {
-        google.script.run
-          .withSuccessHandler(function(accounts) {
-            var select = document.getElementById('assignedAccount');
-            var html = '';
-            accounts.forEach(function(acc) {
-              html += '<option value="' + escapeHtml(acc) + '">' + escapeHtml(acc) + '</option>';
-            });
-            select.innerHTML = html;
-          })
-          .getAccountList();
+        google.script.run.withSuccessHandler(function(accounts) {
+          var select = document.getElementById('assignedAccount');
+          var html = '';
+          (accounts || []).forEach(function(acc) { html += '<option value="' + escapeHtml(acc) + '">' + escapeHtml(acc) + '</option>'; });
+          select.innerHTML = html;
+        }).getAccountList();
       }
 
       function fetchSummary() {
@@ -721,101 +638,53 @@
         var container = document.getElementById('summaryCardContainer');
         container.innerHTML = '<div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div>';
         
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (!res.success) {
-              container.innerHTML = '<div style="text-align: center; padding: 20px; color: red; font-size: 0.85rem;">' + res.message + '</div>';
-              return;
+        google.script.run.withSuccessHandler(function(res) {
+          if (!res.success) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: red; font-size: 0.85rem;">' + res.message + '</div>'; return; }
+          var list = res.summary;
+          if (list.length === 0) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">スタッフデータがありません</div>'; return; }
+          var html = '';
+          list.forEach(function(item) {
+            html += '<div class="staff-card" id="card-' + item.staffId + '">';
+            html += '<div class="staff-header" onclick="toggleCard(\'card-' + item.staffId + '\')">';
+            html += '<div class="staff-info"><h4>' + escapeHtml(item.staffName) + ' (' + escapeHtml(item.assignedAccount) + ')</h4><p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p></div>';
+            html += '<div class="staff-summary-badge"><div class="badge-main">交通費: ¥' + item.totalCost.toLocaleString() + '</div><div class="badge-sub">休憩合計: ' + item.totalBreakHoursStr + '</div><div style="font-size: 0.7rem; color: #888; margin-top:2px;">詳細 ▼</div></div></div>';
+            html += '<div class="staff-details">';
+            if (item.records.length === 0) {
+              html += '<p style="font-size:0.8rem; color:#888; text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
+            } else {
+              html += '<table><thead><tr><th>勤務日</th><th>時間</th><th>休憩</th><th>交通費</th></tr></thead><tbody>';
+              item.records.forEach(function(rec) {
+                html += '<tr><td>' + rec.workDate + '</td><td>' + rec.startTime + ' 〜 ' + rec.endTime + '</td><td>' + rec.breakTime + '分</td><td>¥' + rec.transportCost.toLocaleString() + '</td></tr>';
+              });
+              html += '</tbody></table>';
             }
-            var list = res.summary;
-            if (list.length === 0) {
-              container.innerHTML = '<div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">スタッフデータがありません</div>';
-              return;
-            }
-            var html = '';
-            list.forEach(function(item) {
-              html += '<div class="staff-card" id="card-' + item.staffId + '">';
-              html += '<div class="staff-header" onclick="toggleCard(\'card-' + item.staffId + '\')">';
-              html += '<div class="staff-info">';
-              html += '<h4>' + escapeHtml(item.staffName) + ' <span style="font-size:0.75rem; font-weight:normal; color:#666;">(' + escapeHtml(item.assignedAccount) + ')</span></h4>';
-              html += '<p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p>';
-              html += '</div>';
-              html += '<div class="staff-summary-badge">';
-              html += '<div class="badge-main">交通費: ¥' + item.totalCost.toLocaleString() + '</div>';
-              html += '<div class="badge-sub">休憩合計: ' + item.totalBreakHoursStr + '</div>';
-              html += '<div style="font-size: 0.7rem; color: #888; margin-top:2px;">詳細 ▼</div>';
-              html += '</div>';
-              html += '</div>';
-              
-              html += '<div class="staff-details">';
-              if (item.records.length === 0) {
-                html += '<p style="font-size:0.8rem; color:#888; text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
-              } else {
-                html += '<table>';
-                html += '<thead><tr><th>勤務日</th><th>時間</th><th>休憩</th><th>交通費</th></tr></thead>';
-                html += '<tbody>';
-                item.records.forEach(function(rec) {
-                  html += '<tr>';
-                  html += '<td>' + rec.workDate + '</td>';
-                  html += '<td>' + rec.startTime + ' 〜 ' + rec.endTime + '</td>';
-                  html += '<td>' + rec.breakTime + '分</td>';
-                  html += '<td>¥' + rec.transportCost.toLocaleString() + '</td>';
-                  html += '</tr>';
-                });
-                html += '</tbody>';
-                html += '</table>';
-              }
-              html += '</div>';
-              html += '</div>';
-            });
-            container.innerHTML = html;
-          })
-          .getKintaiSummary(start, end);
+            html += '</div></div>';
+          });
+          container.innerHTML = html;
+        }).getKintaiSummary(start, end);
       }
 
-      function toggleCard(cardId) {
-        var card = document.getElementById(cardId);
-        card.classList.toggle('open');
-      }
+      function toggleCard(cardId) { document.getElementById(cardId).classList.toggle('open'); }
 
       function registerStaff() {
-        var formData = {
-          staffName: document.getElementById('staffName').value,
-          lineUserId: document.getElementById('lineUserId').value,
-          assignedAccount: document.getElementById('assignedAccount').value
-        };
-        if (!formData.staffName || !formData.lineUserId) {
-          alert('スタッフ氏名とLINEユーザーIDは必須です。');
-          return;
-        }
+        var formData = { staffName: document.getElementById('staffName').value, lineUserId: document.getElementById('lineUserId').value, assignedAccount: document.getElementById('assignedAccount').value };
+        if (!formData.staffName || !formData.lineUserId) { alert('スタッフ氏名とLINEユーザーIDは必須です。'); return; }
         var btn = event.target;
-        btn.disabled = true;
-        btn.innerText = '登録中...';
-        google.script.run
-          .withSuccessHandler(function(response) {
-            if (response.success) {
-              alert(response.message);
-              document.getElementById('staffForm').reset();
-              loadStaffList();
-              fetchSummary();
-            } else {
-              alert(response.message);
-            }
-            btn.disabled = false;
-            btn.innerText = 'スタッフを登録して専用URLを発行';
-          })
-          .registerNewStaff(formData);
+        btn.disabled = true; btn.innerText = '登録中...';
+        google.script.run.withSuccessHandler(function(response) {
+          if (response.success) { alert(response.message); document.getElementById('staffForm').reset(); loadStaffList(); fetchSummary(); }
+          else { alert(response.message); }
+          btn.disabled = false; btn.innerText = 'スタッフを登録して専用URLを発行';
+        }).registerNewStaff(formData);
       }
 
       function copyUrl(url) {
-        navigator.clipboard.writeText(url).then(function() {
-          alert('専用URLをコピーしました！');
-        });
+        navigator.clipboard.writeText(url).then(function() { alert('専用URLをコピーしました！'); });
       }
 
       function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>'"]/g, function(tag) {
+        return String(str).replace(/[&<>'"]/g, function(tag) {
           var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
           return chars[tag] || tag;
         });

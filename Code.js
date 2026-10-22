@@ -667,7 +667,7 @@ function getClosedDays(yearMonth) {
 }
 
 /**
- * 休業日のトグル（登録または解除）を行う関数
+ * 休業日の登録・解除を高速に行う関数
  */
 function toggleClosedDay(data) {
   try {
@@ -692,22 +692,20 @@ function toggleClosedDay(data) {
         existingDate.getMonth() === targetDate.getMonth() &&
         existingDate.getDate() === targetDate.getDate()
       ) {
-        rowIndex = i + 1; // スプレッドシートの行番号
+        rowIndex = i + 1;
         break;
       }
     }
     
     if (rowIndex !== -1) {
-      // すでに存在する場合は削除（休業日解除）
       sheet.deleteRow(rowIndex);
-      return { success: true, status: "removed", message: "営業日に戻しました" };
+      return { success: true, status: "removed" };
     } else {
-      // 存在しない場合は追加（休業日設定）
       var holidayId = "hol_" + Utilities.getUuid().substring(0, 8);
       sheet.appendRow([holidayId, targetDateStr]);
-      return { success: true, status: "added", message: "休業日に設定しました" };
+      return { success: true, status: "added" };
     }
   } catch (error) {
-    return { success: false, message: "エラー: " + error.message };
+    return { success: false, message: error.message };
   }
 }
