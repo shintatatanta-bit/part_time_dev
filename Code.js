@@ -16,7 +16,7 @@ function doGet(e) {
   }
   
   return template.evaluate()
-    .setTitle("アルバイト勤怠管理システム")
+    .setTitle("アルバイト勤怠管理システム [v1.1 - 10/22更新]") // ←ここに更新が分かる目印を入れました！
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
@@ -175,7 +175,7 @@ function registerNewStaff(formData) {
 }
 
 /**
- * 登録されている全スタッフのリストを取得する関数
+ * 登録されている全スタッフのリストを取得する関数（重複を整理し、最新版に一本化）
  */
 function getStaffList() {
   try {
@@ -188,19 +188,21 @@ function getStaffList() {
     
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
-      if (row[0]) {
+      if (row[0]) { // スタッフIDが存在するもの
         staffList.push({
           staffId: row[0],
           staffName: row[1],
           lineUserId: row[2],
           assignedAccount: row[3],
           status: row[4],
-          staffUrl: row[6] || ""
+          staffUrl: row[6] || "",
+          displayChar: row[7] || row[1].substring(0, 1) // H列(index 7)の文字。空欄なら名前の頭文字
         });
       }
     }
     return staffList;
   } catch (error) {
+    Logger.log("スタッフ一覧取得エラー: " + error.message);
     return [];
   }
 }
@@ -467,39 +469,6 @@ function saveShift(data) {
     return { success: true, message: "シフトを配置しました！" };
   } catch (error) {
     return { success: false, message: "保存エラー: " + error.message };
-  }
-}
-
-/**
- * 登録されている全スタッフのリストをスプレッドシートから取得する関数
- */
-function getStaffList() {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("スタッフマスタ");
-    if (!sheet) return [];
-    
-    var data = sheet.getDataRange().getValues();
-    var staffList = [];
-    
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
-      if (row[0]) { // スタッフIDが存在するもの
-        staffList.push({
-          staffId: row[0],
-          staffName: row[1],
-          lineUserId: row[2],
-          assignedAccount: row[3],
-          status: row[4],
-          staffUrl: row[6] || "",
-          displayChar: row[7] || row[1].substring(0, 1) // H列(index 7)の文字。空欄なら名前の頭文字
-        });
-      }
-    }
-    return staffList;
-  } catch (error) {
-    Logger.log("スタッフ一覧取得エラー: " + error.message);
-    return [];
   }
 }
 
