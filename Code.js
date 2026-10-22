@@ -709,3 +709,75 @@ function toggleClosedDay(data) {
     return { success: false, message: error.message };
   }
 }
+
+/**
+ * シフト予定と休業日のデータを一括で保存（上書き）する関数
+ */
+function saveAllSchedules(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var yearMonth = data.yearMonth; // 例: "2026-11"
+    
+    // 1. シフト予定の保存処理
+    var shiftSheet = ss.getSheetByName("シフト予定");
+    if (!shiftSheet) {
+      shiftSheet = ss.insertSheet("シフト予定");
+      shiftSheet.appendRow(["shiftId", "workDate", "staffId", "staffName"]);
+    }
+    
+    var shiftData = shiftSheet.getDataRange().getValues();
+    var newShiftRows = [shiftData[0]]; // ヘッダー保持
+    
+    for (var i = 1; i < shiftData.length; i++) {
+      var rDate = new Date(shiftData[i][1]);
+      if (isNaN(rDate.getTime())) continue;
+      var rYm = rDate.getFullYear() + '-' + ('0' + (rDate.getMonth() + 1)).slice(-2);
+      if (rYm !== yearMonth) {
+        newShiftRows.push(shiftData[i]); // 他月のデータは保持
+      }
+    }
+    
+    (data.shifts || []).forEach(function(sh) {
+      var sId = "shift_" + Utilities.getUuid().substring(0, 8);
+      newShiftRows.push([sId, sh.workDate, sh.staffId, sh.staffName]);
+    });
+    
+    shiftSheet.clearContents();
+    if (newShiftRows.length > 0) {
+      shiftSheet.getRange(1, 1, newShiftRows.length, newShiftRows[0].length).setValues(newShiftRows);
+    }
+    
+    // 2. 休業日の保存処理
+    var holSheet = ss.getSheetByName("休業日");
+    if (!holSheet) {
+      holSheet = ss.insertSheet("休業日");
+      holSheet.appendRow(["holidayId", "workDate"]);
+    }
+    
+    var holData = holSheet.getDataRange().getValues();
+    var newHolRows = [holData[0]]; // ヘッダー保持
+    
+    for (var j = 1; j < holData.length; j++) {
+      var hDate = new Date(holData[j][1]);
+      if (isNaN(hDate.getTime())) continue;
+      var hYm = hDate.getFullYear() + '-' + ('0' + (hDate.getMonth() + 1)).slice(-2);
+      if (hYm !== yearMonth) {
+        newHolRows.push(holData[j]); // 他月の休業日は保持
+      }
+    }
+    
+    (data.closedDays || []).forEach(function(cDate) {
+      var hId = "hol_" + Utilities.getUuid().substring(0, 8);
+      newHolRows.push([hId, cDate]);
+    });
+    
+    holSheet.clearContents();
+    if (newHolRows.length > 0) {
+      holSheet.getRange(1, 1, newHolRows.length, newHolRows[0].length).setValues(newHolRows);
+    }
+    
+    return { success: true, message: "変更内容をすべて保存しました！" };
+  } catch (error) {
+    return { success: false, message: "保存エラー: " + error.message };
+  }
+}

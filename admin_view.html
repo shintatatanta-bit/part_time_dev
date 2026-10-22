@@ -18,6 +18,11 @@
       button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       
+      /* 保存ボタン用スタイル */
+      .save-action-bar { background: #eef9f2; border: 2px solid #27ae60; padding: 10px 14px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .save-btn { background: #27ae60 !important; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; width: auto; margin-top: 0; font-size: 0.9rem; }
+      .save-btn:hover { background: #219653 !important; }
+
       .quick-btns { display: flex; gap: 8px; margin-top: 8px; }
       .quick-btns button { background: #95a5a6; margin-top: 0; font-size: 0.8rem; padding: 6px; }
       
@@ -120,6 +125,12 @@
         </div>
       </div>
 
+      <!-- 💾 保存アクションバー -->
+      <div class="save-action-bar">
+        <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容は「保存する」ボタンを押すまで確定しません。</span>
+        <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
+      </div>
+
       <label style="margin-top: 10px;">スタッフパレット (ドラッグ＆ドロップまたはクリックで配置)</label>
       <div id="staffChipsContainer" class="staff-chips">
         <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
@@ -140,7 +151,7 @@
       <div id="calendarList" class="list-view-container" style="display: none;"></div>
     </div>
 
-    <!-- モーダル・その他カードの定義は省略せず記述 -->
+    <!-- モーダル・その他カードの定義 -->
     <div id="shiftModal" class="modal-overlay">
       <div class="modal-content">
         <h4 id="modalTitle">シフト配置の確認</h4>
@@ -353,22 +364,18 @@
         }
       }
 
-      // ⚡ 超高速化：クリック時に画面上の見た目を即座に変更し、裏でサーバーと通信する
+      // クリック操作：スタッフ未選択なら休業日切替、選択中ならシフト配置モーダルへ
       function onCellClick(dateStr) {
         if (selectedStaffForClick) {
           openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
         } else {
-          // 1. ローカルのキャッシュを瞬時に書き換えて再描画（画面のもたつきをゼロにする）
           var index = cachedClosedDays.indexOf(dateStr);
           if (index !== -1) {
             cachedClosedDays.splice(index, 1);
           } else {
             cachedClosedDays.push(dateStr);
           }
-          renderCurrentView(); // 即座に画面に反映！
-
-          // 2. 裏で非同期にサーバー側を更新
-          google.script.run.toggleClosedDay({ workDate: dateStr });
+          renderCurrentView();
         }
       }
 
@@ -390,19 +397,20 @@
         closeModal();
 
         if (mode === 'single') {
-          // ⚡ ローカル即時反映
-          var tempId = "temp_" + Math.random();
+          var tempId = "local_" + Math.random();
           if (!cachedShiftsData.some(function(s) { return s.workDate === p.dateStr && s.staffId === p.staffId; })) {
             cachedShiftsData.push({ shiftId: tempId, workDate: p.dateStr, staffId: p.staffId, staffName: p.staffName });
             renderCurrentView();
           }
-          google.script.run.withSuccessHandler(function() { loadCalendar(); }).saveShift({ workDate: p.dateStr, staffId: p.staffId, staffName: p.staffName });
         } else if (mode === 'weekly') {
           var dates = getSameDayOfWeekInMonth(p.dateStr);
-          var shiftPayloads = dates.map(function(dStr) {
-            return { workDate: dStr, staffId: p.staffId, staffName: p.staffName };
+          dates.forEach(function(dStr) {
+            var tempId = "local_" + Math.random();
+            if (!cachedShiftsData.some(function(s) { return s.workDate === dStr && s.staffId === p.staffId; })) {
+              cachedShiftsData.push({ shiftId: tempId, workDate: dStr, staffId: p.staffId, staffName: p.staffName });
+            }
           });
-          google.script.run.withSuccessHandler(function() { loadCalendar(); }).saveShiftsBatch(shiftPayloads);
+          renderCurrentView();
         }
       }
 
@@ -425,11 +433,37 @@
         return dates;
       }
 
-      // ⚡ 削除も即時反映
+      // ローカルから即座に削除（保存ボタンを押すまで確定しない）
       function removeShiftById(shiftId) {
         cachedShiftsData = cachedShiftsData.filter(function(s) { return s.shiftId !== shiftId; });
         renderCurrentView();
-        google.script.run.deleteShiftById(shiftId);
+      }
+
+      // 💾 保存ボタン：一括してサーバーへ送信
+      function saveAllChanges() {
+        var ym = document.getElementById('calendarMonth').value;
+        if (!ym) { alert('対象月を選択してください。'); return; }
+
+        var btn = event.target;
+        btn.disabled = true;
+        btn.innerText = '保存中...';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              alert(res.message);
+              loadCalendar(); // 最新データを再読込
+            } else {
+              alert('保存失敗: ' + res.message);
+            }
+            btn.disabled = false;
+            btn.innerText = '💾 変更内容を保存する';
+          })
+          .saveAllSchedules({
+            yearMonth: ym,
+            shifts: cachedShiftsData,
+            closedDays: cachedClosedDays
+          });
       }
 
       function loadCalendar() {
