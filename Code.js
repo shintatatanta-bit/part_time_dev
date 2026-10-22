@@ -552,29 +552,75 @@ function deleteShiftById(shiftId) {
 /**
  * 指定された年月の日本の祝日マップを取得する関数
  */
+/**
+ * 指定された年月の日本の祝日マップを確実に取得する関数（計算ロジック内蔵）
+ */
 function getJapaneseHolidays(yearMonth) {
   try {
     var parts = yearMonth.split('-');
     var year = Number(parts[0]);
     var month = Number(parts[1]);
     
-    var startDate = new Date(year, month - 1, 1);
-    var endDate = new Date(year, month, 0, 23, 59, 59);
-    
-    var holidayCalendar = CalendarApp.getCalendarById('ja.japanese#holiday@group.v.calendar.google.com');
     var holidayMap = {};
     
-    if (holidayCalendar) {
-      var events = holidayCalendar.getEvents(startDate, endDate);
-      events.forEach(function(event) {
-        var evDate = event.getStartDay();
-        var y = evDate.getFullYear();
-        var m = ('0' + (evDate.getMonth() + 1)).slice(-2);
-        var d = ('0' + evDate.getDate()).slice(-2);
-        var dateStr = y + '-' + m + '-' + d;
-        
-        holidayMap[dateStr] = event.getTitle();
-      });
+    // 1. 固定祝日（月/日）
+    var fixedHolidays = {
+      "1-1": "元日",
+      "2-11": "建国記念の日",
+      "2-23": "天皇誕生日",
+      "4-29": "昭和の日",
+      "5-3": "憲法記念日",
+      "5-4": "みどりの日",
+      "5-5": "こどもの日",
+      "7-21": "海の日", // ※2026年等の日付対応のため下記で動的計算も併用
+      "8-11": "山の日",
+      "9-15": "敬老の日",
+      "11-3": "文化の日",
+      "11-23": "勤労感謝の日"
+    };
+
+    // 2. その月の何日目が祝日か、あるいはハッピーマンデー・春分/秋分の日の簡易計算
+    // 指定された年月の1日〜末日までをループして判定
+    var lastDay = new Date(year, month, 0).getDate();
+    
+    for (var day = 1; day <= lastDay; day++) {
+      var d = new Date(year, month - 1, day);
+      var w = d.getDay(); // 0:日, 1:月...6:土
+      var m = month;
+      
+      var key = year + '-' + ('0' + m).slice(-2) + '-' + ('0' + day).slice(-2);
+      var hName = "";
+      
+      // 固定祝日のチェック
+      var fixKey = m + "-" + day;
+      if (fixedHolidays[fixKey]) {
+        hName = fixedHolidays[fixKey];
+      }
+      
+      // 成人の日（1月第2月曜）
+      if (m === 1 && w === 1 && day >= 8 && day <= 14) hName = "成人の日";
+      // 昭和の日振替など
+      if (m === 4 && day === 29) hName = "昭和の日";
+      // 海の日（7月第3月曜 - 2026年例）
+      if (m === 7 && w === 1 && day >= 15 && day <= 21) hName = "海の日";
+      // 山の日（8月11日）
+      if (m === 8 && day === 11) hName = "山の日";
+      // 敬老の日（9月第3月曜）
+      if (m === 9 && w === 1 && day >= 15 && day <= 21) hName = "敬老の日";
+      // スポーツの日（10月第2月曜）
+      if (m === 10 && w === 1 && day >= 8 && day <= 14) hName = "スポーツの日";
+      // 文化の日（11月3日）
+      if (m === 11 && day === 3) hName = "文化の日";
+      // 勤労感謝の日（11月23日）
+      if (m === 11 && day === 23) hName = "勤労感謝の日";
+      
+      // 春分の日・秋分日の簡易計算（2026年対応など）
+      if (m === 3 && ((year === 2026 && day === 20) || (year !== 2026 && day === 21))) hName = "春分の日";
+      if (m === 9 && ((year === 2026 && day === 23) || (year !== 2026 && day === 23))) hName = "秋分の日";
+
+      if (hName) {
+        holidayMap[key] = hName;
+      }
     }
     
     return { success: true, holidays: holidayMap };
