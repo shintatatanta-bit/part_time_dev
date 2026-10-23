@@ -75,8 +75,14 @@
       .list-date-col.sun-or-hol { color: #c0392b; }
       .list-date-col.sat { color: #2980b9; }
       .list-holiday-label { font-size: 0.7rem; color: #c0392b; font-weight: normal; }
-      .list-badge-col { flex-grow: 1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 32px; }
+      /* 縦並びリスト用のレイアウト調整 */
+      .list-badge-col { flex-grow: 1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 32px; }
+      .list-section-free { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+      .list-section-shift { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; border-left: 2px solid #ddd; padding-left: 10px; }
 
+      /* 格子カレンダー用の上下配置コンテナ */
+      .cal-section-free { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 3px; }
+      .cal-section-shift { display: flex; flex-wrap: wrap; gap: 3px; border-top: 1px dotted #ccc; padding-top: 2px; }
       .shift-badge-container { display: flex; flex-wrap: wrap; gap: 3px; }
       .shift-badge { background: #27ae60; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
       .shift-badge .del-x { font-size: 0.65rem; opacity: 0.8; font-weight: bold; }
@@ -723,9 +729,9 @@
           if (holidayName) html += '<span class="holiday-name">' + escapeHtml(holidayName) + '</span>';
           if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
-          html += '<div class="shift-badge-container">';
 
-          // フリー予定のバッジ描画
+          // 📌 上段：フリー予定エリア
+          html += '<div class="cal-section-free">';
           if (freeMap[dateStr]) {
             freeMap[dateStr].forEach(function(fs) {
               html += '<div class="shift-badge" style="background: #e67e22;" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
@@ -734,7 +740,10 @@
               html += '</div>';
             });
           }
+          html += '</div>';
 
+          // 🟢 下段：シフトエリア
+          html += '<div class="cal-section-shift">';
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
@@ -751,8 +760,9 @@
               html += '</div>';
             });
           }
+          html += '</div>';
 
-          html += '</div></div>';
+          html += '</div>';
         }
 
         var totalCellsCount = firstDayOfWeek + totalDays;
