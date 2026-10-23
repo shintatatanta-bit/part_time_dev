@@ -725,7 +725,7 @@
           freeMap[f.workDate].push(f);
         });
 
-        // 📌 スタッフごとの希望日マップを作成
+        // 📌 スタッフごとの希望日マップを作成（staffIdをキーにする）
         var prefMap = {};
         cachedPreferencesData.forEach(function(pref) {
           pref.dates.forEach(function(dStr) {
@@ -801,6 +801,13 @@
 
           // 2. スタッフからの希望（薄い色・クリックで昇格）
           if (prefMap[dateStr]) {
+            // スタッフ順にソート
+            prefMap[dateStr].sort(function(a, b) {
+              var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
+              var idxB = cachedStaffList.findIndex(function(st) { return st.staffId === b.staffId; });
+              return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+            });
+
             prefMap[dateStr].forEach(function(pr) {
               var dispChar = pr.staffName.substring(0, 1);
               for (var s = 0; s < cachedStaffList.length; s++) {
@@ -926,6 +933,12 @@
 
           // 2. スタッフからの希望（薄い色・クリックで昇格）
           if (prefMap[dateStr]) {
+            prefMap[dateStr].sort(function(a, b) {
+              var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
+              var idxB = cachedStaffList.findIndex(function(st) { return st.staffId === b.staffId; });
+              return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+            });
+
             prefMap[dateStr].forEach(function(pr) {
               var dispChar = pr.staffName.substring(0, 1);
               for (var s = 0; s < cachedStaffList.length; s++) {
