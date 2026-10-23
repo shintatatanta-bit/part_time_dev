@@ -1471,6 +1471,25 @@
           alert(staffName + 'さんを選択しました。配置したい日付枠をタップしてください。');
         }
       }
+
+      // 💡 シフト配置用のモーダルを開く関数
+      function openModal(dateStr, staffId, staffName, displayChar) {
+        pendingPlacement = { dateStr: dateStr, staffId: staffId, staffName: staffName, displayChar: displayChar };
+        var titleEl = document.getElementById('modalTitle');
+        var descEl = document.getElementById('modalDesc');
+        var modalEl = document.getElementById('shiftModal');
+        
+        if (titleEl) titleEl.innerText = staffName + ' さんのシフト配置';
+        if (descEl) descEl.innerText = dateStr + ' の配置方法を選択してください。';
+        if (modalEl) modalEl.style.display = 'flex';
+      }
+
+      // 💡 モーダルを閉じる関数
+      function closeModal() {
+        var modalEl = document.getElementById('shiftModal');
+        if (modalEl) modalEl.style.display = 'none';
+        pendingPlacement = null;
+      }
     </script>
   </head>
 </html>
