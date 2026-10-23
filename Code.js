@@ -11,6 +11,9 @@ function doGet(e) {
     template = HtmlService.createTemplateFromFile("staff_view");
     template.staffId = staffId;
     template.staffName = getStaffName(staffId);
+  } else if (page === "register") {
+    // 💡 新規スタッフ自己登録ページ
+    template = HtmlService.createTemplateFromFile("staff_register");
   } else {
     template = HtmlService.createTemplateFromFile("admin_view");
   }
@@ -1358,5 +1361,96 @@ function markNotificationAsRead(notifId) {
     return { success: false, message: "該当の通知が見つかりませんでした" };
   } catch (error) {
     return { success: false, message: "エラー: " + error.message };
+  }
+}
+
+/**
+ * 💡 スタッフ自身がフォームから登録を行った際の処理
+ */
+function registerStaffBySelf(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("スタッフマスタ");
+    if (!sheet) {
+      throw new Error("「スタッフマスタ」シートが見つかりません。");
+    }
+    
+    var staffId = "st_" + Utilities.getUuid().substring(0, 6);
+    var timestamp = new Date();
+    var webAppUrl = ScriptApp.getService().getUrl();
+    var staffUrl = webAppUrl + "?page=staff&staffId=" + staffId;
+    
+    // デフォルトのアカウント（例: アカウントマスタの最初のもの、または固定）
+    var assignedAccount = "アカウントA"; 
+    
+    sheet.appendRow([
+      staffId,
+      data.staffName,
+      data.lineUserId,
+      assignedAccount,
+      "有効",
+      timestamp,
+      staffUrl
+    ]);
+    
+    // 💡 登録完了とテストURLをLINEへ自動送信
+    sendWelcomeAndTestNotice(data.lineUserId, assignedAccount, data.staffName, staffUrl);
+    
+    return {
+      success: true,
+      message: "登録が完了しました！ご自身のLINEに専用ポータルURL（テスト用）を送信しましたのでご確認ください。"
+    };
+  } catch (error) {
+    return { success: false, message: "登録エラー: " + error.message };
+  }
+}
+
+/**
+ * 💡 登録完了時にスタッフへウェルカムメッセージと個別URLをプッシュ通知する関数
+ */
+function sendWelcomeAndTestNotice(lineUserId, assignedAccount, staffName, staffUrl) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var accountSheet = ss.getSheetByName("アカウントマスタ");
+  var accessToken = "";
+  
+  if (accountSheet) {
+    var accountData = accountSheet.getDataRange().getValues();
+    for (var k = 1; k < accountData.length; k++) {
+      if (accountData[k][0] === assignedAccount) {
+        accessToken = accountData[k][1];
+        break;
+      }
+    }
+  }
+  
+  if (!accessToken || accessToken.includes("YOUR_")) return;
+  
+  var messageText = 
+    "🎉 " + staffName + "さん、スタッフ登録が完了しました！\n\n" +
+    "これより勤怠管理システムをご利用いただけます。\n" +
+    "以下の【スタッフ専用ポータルURL】をタップして、無事に画面が開くか（申請テスト）をご確認ください。\n\n" +
+    "🔗 スタッフ専用ポータルURL:\n" + staffUrl + "\n\n" +
+    "お疲れ様でした！";
+  
+  var url = "https://api.line.me/v2/bot/message/push";
+  var payload = {
+    to: lineUserId,
+    messages: [{ type: "text", text: messageText }]
+  };
+  
+  var options = {
+    method: "post",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "Authorization": "Bearer " + accessToken
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+  
+  try {
+    UrlFetchApp.fetch(url, options);
+  } catch (e) {
+    Logger.log("ウェルカムLINE送信失敗: " + e.message);
   }
 }

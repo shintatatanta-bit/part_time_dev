@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>スタッフ初回登録</title>
+      <style>
+        body { font-family: sans-serif; margin: 0; padding: 16px; background: #f4f7f6; color: #333; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; max-width: 400px; margin: 40px auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; font-size: 1.2rem; text-align: center; margin-top: 0; }
+        p { font-size: 0.85rem; color: #666; line-height: 1.4; }
+        label { display: block; margin-top: 12px; font-weight: bold; font-size: 0.85rem; color: #555; }
+        input { width: 100%; padding: 10px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+        button { background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; padding: 12px; }
+        button:hover { background: #219653; }
+        .help-box { background: #eef5fb; border-left: 4px solid #3498db; padding: 10px; font-size: 0.75rem; color: #333; margin-top: 12px; border-radius: 0 4px 4px 0; }
+      </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>👋 スタッフ初回登録</h2>
+      <p>お疲れ様です！勤怠管理システムへの初回登録を行います。以下のフォームに「お名前」と「LINEのユーザーID」を入力して送信してください。</p>
+      
+      <label>お名前（フルネーム）</label>
+      <input type="text" id="staffName" placeholder="例: 山田 花子" required>
+      
+      <label>LINE ユーザーID</label>
+      <input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
+      
+      <div class="help-box">
+        💡 <strong>LINE IDの確認方法：</strong><br>
+        LINEアプリの「プロフィール」や「設定」からは直接確認できないため、あらかじめ管理者にLINEでチャットを送り、IDを確認してもらってください。
+      </div>
+      
+      <button type="button" onclick="submitRegistration()">登録してテストURLを受け取る</button>
+    </div>
+
+    <script>
+      function submitRegistration() {
+        var staffName = document.getElementById('staffName').value.trim();
+        var lineUserId = document.getElementById('lineUserId').value.trim();
+
+        if (!staffName || !lineUserId) {
+          alert('お名前とLINEユーザーIDを両方入力してください。');
+          return;
+        }
+
+        if (!confirm('この内容で登録してよろしいですか？')) return;
+
+        var btn = event.target;
+        btn.disabled = true;
+        btn.innerText = '登録中...';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            alert(res.message);
+            if (res.success) {
+              document.getElementById('staffName').value = '';
+              document.getElementById('lineUserId').value = '';
+            }
+            btn.disabled = false;
+            btn.innerText = '登録してテストURLを受け取る';
+          })
+          .withFailureHandler(function(err) {
+            alert('エラーが発生しました: ' + err.message);
+            btn.disabled = false;
+            btn.innerText = '登録してテストURLを受け取る';
+          })
+          .registerStaffBySelf({
+            staffName: staffName,
+            lineUserId: lineUserId
+          });
+      }
+    </script>
+  </body>
+</html>
