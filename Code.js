@@ -780,17 +780,54 @@ function getShiftPreferences(yearMonth) {
       var staffId = row[1];
       var staffName = row[2];
       var ym = row[3];
-      var datesStr = row[4]; // "2026-10-01,2026-10-05..."
       
-      if (ym === yearMonth) {
-        var datesArray = datesStr ? datesStr.split(",") : [];
-        preferences.push({
-          prefId: prefId,
-          staffId: staffId,
-          staffName: staffName,
-          yearMonth: ym,
-          dates: datesArray
-        });
+      // D列(インデックス3)が年月のケース、またはE列(インデックス4)にカンマ区切りで入っているケースに対応
+      var datesStr = "";
+      if (String(row[3]).indexOf("-") === 7 || String(row[3]).indexOf("-") === 4) {
+        ym = row[3];
+        datesStr = row[4] || ""; // E列に日付一覧がある場合
+      }
+      
+      // もしE列やD列のどこかにカンマ区切りの日付が含まれている場合を広くスキャン
+      var allValues = row.join(",");
+      
+      if (ym === yearMonth || allValues.indexOf(yearMonth) !== -1) {
+        var datesArray = [];
+        
+        // 行全体から "YYYY-MM-DD" の形式の日付をすべて抽出する（安全策）
+        for (var c = 3; c < row.length; c++) {
+          var val = String(row[c] || "");
+          if (val.indexOf(",") !== -1) {
+            var splitVals = val.split(",");
+            splitVals.forEach(function(v) {
+              var trimmed = v.trim();
+              if (trimmed.indexOf(yearMonth) === 0) {
+                datesArray.push(trimmed);
+              }
+            });
+          } else if (val.indexOf(yearMonth) === 0) {
+            datesArray.push(val);
+          }
+        }
+        
+        // もし抽出できなければ、E列をカンマでシンプルに分割
+        if (datesArray.length === 0 && row[4]) {
+          var parts = String(row[4]).split(",");
+          parts.forEach(function(p) {
+            var trimmed = p.trim();
+            if (trimmed) datesArray.push(trimmed);
+          });
+        }
+
+        if (datesArray.length > 0) {
+          preferences.push({
+            prefId: prefId,
+            staffId: staffId,
+            staffName: staffName,
+            yearMonth: yearMonth,
+            dates: datesArray
+          });
+        }
       }
     }
     
