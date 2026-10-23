@@ -18,26 +18,34 @@
       button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       
-      /* 📌 画面上部に常に固定するトップ固定エリア（保存バー ＋ 予定チップ ＋ スタッフチップ） */
+      /* 📌 画面上部に常に固定するトップ固定エリア */
       .sticky-top-area {
         position: sticky;
         top: 0;
         z-index: 1000;
         background: #f4f7f6;
-        padding-top: 8px;
-        padding-bottom: 8px;
+        padding-top: 6px;
+        padding-bottom: 6px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.08);
       }
 
+      /* 縦並びになった保存エリア */
       .save-action-bar { 
         background: #eef9f2; 
         border: 2px solid #27ae60; 
-        padding: 8px 14px; 
+        padding: 8px 12px; 
         border-radius: 6px; 
         display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        margin-bottom: 6px; 
+        flex-direction: column; 
+        align-items: flex-start; 
+        gap: 6px;
+        margin-top: 4px; 
+      }
+      .save-action-inner {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
       .save-btn { background: #27ae60 !important; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; width: auto; margin-top: 0; font-size: 0.9rem; }
       .save-btn:hover { background: #219653 !important; }
@@ -66,7 +74,7 @@
       .view-tab-btn { background: transparent; color: #555; border: none; padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; margin-top: 0; width: auto; font-weight: bold; }
       .view-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; padding: 6px 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; }
+      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; padding: 6px 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; }
       .staff-chip { background: #3498db; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: grab; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
       .staff-chip:active { cursor: grabbing; background: #2980b9; }
       
@@ -181,21 +189,25 @@
         </div>
       </div>
 
-      <!-- 📌 画面上部に常に固定するエリア（保存バー ＋ 予定チップ ＋ スタッフチップ） -->
+      <!-- 📌 画面上部に常に固定するエリア（一番上にチップ類、その下に保存メッセージとボタン） -->
       <div class="sticky-top-area">
-        <div class="save-action-bar">
-          <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容はファイルを保存するボタンを押すまで確定しません。</span>
-          <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
-        </div>
-
         <!-- 追従する予定チップ用コンテナ -->
         <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border-color: #ffeeba; margin-bottom: 4px;">
           <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
         </div>
 
         <!-- 追従するスタッフチップ用コンテナ -->
-        <div id="stickyStaffChipsContainer" class="staff-chips" style="margin-bottom: 0; background: #f0f4f8;">
+        <div id="stickyStaffChipsContainer" class="staff-chips" style="margin-bottom: 6px; background: #f0f4f8;">
           <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
+        </div>
+
+        <!-- 保存バー（メッセージが上で、ボタンが下） -->
+        <div class="save-action-bar">
+          <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容は「変更内容を保存する」ボタンを押すまで確定しません。</span>
+          <div class="save-action-inner">
+            <span style="font-size: 0.75rem; color: #555;">※カレンダーの編集を行った際は必ず保存してください</span>
+            <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
+          </div>
         </div>
       </div>
 
