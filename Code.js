@@ -761,7 +761,7 @@ function saveShiftPreferences(data) {
 }
 
 /**
- * 指定された年月の全スタッフからのシフト希望を取得する関数
+ * 指定された年月の全スタッフからのシフト希望を取得する関数 (A〜F列の構造に対応)
  */
 function getShiftPreferences(yearMonth) {
   try {
@@ -780,136 +780,7 @@ function getShiftPreferences(yearMonth) {
       var staffId = row[1];  // B列: staffId
       var staffName = row[2];// C列: staffName
       var ym = String(row[3] || "").trim();      // D列: yearMonth ("2026-11")
-      var datesStr = String(row[4] || "").trim(); // E列: 日付カンマ区切り
-      
-      // 対象月が一致する場合
-      if (ym === yearMonth) {
-        var datesArray = [];
-        if (datesStr) {
-          datesStr.split(",").forEach(function(d) {
-            var trimmed = d.trim();
-            if (trimmed) {
-              datesArray.push(trimmed);
-            }
-          });
-        }
-        
-        if (datesArray.length > 0) {
-          preferences.push({
-            prefId: prefId,
-            staffId: staffId,
-            staffName: staffName,
-            yearMonth: ym,
-            dates: datesArray
-          });
-        }
-      }
-    }
-    
-    return { success: true, preferences: preferences };
-  } catch (error) {
-    return { success: false, message: "希望シフト取得エラー: " + error.message };
-  }
-}
-
-/**
- * 指定された年月の全スタッフからのシフト希望を取得する関数
- */
-function getShiftPreferences(yearMonth) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("希望シフト");
-    if (!sheet) {
-      return { success: true, preferences: [] };
-    }
-    
-    var data = sheet.getDataRange().getValues();
-    var preferences = [];
-    
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
-      var prefId = row[0];
-      var staffId = row[1];
-      var staffName = row[2];
-      var ym = row[3];
-      
-      // D列(インデックス3)が年月のケース、またはE列(インデックス4)にカンマ区切りで入っているケースに対応
-      var datesStr = "";
-      if (String(row[3]).indexOf("-") === 7 || String(row[3]).indexOf("-") === 4) {
-        ym = row[3];
-        datesStr = row[4] || ""; // E列に日付一覧がある場合
-      }
-      
-      // もしE列やD列のどこかにカンマ区切りの日付が含まれている場合を広くスキャン
-      var allValues = row.join(",");
-      
-      if (ym === yearMonth || allValues.indexOf(yearMonth) !== -1) {
-        var datesArray = [];
-        
-        // 行全体から "YYYY-MM-DD" の形式の日付をすべて抽出する（安全策）
-        for (var c = 3; c < row.length; c++) {
-          var val = String(row[c] || "");
-          if (val.indexOf(",") !== -1) {
-            var splitVals = val.split(",");
-            splitVals.forEach(function(v) {
-              var trimmed = v.trim();
-              if (trimmed.indexOf(yearMonth) === 0) {
-                datesArray.push(trimmed);
-              }
-            });
-          } else if (val.indexOf(yearMonth) === 0) {
-            datesArray.push(val);
-          }
-        }
-        
-        // もし抽出できなければ、E列をカンマでシンプルに分割
-        if (datesArray.length === 0 && row[4]) {
-          var parts = String(row[4]).split(",");
-          parts.forEach(function(p) {
-            var trimmed = p.trim();
-            if (trimmed) datesArray.push(trimmed);
-          });
-        }
-
-        if (datesArray.length > 0) {
-          preferences.push({
-            prefId: prefId,
-            staffId: staffId,
-            staffName: staffName,
-            yearMonth: yearMonth,
-            dates: datesArray
-          });
-        }
-      }
-    }
-    
-    return { success: true, preferences: preferences };
-  } catch (error) {
-    return { success: false, message: "希望シフト取得エラー: " + error.message };
-  }
-}
-
-/**
- * 指定された年月の全スタッフからのシフト希望を取得する関数
- */
-function getShiftPreferences(yearMonth) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("希望シフト");
-    if (!sheet) {
-      return { success: true, preferences: [] };
-    }
-    
-    var data = sheet.getDataRange().getValues();
-    var preferences = [];
-    
-    for (var i = 1; i < data.length; i++) {
-      var row = data[i];
-      var prefId = row[0];
-      var staffId = row[1];
-      var staffName = row[2];
-      var ym = String(row[3] || "").trim(); // D列: 年月 (例: 2026-11)
-      var datesStr = String(row[4] || "").trim(); // E列: カンマ区切りの日付
+      var datesStr = String(row[4] || "").trim(); // E列: 日付カンマ区切り ("2026-11-02,2026-11-09...")
       
       // 対象月が一致する場合
       if (ym === yearMonth) {
