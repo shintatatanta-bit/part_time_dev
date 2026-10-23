@@ -1017,4 +1017,52 @@
         }).getKintaiSummary(start, end);
       }
 
-      function toggleCard(
+      function toggleCard(cardId) { 
+        document.getElementById(cardId).classList.toggle('open'); 
+      }
+
+      function registerStaff() {
+        var formData = { staffName: document.getElementById('staffName').value, lineUserId: document.getElementById('lineUserId').value, assignedAccount: document.getElementById('assignedAccount').value };
+        if (!formData.staffName || !formData.lineUserId) { alert('スタッフ氏名とLINEユーザーIDは必須です。'); return; }
+        var btn = event.target;
+        btn.disabled = true; btn.innerText = '登録中...';
+        google.script.run.withSuccessHandler(function(response) {
+          if (response.success) { alert(response.message); document.getElementById('staffForm').reset(); loadStaffList(); fetchSummary(); }
+          else { alert(response.message); }
+          btn.disabled = false; btn.innerText = 'スタッフを登録して専用URLを発行';
+        }).registerNewStaff(formData);
+      }
+
+      function copyUrl(url) {
+        navigator.clipboard.writeText(url).then(function() { alert('専用URLをコピーしました！'); });
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, function(tag) {
+          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+          return chars[tag] || tag;
+        });
+      }
+
+      function updateChar(staffId) {
+        var inputVal = document.getElementById('char-' + staffId).value;
+        if (!inputVal) {
+          alert('表示文字を入力してください。');
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              alert(res.message);
+              loadStaffList();
+            } else {
+              alert(res.message);
+            }
+          })
+          .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
+      }
+    </script>
+  </body>
+</html>
