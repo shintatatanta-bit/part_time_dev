@@ -219,153 +219,28 @@
       .flex-row { display: flex; gap: 8px; }
       .flex-col { flex: 1; }
 
-      /* 💡【追加】LINE履歴用のスタイル */
+      /* LINE履歴用のスタイル */
       .history-box { max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 8px; background: #fafafa; }
       .history-item { border-bottom: 1px solid #eee; padding: 8px 0; font-size: 0.8rem; }
       .history-item:last-child { border-bottom: none; }
       .history-meta { color: #666; font-size: 0.75rem; margin-bottom: 2px; }
       .history-text { white-space: pre-wrap; color: #333; }
+
+      /* 💡【追加】アコーディオン（折りたたみ）用のスタイル */
+      .accordion-card { background: #fff; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; }
+      .accordion-header { padding: 12px 14px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid transparent; }
+      .accordion-header:hover { background: #f0f0f0; }
+      .accordion-header h3 { margin: 0; font-size: 0.95rem; color: #2c3e50; }
+      .accordion-content { display: none; padding: 14px; background: #fff; }
+      .accordion-card.open .accordion-content { display: block; }
+      .accordion-card.open .accordion-header { border-bottom: 1px solid #eee; background: #eef5fb; }
     </style>
   </head>
+
   <body>
     <h2>🛠️ 管理者ダッシュボード</h2>
     
-    <div class="card">
-      <div class="calendar-controls">
-        <div class="calendar-controls-left">
-          <h3 style="margin:0;">📅 シフト予定管理</h3>
-          <input type="month" id="calendarMonth" onchange="loadCalendar()" style="width: 140px; padding: 4px;">
-          
-          <div class="view-tabs">
-            <button id="tabGrid" class="view-tab-btn active" onclick="switchView('grid')">📅 格子カレンダー</button>
-            <button id="tabList" class="view-tab-btn" onclick="switchView('list')">📋 縦並びリスト</button>
-          </div>
-        </div>
-        
-        <div class="calendar-controls-right">
-          <button class="print-btn-a3" onclick="openPrintPreview('A3')">🖨️ A3横 印刷</button>
-          <button class="print-btn-a4" onclick="openPrintPreview('A4')">🖨️ A4横 印刷</button>
-        </div>
-      </div>
-
-      <!-- 📌 通常の位置にあるよく使う予定の「登録入力欄」（最上部・追従しない） -->
-      <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe; margin-bottom: 8px;">
-        <h3>📌 よく使う予定パレット（来客・全体予定など）</h3>
-        <div style="display: flex; gap: 8px;">
-          <input type="text" id="freeItemText" placeholder="例: 来客予定, 会議, 清掃日..." style="flex-grow: 1; margin-top:0;">
-          <button type="button" class="secondary" style="margin-top:0; background: #e67e22;" onclick="addFreeItemPalette()">パレットに追加</button>
-        </div>
-      </div>
-
-      <!-- 📌 画面上部に常に固定するトップエリア（浮遊するチップ類 ＆ 保存ボタン） -->
-      <div class="sticky-top-area">
-        <div class="top-grid-container">
-          <!-- 左側：浮遊するチップ類（予定 ＆ スタッフ） -->
-          <div class="left-chips-column">
-            <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 3px 6px; border-radius: 4px;">
-              <span style="font-size:6pt; color:#777;">登録された予定はありません</span>
-            </div>
-            <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 3px 6px; border-radius: 4px;">
-              <span style="font-size:6pt; color:#777;">読み込み中...</span>
-            </div>
-          </div>
-          <!-- 右側：保存ボタン -->
-          <div class="right-action-column">
-            <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
-          </div>
-        </div>
-      </div>
-
-      <p style="font-size: 0.75rem; color: #888; margin: 8px 0 8px 0;">💡 スマホ・PC共通：上のパレットから**チップをタップして選択**し、配置したい日付枠をタップしてください。</p>
-
-      <div class="cal-grid" id="calendarGrid">
-        <div class="cal-header-cell">日</div>
-        <div class="cal-header-cell">月</div>
-        <div class="cal-header-cell">火</div>
-        <div class="cal-header-cell">水</div>
-        <div class="cal-header-cell">木</div>
-        <div class="cal-header-cell">金</div>
-        <div class="cal-header-cell">土</div>
-      </div>
-
-      <div id="calendarList" class="list-view-container" style="display: none;"></div>
-    </div>
-
-    <div id="shiftModal" class="modal-overlay">
-      <div class="modal-content">
-        <h4 id="modalTitle">シフト配置の確認</h4>
-        <p id="modalDesc" style="font-size: 0.85rem; color: #555; margin: 10px 0;">配置方法を選択してください。</p>
-        <div class="modal-btns">
-          <button class="btn-single" onclick="confirmPlacement('single')">この日だけ配置</button>
-          <button class="btn-weekly" onclick="confirmPlacement('weekly')">毎週（同じ曜日）に配置</button>
-          <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
-        </div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <h3>📊 月半期別 勤怠集計＆詳細確認</h3>
-      <div class="flex-row">
-        <div class="flex-col"><label>開始日</label><input type="date" id="startDate"></div>
-        <div class="flex-col"><label>終了日</label><input type="date" id="endDate"></div>
-      </div>
-      <div class="quick-btns">
-        <button type="button" onclick="setPeriod('first')">📅 今月 前半 (1日〜15日)</button>
-        <button type="button" onclick="setPeriod('second')">📅 今月 後半 (16日〜末日)</button>
-      </div>
-      <button class="search-btn" onclick="fetchSummary()">この期間で集計する</button>
-      <div id="summaryCardContainer" style="margin-top: 6px;"><div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div></div>
-    </div>
-
-    <div class="card">
-      <h3>➕ 新規スタッフ登録 ＆ URL発行</h3>
-      <form id="staffForm">
-        <label>スタッフ氏名</label><input type="text" id="staffName" placeholder="例: 山田 花子" required>
-        <label>LINEユーザーID</label><input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
-        <label>割当LINEアカウント</label><select id="assignedAccount"></select>
-        <button type="button" onclick="registerStaff()">スタッフを登録して専用URLを発行</button>
-      </form>
-    </div>
-
-    <div class="card">
-      <h3>📋 登録済みスタッフ一覧</h3>
-      <div style="overflow-x: auto;">
-        <table>
-          <thead><tr><th>名前</th><th>アカウント</th><th>表示文字</th><th>個別URL</th><th style="text-align: center;">ステータス</th><th>操作</th></tr></thead>
-          <tbody id="staffTableBody"><tr><td colspan="6" style="text-align: center;">読み込み中...</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 💡【追加】LINE連絡＆履歴カード -->
-    <div class="card">
-      <h3>📤 LINE連絡送信（一斉・個別）</h3>
-      <label>送信先</label>
-      <select id="lineTargetType" onchange="toggleTargetSelect()">
-        <option value="all">全員に一斉送信</option>
-        <option value="individual">個別スタッフを指定</option>
-      </select>
-
-      <div id="individualSelectContainer" style="display: none;">
-        <label>対象スタッフ</label>
-        <select id="lineTargetStaffId"></select>
-      </div>
-
-      <label>メッセージ本文</label>
-      <textarea id="lineMessageText" rows="4" placeholder="スタッフへ送るメッセージを入力してください..." style="width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; resize: vertical;"></textarea>
-
-      <button type="button" class="btn-green" style="background: #27ae60; margin-top: 10px;" onclick="sendLineMessage()">LINEメッセージを送信する</button>
-    </div>
-
-    <div class="card">
-      <h3>📜 LINE連絡 送信履歴</h3>
-      <div id="lineHistoryContainer" class="history-box">
-        <div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">履歴を読み込み中...</div>
-      </div>
-    </div>
-
-    <!-- 💡【変更】勤怠未提出者アラートカード（過去1か月間対象） -->
-<!-- 💡【変更】勤怠未提出者アラート ＆ リマインド送信カード -->
+    <!-- 💡【最上部配置】勤怠未提出者アラートカード（常時表示で一番目立たせる） -->
     <div class="card" style="border: 1px solid #e74c3c; background: #fdfefe;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
         <h3 style="margin: 0; color: #c0392b;">⚠️ 勤怠未提出者アラート（過去1か月間）</h3>
@@ -374,6 +249,157 @@
       <p style="font-size: 0.75rem; color: #666; margin: 0 0 8px 0;">💡 過去30日間のうち、シフト予定があるのにまだ勤怠申請が提出されていないスタッフ一覧です。申請されると自動で消えます。</p>
       <div id="pendingStaffContainer">
         <div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">確認中...</div>
+      </div>
+    </div>
+
+    <!-- 💡【アコーディオン 1】シフト予定管理 -->
+    <div class="accordion-card open" id="acc-shift">
+      <div class="accordion-header" onclick="toggleAccordion('acc-shift')">
+        <h3>📅 シフト予定管理</h3>
+        <span>▼ 開閉</span>
+      </div>
+      <div class="accordion-content">
+        <div class="calendar-controls">
+          <div class="calendar-controls-left">
+            <input type="month" id="calendarMonth" onchange="loadCalendar()" style="width: 140px; padding: 4px; margin-top:0;">
+            <div class="view-tabs">
+              <button id="tabGrid" class="view-tab-btn active" onclick="switchView('grid')">📅 格子カレンダー</button>
+              <button id="tabList" class="view-tab-btn" onclick="switchView('list')">📋 縦並びリスト</button>
+            </div>
+          </div>
+          <div class="calendar-controls-right">
+            <button class="print-btn-a3" onclick="openPrintPreview('A3')">🖨️ A3横 印刷</button>
+            <button class="print-btn-a4" onclick="openPrintPreview('A4')">🖨️ A4横 印刷</button>
+          </div>
+        </div>
+
+        <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe; margin-bottom: 8px;">
+          <h3 style="font-size:0.85rem;">📌 よく使う予定パレット（来客・全体予定など）</h3>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="freeItemText" placeholder="例: 来客予定, 会議, 清掃日..." style="flex-grow: 1; margin-top:0;">
+            <button type="button" class="secondary" style="margin-top:0; background: #e67e22;" onclick="addFreeItemPalette()">パレットに追加</button>
+          </div>
+        </div>
+
+        <div class="sticky-top-area">
+          <div class="top-grid-container">
+            <div class="left-chips-column">
+              <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 3px 6px; border-radius: 4px;">
+                <span style="font-size:6pt; color:#777;">登録された予定はありません</span>
+              </div>
+              <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 3px 6px; border-radius: 4px;">
+                <span style="font-size:6pt; color:#777;">読み込み中...</span>
+              </div>
+            </div>
+            <div class="right-action-column">
+              <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size: 0.75rem; color: #888; margin: 8px 0 8px 0;">💡 スマホ・PC共通：上のパレットから**チップをタップして選択**し、配置したい日付枠をタップしてください。</p>
+
+        <div class="cal-grid" id="calendarGrid">
+          <div class="cal-header-cell">日</div>
+          <div class="cal-header-cell">月</div>
+          <div class="cal-header-cell">火</div>
+          <div class="cal-header-cell">水</div>
+          <div class="cal-header-cell">木</div>
+          <div class="cal-header-cell">金</div>
+          <div class="cal-header-cell">土</div>
+        </div>
+
+        <div id="calendarList" class="list-view-container" style="display: none;"></div>
+      </div>
+    </div>
+
+    <!-- 💡【アコーディオン 2】月半期別 勤怠集計 -->
+    <div class="accordion-card" id="acc-summary">
+      <div class="accordion-header" onclick="toggleAccordion('acc-summary')">
+        <h3>📊 月半期別 勤怠集計＆詳細確認</h3>
+        <span>▼ 開閉</span>
+      </div>
+      <div class="accordion-content">
+        <div class="flex-row">
+          <div class="flex-col"><label>開始日</label><input type="date" id="startDate"></div>
+          <div class="flex-col"><label>終了日</label><input type="date" id="endDate"></div>
+        </div>
+        <div class="quick-btns">
+          <button type="button" onclick="setPeriod('first')">📅 今月 前半 (1日〜15日)</button>
+          <button type="button" onclick="setPeriod('second')">📅 今月 後半 (16日〜末日)</button>
+        </div>
+        <button class="search-btn" onclick="fetchSummary()">この期間で集計する</button>
+        <div id="summaryCardContainer" style="margin-top: 6px;"><div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div></div>
+      </div>
+    </div>
+
+    <!-- 💡【アコーディオン 3】新規スタッフ登録 -->
+    <div class="accordion-card" id="acc-reg">
+      <div class="accordion-header" onclick="toggleAccordion('acc-reg')">
+        <h3>➕ 新規スタッフ登録 ＆ URL発行</h3>
+        <span>▼ 開閉</span>
+      </div>
+      <div class="accordion-content">
+        <form id="staffForm">
+          <label>スタッフ氏名</label><input type="text" id="staffName" placeholder="例: 山田 花子" required>
+          <label>LINEユーザーID</label><input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
+          <label>割当LINEアカウント</label><select id="assignedAccount"></select>
+          <button type="button" onclick="registerStaff()">スタッフを登録して専用URLを発行</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 💡【アコーディオン 4】登録済みスタッフ一覧 -->
+    <div class="accordion-card" id="acc-list">
+      <div class="accordion-header" onclick="toggleAccordion('acc-list')">
+        <h3>📋 登録済みスタッフ一覧</h3>
+        <span>▼ 開閉</span>
+      </div>
+      <div class="accordion-content">
+        <div style="overflow-x: auto;">
+          <table>
+            <thead><tr><th>名前</th><th>アカウント</th><th>表示文字</th><th>個別URL</th><th style="text-align: center;">ステータス</th><th>操作</th></tr></thead>
+            <tbody id="staffTableBody"><tr><td colspan="6" style="text-align: center;">読み込み中...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 💡【アコーディオン 5】LINE連絡送信 -->
+    <div class="accordion-card" id="acc-line-send">
+      <div class="accordion-header" onclick="toggleAccordion('acc-line-send')">
+        <h3>📤 LINE連絡送信（一斉・個別）</h3>
+        <span>▼ 開閉</span>
+      </div>
+      <div class="accordion-content">
+        <label>送信先</label>
+        <select id="lineTargetType" onchange="toggleTargetSelect()">
+          <option value="all">全員に一斉送信</option>
+          <option value="individual">個別スタッフを指定</option>
+        </select>
+
+        <div id="individualSelectContainer" style="display: none;">
+          <label>対象スタッフ</label>
+          <select id="lineTargetStaffId"></select>
+        </div>
+
+        <label>メッセージ本文</label>
+        <textarea id="lineMessageText" rows="4" placeholder="スタッフへ送るメッセージを入力してください..." style="width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; resize: vertical;"></textarea>
+
+        <button type="button" class="btn-green" style="background: #27ae60; margin-top: 10px;" onclick="sendLineMessage()">LINEメッセージを送信する</button>
+      </div>
+    </div>
+
+    <!-- 💡【アコーディオン 6】LINE連絡 送信履歴 -->
+    <div class="accordion-card" id="acc-line-hist">
+      <div class="accordion-header" onclick="toggleAccordion('acc-line-hist')">
+        <h3>📜 LINE連絡 送信履歴</h3>
+        <span>▼ 開閉</span>
+      </div>
+      <div class="accordion-content">
+        <div id="lineHistoryContainer" class="history-box">
+          <div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">履歴を読み込み中...</div>
+        </div>
       </div>
     </div>
 
@@ -1303,6 +1329,11 @@
             targets: targetsArr,
             messageText: messageText
           });
+      }
+
+      // 💡【追加】アコーディオンの開閉を切り替える関数
+      function toggleAccordion(cardId) {
+        document.getElementById(cardId).classList.toggle('open');
       }
     </script>
   </head>
