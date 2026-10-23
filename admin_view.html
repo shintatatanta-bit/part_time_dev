@@ -76,21 +76,17 @@
       .list-date-col.sat { color: #2980b9; }
       .list-holiday-label { font-size: 0.7rem; color: #c0392b; font-weight: normal; }
 
-      /* 縦並びリスト用（左：シフト、右：予定） */
       .list-badge-col { flex-grow: 1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 32px; }
       .list-section-shift { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
       .list-section-free { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; border-left: 2px solid #ddd; padding-left: 10px; }
 
-      /* 格子カレンダー用（上：シフト、下：予定） */
       .cal-section-shift { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; min-height: 26px; align-items: center; }
       .cal-section-free { display: flex; flex-wrap: wrap; gap: 3px; border-top: 1px dotted #ccc; padding-top: 3px; min-height: 20px; }
 
-      /* フリー予定用バッジ（オレンジ） */
       .free-badge { background: #e67e22; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
       .free-badge .del-x { font-size: 0.6rem; opacity: 0.8; font-weight: bold; }
       .free-badge:hover { background: #c0392b; }
 
-      /* 〇の中に一文字のスタッフ用丸型バッジ（確定シフト・希望反映：緑） */
       .staff-circle-badge {
         background: #27ae60;
         color: white;
@@ -179,7 +175,6 @@
         <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
       </div>
 
-      <!-- 📌 よく使う予定（フリー項目）パレット登録カード -->
       <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe;">
         <h3>📌 よく使う予定パレット（来客・全体予定など）</h3>
         <div style="display: flex; gap: 8px;">
@@ -722,7 +717,6 @@
           freeMap[f.workDate].push(f);
         });
 
-        // 📌 スタッフごとの希望日マップを作成（希望をそのまま確定＝緑色として表示）
         var prefMap = {};
         cachedPreferencesData.forEach(function(pref) {
           pref.dates.forEach(function(dStr) {
@@ -768,17 +762,15 @@
           var dateNumClass = isSunOrHol ? 'cal-date-num sun-or-hol' : (dObj.getDay() === 6 ? 'cal-date-num sat' : 'cal-date-num');
           var cellClass = isClosed ? 'cal-cell closed-day' : 'cal-cell';
 
-          html += '<div class="' + cellClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + \')" onclick="onCellClick(\'' + dateStr + \')">';
+          html += '<div class="' + cellClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
           html += '<div class="cal-date-header">';
           html += '<span class="' + dateNumClass + '">' + day + '</span>';
           if (holidayName) html += '<span class="holiday-name">' + escapeHtml(holidayName) + '</span>';
           if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
 
-          // 🟢 上段：シフトエリア（確定シフト ＋ 希望（自動確定として緑表示））
           html += '<div class="cal-section-shift">';
           
-          // 1. 正式確定シフト
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
@@ -791,12 +783,11 @@
               }
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + \')">×</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
               html += '</div>';
             });
           }
 
-          // 2. スタッフからの希望（緑色の確定バッジとして表示）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -820,13 +811,12 @@
           }
           html += '</div>';
 
-          // 📌 下段：フリー予定エリア
           html += '<div class="cal-section-free">';
           if (freeMap[dateStr]) {
             freeMap[dateStr].forEach(function(fs) {
               html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
               html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
-              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + \')">×</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
               html += '</div>';
             });
           }
@@ -863,7 +853,6 @@
           freeMap[f.workDate].push(f);
         });
 
-        // 📌 スタッフごとの希望日マップを作成
         var prefMap = {};
         cachedPreferencesData.forEach(function(pref) {
           pref.dates.forEach(function(dStr) {
@@ -902,15 +891,13 @@
           var holidayDisplay = holidayName ? ' <span class="list-holiday-label">(' + escapeHtml(holidayName) + ')</span>' : '';
           var closedDisplay = isClosed ? ' <span class="closed-label">休業日</span>' : '';
 
-          html += '<div class="' + rowClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + \')" onclick="onCellClick(\'' + dateStr + \')">';
+          html += '<div class="' + rowClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
           html += '<div class="list-date-col' + dateClass + '">' + month + '/' + day + ' (' + dayOfWeekStr + ')' + holidayDisplay + closedDisplay + '</div>';
           
           html += '<div class="list-badge-col">';
 
-          // 🟢 左側：シフトエリア
           html += '<div class="list-section-shift">';
           
-          // 1. 正式確定シフト
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
@@ -923,12 +910,11 @@
               }
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + \')">×</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
               html += '</div>';
             });
           }
 
-          // 2. スタッフからの希望（緑色の確定バッジ）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -952,20 +938,19 @@
           }
           html += '</div>';
 
-          // 📌 右側：フリー予定エリア
           html += '<div class="list-section-free">';
           if (freeMap[dateStr]) {
             freeMap[dateStr].forEach(function(fs) {
               html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
               html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
-              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + \')">×</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
               html += '</div>';
             });
           }
           html += '</div>';
 
-          html += '</div>'; // .list-badge-col
-          html += '</div>'; // .list-row
+          html += '</div>'; 
+          html += '</div>'; 
         }
 
         listContainer.innerHTML = html;
