@@ -820,7 +820,7 @@
             });
           }
 
-          // 2. スタッフからの希望（はっきりした薄い青・クリックで昇格）
+          // 2. スタッフからの希望（最初から確定シフト＝緑色のバッジとして表示）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -836,9 +836,10 @@
                   break;
                 }
               }
-              // 💡 希望未確定時は「明るいスカイブルー（.staff-pref-badge）」にする
-              html += '<div class="staff-pref-badge" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
+              // 💡 最初から緑色の確定バッジとして表示し、×ボタンで削除できるようにする
+              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="希望シフト（確定）: ' + escapeHtml(pr.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
+              html += '<span class="del-x" onclick="removePreferenceItem(\'' + pr.prefId + '\', \'' + dateStr + '\', \'' + pr.staffId + '\')">×</span>';
               html += '</div>';
             });
           }
@@ -952,7 +953,7 @@
             });
           }
 
-          // 2. スタッフからの希望（はっきりした薄い青・クリックで昇格）
+          // 2. スタッフからの希望（リスト表示用）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -968,9 +969,9 @@
                   break;
                 }
               }
-              // 💡 希望未確定時は「明るいスカイブルー」にする
-              html += '<div class="staff-pref-badge" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
+              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="希望シフト（確定）: ' + escapeHtml(pr.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
+              html += '<span class="del-x" onclick="removePreferenceItem(\'' + pr.prefId + '\', \'' + dateStr + '\', \'' + pr.staffId + '\')">×</span>';
               html += '</div>';
             });
           }
@@ -1097,6 +1098,16 @@
             }
           })
           .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
+      }
+
+      function removePreferenceItem(prefId, dateStr, staffId) {
+        // メモリ上の希望データから該当の日付を外すか、シフトとして除外する処理
+        cachedPreferencesData.forEach(function(pref) {
+          if (pref.prefId === prefId || pref.staffId === staffId) {
+            pref.dates = pref.dates.filter(function(d) { return d !== dateStr; });
+          }
+        });
+        renderCurrentView();
       }
     </script>
   </body>
