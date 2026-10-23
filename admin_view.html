@@ -953,7 +953,7 @@
       function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/[&<>'"]/g, function(tag) {
-          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;", '"': '&quot;' };
+          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
           return chars[tag] || tag;
         });
       }
