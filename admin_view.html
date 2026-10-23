@@ -678,8 +678,10 @@
                   .withSuccessHandler(function(shiftRes) {
                     cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
                     
+                    // 🔍 ここで希望シフトの通信結果をコンソールに出力します！
                     google.script.run
                       .withSuccessHandler(function(prefRes) {
+                        console.log("【デバッグ】希望シフトのサーバーレスポンス:", prefRes);
                         cachedPreferencesData = prefRes.success ? prefRes.preferences : [];
                         
                         google.script.run
