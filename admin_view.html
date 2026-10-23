@@ -262,6 +262,7 @@
     <script>
       var cachedStaffList = [];
       var cachedShiftsData = []; 
+      var cachedPreferencesData = []; 
       var cachedHolidaysMap = {}; 
       var cachedClosedDays = []; 
       var cachedFreePalette = JSON.parse(localStorage.getItem('cachedFreePalette')) || ["来客予定", "全体ミーティング", "清掃日"];
@@ -609,6 +610,20 @@
         renderCurrentView();
       }
 
+      // 📌 希望バッジをワンクリックで正式シフトに昇格させる関数
+      function promotePreferenceToShift(dateStr, staffId, staffName) {
+        var tempId = "shift_" + Math.random();
+        if (!cachedShiftsData.some(function(s) { return s.workDate === dateStr && s.staffId === staffId; })) {
+          cachedShiftsData.push({
+            shiftId: tempId,
+            workDate: dateStr,
+            staffId: staffId,
+            staffName: staffName
+          });
+          renderCurrentView();
+        }
+      }
+
       function sortShiftsByStaffOrder(shifts) {
         if (!shifts) return [];
         return shifts.sort(function(a, b) {
@@ -664,11 +679,17 @@
                     cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
                     
                     google.script.run
-                      .withSuccessHandler(function(freeRes) {
-                        cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
-                        renderCurrentView();
+                      .withSuccessHandler(function(prefRes) {
+                        cachedPreferencesData = prefRes.success ? prefRes.preferences : [];
+                        
+                        google.script.run
+                          .withSuccessHandler(function(freeRes) {
+                            cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
+                            renderCurrentView();
+                          })
+                          .getFreeSchedules(yearMonthVal);
                       })
-                      .getFreeSchedules(yearMonthVal);
+                      .getShiftPreferences(yearMonthVal);
                   })
                   .getShiftSchedule(yearMonthVal);
               })
@@ -702,6 +723,20 @@
         cachedFreeSchedules.forEach(function(f) {
           if (!freeMap[f.workDate]) freeMap[f.workDate] = [];
           freeMap[f.workDate].push(f);
+        });
+
+        // 📌 スタッフごとの希望日マップを作成
+        var prefMap = {};
+        cachedPreferencesData.forEach(function(pref) {
+          pref.dates.forEach(function(dStr) {
+            if (!prefMap[dStr]) prefMap[dStr] = [];
+            var alreadyInShift = cachedShiftsData.some(function(s) {
+              return s.workDate === dStr && s.staffId === pref.staffId;
+            });
+            if (!alreadyInShift) {
+              prefMap[dStr].push({ staffId: pref.staffId, staffName: pref.staffName });
+            }
+          });
         });
 
         var grid = document.getElementById('calendarGrid');
@@ -743,8 +778,10 @@
           if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
 
-          // 🟢 上段：シフトエリア（丸型バッジ）
+          // 🟢 上段：シフトエリア（確定シフト ＋ 薄い色の希望シフト）
           html += '<div class="cal-section-shift">';
+          
+          // 1. 正式確定シフト
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
@@ -758,6 +795,22 @@
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '</div>';
+            });
+          }
+
+          // 2. スタッフからの希望（薄い色・クリックで昇格）
+          if (prefMap[dateStr]) {
+            prefMap[dateStr].forEach(function(pr) {
+              var dispChar = pr.staffName.substring(0, 1);
+              for (var s = 0; s < cachedStaffList.length; s++) {
+                if (cachedStaffList[s].staffId === pr.staffId) {
+                  dispChar = cachedStaffList[s].displayChar;
+                  break;
+                }
+              }
+              html += '<div class="staff-circle-badge" style="opacity: 0.4; border: 1px dashed #27ae60;" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
+              html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '</div>';
             });
           }
@@ -806,6 +859,20 @@
           freeMap[f.workDate].push(f);
         });
 
+        // 📌 スタッフごとの希望日マップを作成
+        var prefMap = {};
+        cachedPreferencesData.forEach(function(pref) {
+          pref.dates.forEach(function(dStr) {
+            if (!prefMap[dStr]) prefMap[dStr] = [];
+            var alreadyInShift = cachedShiftsData.some(function(s) {
+              return s.workDate === dStr && s.staffId === pref.staffId;
+            });
+            if (!alreadyInShift) {
+              prefMap[dStr].push({ staffId: pref.staffId, staffName: pref.staffName });
+            }
+          });
+        });
+
         var lastDayObj = new Date(year, month, 0);
         var totalDays = lastDayObj.getDate();
         var weekDays = ["日", "月", "火", "水", "木", "金", "土"];
@@ -836,8 +903,10 @@
           
           html += '<div class="list-badge-col">';
 
-          // 🟢 左側：シフトエリア（丸型バッジ）
+          // 🟢 左側：シフトエリア（確定シフト ＋ 薄い色の希望シフト）
           html += '<div class="list-section-shift">';
+          
+          // 1. 正式確定シフト
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
@@ -851,6 +920,22 @@
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '</div>';
+            });
+          }
+
+          // 2. スタッフからの希望（薄い色・クリックで昇格）
+          if (prefMap[dateStr]) {
+            prefMap[dateStr].forEach(function(pr) {
+              var dispChar = pr.staffName.substring(0, 1);
+              for (var s = 0; s < cachedStaffList.length; s++) {
+                if (cachedStaffList[s].staffId === pr.staffId) {
+                  dispChar = cachedStaffList[s].displayChar;
+                  break;
+                }
+              }
+              html += '<div class="staff-circle-badge" style="opacity: 0.4; border: 1px dashed #27ae60;" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
+              html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '</div>';
             });
           }
@@ -932,50 +1017,4 @@
         }).getKintaiSummary(start, end);
       }
 
-      function toggleCard(cardId) { document.getElementById(cardId).classList.toggle('open'); }
-
-      function registerStaff() {
-        var formData = { staffName: document.getElementById('staffName').value, lineUserId: document.getElementById('lineUserId').value, assignedAccount: document.getElementById('assignedAccount').value };
-        if (!formData.staffName || !formData.lineUserId) { alert('スタッフ氏名とLINEユーザーIDは必須です。'); return; }
-        var btn = event.target;
-        btn.disabled = true; btn.innerText = '登録中...';
-        google.script.run.withSuccessHandler(function(response) {
-          if (response.success) { alert(response.message); document.getElementById('staffForm').reset(); loadStaffList(); fetchSummary(); }
-          else { alert(response.message); }
-          btn.disabled = false; btn.innerText = 'スタッフを登録して専用URLを発行';
-        }).registerNewStaff(formData);
-      }
-
-      function copyUrl(url) {
-        navigator.clipboard.writeText(url).then(function() { alert('専用URLをコピーしました！'); });
-      }
-
-      function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/[&<>'"]/g, function(tag) {
-          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
-          return chars[tag] || tag;
-        });
-      }
-
-      function updateChar(staffId) {
-        var inputVal = document.getElementById('char-' + staffId).value;
-        if (!inputVal) {
-          alert('表示文字を入力してください。');
-          return;
-        }
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.success) {
-              alert(res.message);
-              loadStaffList();
-            } else {
-              alert(res.message);
-            }
-          })
-          .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
-      }
-    </script>
-  </body>
-</html>
+      function toggleCard(
