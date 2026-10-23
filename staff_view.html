@@ -48,6 +48,23 @@
       .mini-cell.other-month { background: #f9f9f9; opacity: 0.3; pointer-events: none; }
       .mini-cell.selected { background: #27ae60 !important; color: white !important; font-weight: bold; border-color: #219653; }
       .selected-count { text-align: center; font-size: 0.85rem; color: #e67e22; font-weight: bold; margin-bottom: 6px; }
+
+      /* スタッフ用カレンダーの休業日スタイル */
+      .mini-cell.closed-day {
+        background: #e5e7eb !important;
+        color: #9ca3af !important;
+        border: 1px dashed #9ca3af !important;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+      .closed-badge-mini {
+        font-size: 0.55rem;
+        color: #4b5563;
+        font-weight: bold;
+        display: block;
+        line-height: 1;
+        margin-top: 2px;
+      }
     </style>
   </head>
   <body>
@@ -146,9 +163,23 @@
         }
       }
 
+      var cachedClosedDays = [];
+
+      // 対象月が変わったときや読み込み時に休業日も一緒に取得してカレンダーを描画
       function renderMiniCalendar() {
         var ymVal = document.getElementById('targetMonth').value;
         if (!ymVal) return;
+
+        // まずサーバーから休業日を取得してからカレンダーを描画する
+        google.script.run
+          .withSuccessHandler(function(res) {
+            cachedClosedDays = res.success ? res.closedDays : [];
+            buildMiniCalendarGrid(ymVal);
+          })
+          .getClosedDays(ymVal);
+      }
+
+      function buildMiniCalendarGrid(ymVal) {
         var parts = ymVal.split('-');
         var year = Number(parts[0]);
         var month = Number(parts[1]);
@@ -176,10 +207,18 @@
           var dStr = String(day).padStart(2, '0');
           var dateStr = year + '-' + mStr + '-' + dStr;
           
+          var isClosed = cachedClosedDays.includes(dateStr);
           var isSelected = selectedDatesMap[dateStr] ? ' selected' : '';
-          html += '<div class="mini-cell' + isSelected + '" onclick="toggleDate(\'' + dateStr + '\')">';
-          html += '<span>' + day + '</span>';
-          html += '</div>';
+          
+          var cellClass = isClosed ? 'mini-cell closed-day' : ('mini-cell' + isSelected);
+          var clickAction = isClosed ? '' : 'onclick="toggleDate(\'' + dateStr + '\')"';
+          
+          html += '<div class="' + cellClass + '" ' + clickAction + '>';
+          html += '<div><span>' + day + '</span>';
+          if (isClosed) {
+            html += '<span class="closed-badge-mini">休業日</span>';
+          }
+          html += '</div></div>';
         }
 
         var totalCellsCount = firstDayOfWeek + totalDays;
@@ -190,6 +229,15 @@
 
         grid.innerHTML = html;
         updateCountDisplay();
+      }
+
+      function toggleDate(dateStr) {
+        if (selectedDatesMap[dateStr]) {
+          delete selectedDatesMap[dateStr];
+        } else {
+          selectedDatesMap[dateStr] = true;
+        }
+        renderMiniCalendar();
       }
 
       function toggleDate(dateStr) {
