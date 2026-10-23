@@ -761,7 +761,7 @@ function saveShiftPreferences(data) {
 }
 
 /**
- * 指定された年月の全スタッフからのシフト希望を取得する関数 (A〜F列の構造に対応)
+ * 指定された年月の全スタッフからのシフト希望を取得する関数 (改良版)
  */
 function getShiftPreferences(yearMonth) {
   try {
@@ -779,11 +779,14 @@ function getShiftPreferences(yearMonth) {
       var prefId = row[0];   // A列: prefId
       var staffId = row[1];  // B列: staffId
       var staffName = row[2];// C列: staffName
-      var ym = String(row[3] || "").trim();      // D列: yearMonth ("2026-11")
-      var datesStr = String(row[4] || "").trim(); // E列: 日付カンマ区切り ("2026-11-02,2026-11-09...")
+      var ym = String(row[3] || "").trim();      // D列: yearMonth
+      var datesStr = String(row[4] || "").trim(); // E列: 日付カンマ区切り
       
-      // 対象月が一致する場合
-      if (ym === yearMonth) {
+      // デバッグ用ログ（GASの実行ログに出力されます）
+      Logger.log("行 " + i + " - 読み込んだym: [" + ym + "], 探しているyearMonth: [" + yearMonth + "], datesStr: [" + datesStr + "]");
+      
+      // 厳密な一致、または文字列に含まれているかを許容する
+      if (ym === yearMonth || ym.indexOf(yearMonth) !== -1 || datesStr.indexOf(yearMonth) !== -1) {
         var datesArray = [];
         if (datesStr) {
           datesStr.split(",").forEach(function(d) {
@@ -799,13 +802,14 @@ function getShiftPreferences(yearMonth) {
             prefId: prefId,
             staffId: staffId,
             staffName: staffName,
-            yearMonth: ym,
+            yearMonth: yearMonth,
             dates: datesArray
           });
         }
       }
     }
     
+    Logger.log("見つかった希望シフト件数: " + preferences.length);
     return { success: true, preferences: preferences };
   } catch (error) {
     return { success: false, message: "希望シフト取得エラー: " + error.message };
