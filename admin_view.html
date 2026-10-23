@@ -318,33 +318,35 @@
         var fontSizeNum = (size === 'A4') ? '0.8rem' : '1rem';
         var fontSizeBadge = (size === 'A4') ? '0.75rem' : '0.9rem';
 
-        printWin.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titleText + '</title>');
-        printWin.document.write('<style>');
-        printWin.document.write('@page { size: ' + size + ' landscape; margin: 10mm; }');
-        printWin.document.write('body { font-family: sans-serif; margin: 0; padding: 5px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; box-sizing: border-box; }');
-        printWin.document.write('h2 { text-align: center; margin: 0 0 10px 0; font-size: 1.5rem; }');
-        printWin.document.write('.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; width: 100%; max-width: 100%; flex-grow: 1; }');
-        printWin.document.write('.cal-header-cell { text-align: center; font-weight: bold; font-size: 0.95rem; padding: 8px 4px; background: #eaeded; border-radius: 4px; }');
-        printWin.document.write('.cal-header-cell:nth-child(1) { color: #c0392b; }');
-        printWin.document.write('.cal-header-cell:nth-child(7) { color: #2980b9; }');
-        printWin.document.write('.cal-cell { min-height: ' + cellMinHeight + '; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px; box-sizing: border-box; position: relative; }');
-        printWin.document.write('.cal-cell.other-month { background: #f9f9f9; opacity: 0.3; }');
-        printWin.document.write('.cal-cell.closed-day { background: #e5e7eb !important; border: 1px dashed #9ca3af !important; }');
-        printWin.document.write('.cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }');
-        printWin.document.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #555; }');
-        printWin.document.write('.cal-date-num.sun-or-hol { color: #c0392b; }');
-        printWin.document.write('.holiday-name { font-size: 0.6rem; color: #c0392b; font-weight: bold; }');
-        printWin.document.write('.closed-label { font-size: 0.6rem; color: #4b5563; font-weight: bold; background: #d1d5db; padding: 1px 4px; border-radius: 3px; }');
-        printWin.document.write('.shift-badge-container { display: flex; flex-wrap: wrap; gap: 4px; }');
-        printWin.document.write('.staff-circle-badge { background: #27ae60 !important; color: white !important; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: ' + fontSizeBadge + '; font-weight: bold; }');
-        printWin.document.write('.free-badge { background: #e67e22 !important; color: white !important; font-size: ' + fontSizeBadge + '; padding: 2px 5px; border-radius: 4px; display: inline-flex; align-items: center; }');
-        printWin.document.write('.del-x { display: none; }');
-        printWin.document.write('</style></head><body>');
-        printWin.document.write('<h2>' + titleText + '</h2>');
-        printWin.document.write(gridHtml);
-        printWin.document.write('<script>window.onload = function() { window.print(); window.close(); };<\/script>');
-        printWin.document.write('</body></html>');
-        printWin.document.close();
+        var printDoc = printWin.document;
+        printDoc.open();
+        printDoc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titleText + '</title>');
+        printDoc.write('<style>');
+        printDoc.write('@page { size: ' + size + ' landscape; margin: 10mm; }');
+        printDoc.write('body { font-family: sans-serif; margin: 0; padding: 5px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; box-sizing: border-box; }');
+        printDoc.write('h2 { text-align: center; margin: 0 0 10px 0; font-size: 1.5rem; }');
+        printDoc.write('.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; width: 100%; max-width: 100%; flex-grow: 1; }');
+        printDoc.write('.cal-header-cell { text-align: center; font-weight: bold; font-size: 0.95rem; padding: 8px 4px; background: #eaeded; border-radius: 4px; }');
+        printDoc.write('.cal-header-cell:nth-child(1) { color: #c0392b; }');
+        printDoc.write('.cal-header-cell:nth-child(7) { color: #2980b9; }');
+        printDoc.write('.cal-cell { min-height: ' + cellMinHeight + '; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px; box-sizing: border-box; position: relative; }');
+        printDoc.write('.cal-cell.other-month { background: #f9f9f9; opacity: 0.3; }');
+        printDoc.write('.cal-cell.closed-day { background: #e5e7eb !important; border: 1px dashed #9ca3af !important; }');
+        printDoc.write('.cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }');
+        printDoc.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #555; }');
+        printDoc.write('.cal-date-num.sun-or-hol { color: #c0392b; }');
+        printDoc.write('.holiday-name { font-size: 0.6rem; color: #c0392b; font-weight: bold; }');
+        printDoc.write('.closed-label { font-size: 0.6rem; color: #4b5563; font-weight: bold; background: #d1d5db; padding: 1px 4px; border-radius: 3px; }');
+        printDoc.write('.staff-circle-badge { background: #27ae60 !important; color: white !important; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: ' + fontSizeBadge + '; font-weight: bold; }');
+        printDoc.write('.free-badge { background: #e67e22 !important; color: white !important; font-size: ' + fontSizeBadge + '; padding: 2px 5px; border-radius: 4px; display: inline-flex; align-items: center; }');
+        printDoc.write('.del-x { display: none; }');
+        printDoc.write('</style></head><body>');
+        printDoc.write('<h2>' + titleText + '</h2>');
+        printDoc.write(gridHtml);
+        printDoc.write('</body></html>');
+        printDoc.close();
+        printWin.focus();
+        setTimeout(function() { printWin.print(); printWin.close(); }, 500);
       }
 
       function addFreeItemPalette() {
@@ -789,7 +791,7 @@
               }
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + \')">×</span>';
               html += '</div>';
             });
           }
