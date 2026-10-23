@@ -236,6 +236,18 @@
       .accordion-content { display: none; padding: 14px; background: #fff; }
       .accordion-card.open .accordion-content { display: block; }
       .accordion-card.open .accordion-header { border-bottom: 1px solid #eee; background: #eef5fb; }
+
+      /* 保存ボタンの強調アニメーション用クラス */
+  @keyframes pulseAttention {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+    50% { transform: scale(1.05); box-shadow: 0 0 10px 5px rgba(231, 76, 60, 0.5); background: #e74c3c !important; }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+  }
+
+  .save-btn.unsaved {
+    background: #e74c3c !important; /* 未保存時は赤系に変える */
+    animation: pulseAttention 1.5s infinite;
+  }
     </style>
   </head>
 
@@ -553,6 +565,15 @@
         }
       }
 
+// 💡 変更があったときにボタンを強調状態にする関数
+  function markAsUnsaved() {
+    var saveBtn = document.querySelector('.save-btn');
+    if (saveBtn) {
+      saveBtn.classList.add('unsaved');
+      saveBtn.innerText = '💾 変更内容を保存する（未保存）';
+    }
+  }
+
       function renderFreePalette() {
         var stickyContainer = document.getElementById('stickyFreeChipsContainer');
         var html = '';
@@ -825,22 +846,25 @@
         btn.innerText = '保存中...';
 
         google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.success) {
-              alert(res.message);
-              loadCalendar();
-            } else {
-              alert('保存失敗: ' + res.message);
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            alert(res.message);
+            loadCalendar();
+            
+            // 💡【ここに追加】保存成功したら、ボタンの未保存強調を解除する
+            var saveBtn = document.querySelector('.save-btn');
+            if (saveBtn) {
+              saveBtn.classList.remove('unsaved');
+              saveBtn.innerText = '💾 変更内容を保存する';
             }
-            btn.disabled = false;
-            btn.innerText = '💾 変更内容を保存する';
-          })
-          .saveAllSchedulesWithFree({
-            yearMonth: ym,
-            shifts: cachedShiftsData,
-            closedDays: cachedClosedDays,
-            freeSchedules: cachedFreeSchedules
-          });
+
+          } else {
+            alert('保存失敗: ' + res.message);
+          }
+          btn.disabled = false;
+          btn.innerText = '💾 変更内容を保存する';
+        })
+        .saveAllSchedulesWithFree({ ... });
       }
 
       function loadCalendar() {
