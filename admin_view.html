@@ -98,7 +98,6 @@
       .flex-row { display: flex; gap: 8px; }
       .flex-col { flex: 1; }
 
-      /* スタッフパレットを上部に固定（追従）させるスタイル */
       .staff-chips-wrapper {
         position: sticky;
         top: 10px;
@@ -133,6 +132,18 @@
       <div class="save-action-bar">
         <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容は「保存する」ボタンを押すまで確定しません。</span>
         <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
+      </div>
+
+      <!-- 📌 よく使う予定（フリー項目）パレット登録カード -->
+      <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe;">
+        <h3>📌 よく使う予定パレット（来客・全体予定など）</h3>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="freeItemText" placeholder="例: 来客予定, 会議, 清掃日..." style="flex-grow: 1; margin-top:0;">
+          <button type="button" class="secondary" style="margin-top:0; background: #e67e22;" onclick="addFreeItemPalette()">パレットに追加</button>
+        </div>
+        <div id="freeChipsContainer" class="staff-chips" style="margin-top: 8px; background: #fff9e6; border-color: #ffeeba;">
+          <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
+        </div>
       </div>
 
       <div class="staff-chips-wrapper">
@@ -198,7 +209,7 @@
       <div style="overflow-x: auto;">
         <table>
           <thead><tr><th>名前</th><th>アカウント</th><th>表示文字</th><th>個別URL</th><th>操作</th></tr></thead>
-          <tbody id="staffTableBody"><tr><td colspan="4" style="text-align: center;">読み込み中...</td></tr></tbody>
+          <tbody id="staffTableBody"><tr><td colspan="5" style="text-align: center;">読み込み中...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -208,6 +219,8 @@
       var cachedShiftsData = []; 
       var cachedHolidaysMap = {}; 
       var cachedClosedDays = []; 
+      var cachedFreePalette = ["来客予定", "全体ミーティング", "清掃日"];
+      var cachedFreeSchedules = [];
       var selectedStaffForClick = null;
       var pendingPlacement = null;
       var currentViewMode = 'grid'; 
@@ -218,6 +231,7 @@
         var m = String(now.getMonth() + 1).padStart(2, '0');
         document.getElementById('calendarMonth').value = y + '-' + m;
 
+        renderFreePalette();
         loadStaffList();
         loadAccountOptions();
         setPeriod('first');
@@ -286,12 +300,65 @@
         printWin.document.close();
       }
 
+      // フリー予定パレット関連
+      function addFreeItemPalette() {
+        var input = document.getElementById('freeItemText');
+        var val = input.value.trim();
+        if (!val) return;
+        if (!cachedFreePalette.includes(val)) {
+          cachedFreePalette.push(val);
+          renderFreePalette();
+          input.value = '';
+        }
+      }
+
+      function renderFreePalette() {
+        var container = document.getElementById('freeChipsContainer');
+        if (cachedFreePalette.length === 0) {
+          container.innerHTML = '<span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>';
+          return;
+        }
+        var html = '';
+        cachedFreePalette.forEach(function(title, idx) {
+          html += '<div class="staff-chip" style="background: #e67e22;" draggable="true" ondragstart="onDragStartFree(event, \'' + escapeHtml(title) + '\')" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
+          html += '📌 ' + escapeHtml(title);
+          html += ' <span onclick="event.stopPropagation(); removeFreePalette(' + idx + ')" style="font-size:0.7rem; margin-left:4px; opacity:0.8;">×</span>';
+          html += '</div>';
+        });
+        container.innerHTML = html;
+      }
+
+      function removeFreePalette(index) {
+        cachedFreePalette.splice(index, 1);
+        renderFreePalette();
+      }
+
+      function onDragStartFree(event, title) {
+        event.dataTransfer.setData('text/plain', JSON.stringify({
+          type: 'free',
+          title: title
+        }));
+      }
+
+      function selectFreeForClick(elem, title) {
+        var chips = document.querySelectorAll('.staff-chip');
+        chips.forEach(function(c) { c.style.border = 'none'; });
+        
+        if (selectedStaffForClick && selectedStaffForClick.type === 'free' && selectedStaffForClick.title === title) {
+          selectedStaffForClick = null;
+          alert('選択を解除しました');
+        } else {
+          selectedStaffForClick = { type: 'free', title: title };
+          elem.style.border = '2px solid #2c3e50';
+          alert('「' + title + '」を選択しました。配置したい日付枠をクリックしてください。');
+        }
+      }
+
       function loadStaffList() {
         google.script.run
           .withSuccessHandler(function(staffList) {
             cachedStaffList = staffList;
             
-            // 1. スタッフ一覧テーブルの描画（表示文字の変更欄付き）
             var tbody = document.getElementById('staffTableBody');
             if (staffList.length === 0) {
               tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">登録されているスタッフがいません</td></tr>';
@@ -313,7 +380,6 @@
               tbody.innerHTML = html;
             }
 
-            // 2. カレンダー用のスタッフチップ（パレット）の描画
             var chipsContainer = document.getElementById('staffChipsContainer');
             if (staffList.length === 0) {
               chipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">スタッフが登録されていません</span>';
@@ -374,7 +440,14 @@
         var dataStr = event.dataTransfer.getData('text/plain');
         if (!dataStr) return;
         var data = JSON.parse(dataStr);
-        openModal(dateStr, data.staffId, data.staffName, data.displayChar);
+
+        if (data.type === 'free') {
+          var tempId = "local_free_" + Math.random();
+          cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
+          renderCurrentView();
+        } else {
+          openModal(dateStr, data.staffId, data.staffName, data.displayChar);
+        }
       }
 
       function selectStaffForClick(elem, staffId, staffName, displayChar) {
@@ -393,7 +466,13 @@
 
       function onCellClick(dateStr) {
         if (selectedStaffForClick) {
-          openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
+          if (selectedStaffForClick.type === 'free') {
+            var tempId = "local_free_" + Math.random();
+            cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: selectedStaffForClick.title });
+            renderCurrentView();
+          } else {
+            openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
+          }
         } else {
           var index = cachedClosedDays.indexOf(dateStr);
           if (index !== -1) {
@@ -464,7 +543,11 @@
         renderCurrentView();
       }
 
-      // スタッフマスタの登録順にシフトバッジをソートするヘルパー関数
+      function removeFreeScheduleById(scheduleId) {
+        cachedFreeSchedules = cachedFreeSchedules.filter(function(s) { return s.scheduleId !== scheduleId; });
+        renderCurrentView();
+      }
+
       function sortShiftsByStaffOrder(shifts) {
         if (!shifts) return [];
         return shifts.sort(function(a, b) {
@@ -495,10 +578,11 @@
             btn.disabled = false;
             btn.innerText = '💾 変更内容を保存する';
           })
-          .saveAllSchedules({
+          .saveAllSchedulesWithFree({
             yearMonth: ym,
             shifts: cachedShiftsData,
-            closedDays: cachedClosedDays
+            closedDays: cachedClosedDays,
+            freeSchedules: cachedFreeSchedules
           });
       }
 
@@ -506,7 +590,6 @@
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
 
-        // 非同期処理を並行（Promise風）にまとめて高速化
         google.script.run
           .withSuccessHandler(function(holidayRes) {
             cachedHolidaysMap = holidayRes.success ? holidayRes.holidays : {};
@@ -518,7 +601,13 @@
                 google.script.run
                   .withSuccessHandler(function(shiftRes) {
                     cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
-                    renderCurrentView();
+                    
+                    google.script.run
+                      .withSuccessHandler(function(freeRes) {
+                        cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
+                        renderCurrentView();
+                      })
+                      .getFreeSchedules(yearMonthVal);
                   })
                   .getShiftSchedule(yearMonthVal);
               })
@@ -546,6 +635,12 @@
         cachedShiftsData.forEach(function(s) {
           if (!shiftMap[s.workDate]) shiftMap[s.workDate] = [];
           shiftMap[s.workDate].push(s);
+        });
+
+        var freeMap = {};
+        cachedFreeSchedules.forEach(function(f) {
+          if (!freeMap[f.workDate]) freeMap[f.workDate] = [];
+          freeMap[f.workDate].push(f);
         });
 
         var grid = document.getElementById('calendarGrid');
@@ -587,6 +682,16 @@
           if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
           html += '<div class="shift-badge-container">';
+
+          // フリー予定のバッジ描画
+          if (freeMap[dateStr]) {
+            freeMap[dateStr].forEach(function(fs) {
+              html += '<div class="shift-badge" style="background: #e67e22;" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
+              html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
+              html += '</div>';
+            });
+          }
 
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
@@ -630,6 +735,12 @@
           shiftMap[s.workDate].push(s);
         });
 
+        var freeMap = {};
+        cachedFreeSchedules.forEach(function(f) {
+          if (!freeMap[f.workDate]) freeMap[f.workDate] = [];
+          freeMap[f.workDate].push(f);
+        });
+
         var lastDayObj = new Date(year, month, 0);
         var totalDays = lastDayObj.getDate();
         var weekDays = ["日", "月", "火", "水", "木", "金", "土"];
@@ -658,6 +769,16 @@
           html += '<div class="' + rowClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
           html += '<div class="list-date-col' + dateClass + '">' + month + '/' + day + ' (' + dayOfWeekStr + ')' + holidayDisplay + closedDisplay + '</div>';
           html += '<div class="list-badge-col"><div class="shift-badge-container">';
+
+          // フリー予定のバッジ描画
+          if (freeMap[dateStr]) {
+            freeMap[dateStr].forEach(function(fs) {
+              html += '<div class="shift-badge" style="background: #e67e22;" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
+              html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
+              html += '</div>';
+            });
+          }
 
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
@@ -765,7 +886,6 @@
         });
       }
 
-      // スタッフの表示文字を更新する関数
       function updateChar(staffId) {
         var inputVal = document.getElementById('char-' + staffId).value;
         if (!inputVal) {
@@ -777,7 +897,7 @@
           .withSuccessHandler(function(res) {
             if (res.success) {
               alert(res.message);
-              loadStaffList(); // リロードしてパレットやカレンダーに即時反映
+              loadStaffList();
             } else {
               alert(res.message);
             }

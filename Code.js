@@ -607,3 +607,95 @@ function updateStaffDisplayChar(data) {
     return { success: false, message: "更新エラー: " + error.message };
   }
 }
+
+/**
+ * 指定された年月のフリー予定を取得する関数
+ */
+function getFreeSchedules(yearMonth) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("フリー予定");
+    if (!sheet) {
+      return { success: true, freeSchedules: [] };
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    var freeSchedules = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var scheduleId = row[0];
+      var workDate = row[1];
+      var title = row[2];
+      
+      if (!workDate || !title) continue;
+      
+      var d = new Date(workDate);
+      if (isNaN(d.getTime())) continue;
+      
+      var y = d.getFullYear();
+      var m = ('0' + (d.getMonth() + 1)).slice(-2);
+      var day = ('0' + d.getDate()).slice(-2);
+      var dateStr = y + '-' + m + '-' + day;
+      
+      if (dateStr.indexOf(yearMonth) === 0) {
+        freeSchedules.push({
+          scheduleId: scheduleId,
+          workDate: dateStr,
+          title: title
+        });
+      }
+    }
+    
+    return { success: true, freeSchedules: freeSchedules };
+  } catch (error) {
+    return { success: false, message: "フリー予定取得エラー: " + error.message };
+  }
+}
+
+/**
+ * シフト予定、休業日、フリー予定をまとめて一括保存する関数（従来のsaveAllSchedulesを拡張）
+ */
+function saveAllSchedulesWithFree(data) {
+  try {
+    // まず既存のシフトと休業日の保存関数を実行
+    var res = saveAllSchedules(data);
+    if (!res.success) return res;
+    
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var yearMonth = data.yearMonth;
+    
+    // フリー予定の保存処理
+    var freeSheet = ss.getSheetByName("フリー予定");
+    if (!freeSheet) {
+      freeSheet = ss.insertSheet("フリー予定");
+      freeSheet.appendRow(["scheduleId", "workDate", "title"]);
+    }
+    
+    var freeData = freeSheet.getDataRange().getValues();
+    var newFreeRows = [freeData[0]]; // ヘッダー保持
+    
+    for (var i = 1; i < freeData.length; i++) {
+      var fDate = new Date(freeData[i][1]);
+      if (isNaN(fDate.getTime())) continue;
+      var fYm = fDate.getFullYear() + '-' + ('0' + (fDate.getMonth() + 1)).slice(-2);
+      if (fYm !== yearMonth) {
+        newFreeRows.push(freeData[i]); // 他月のデータは保持
+      }
+    }
+    
+    (data.freeSchedules || []).forEach(function(fs) {
+      var sId = "free_" + Utilities.getUuid().substring(0, 8);
+      newFreeRows.push([sId, fs.workDate, fs.title]);
+    });
+    
+    freeSheet.clearContents();
+    if (newFreeRows.length > 0) {
+      freeSheet.getRange(1, 1, newFreeRows.length, newFreeRows[0].length).setValues(newFreeRows);
+    }
+    
+    return { success: true, message: "変更内容（予定・フリー項目含む）をすべて保存しました！" };
+  } catch (error) {
+    return { success: false, message: "一括保存エラー: " + error.message };
+  }
+}
