@@ -1061,24 +1061,27 @@ function getLineHistory() {
 }
 
 /**
- * 💡【追加】指定した日付（デフォルトは本日）の勤怠未提出者をリストアップする関数
+ * 💡【変更】「過去1か月間（今日から30日前まで）」の勤怠未提出者をリストアップする関数
  */
-function getKintaiPendingStaff(targetDateStr) {
+function getKintaiPendingStaff() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // 対象日の決定（指定がなければ今日の日付 "yyyy-MM-dd"）
-    var targetDate = targetDateStr;
-    if (!targetDate) {
-      targetDate = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy-MM-dd");
-    }
+    // 今日から30日前（約1か月間）の範囲を設定
+    var today = new Date();
+    var startDate = new Date();
+    startDate.setDate(today.getDate() - 30);
+    
+    var todayStr = Utilities.formatDate(today, "Asia/Tokyo", "yyyy-MM-dd");
+    var startStr = Utilities.formatDate(startDate, "Asia/Tokyo", "yyyy-MM-dd");
 
-    // 1. 指定日に「シフト予定」があるスタッフを抽出
+    // 1. 過去1か月間の「シフト予定」をすべて取得
     var shiftSheet = ss.getSheetByName("シフト予定");
     if (!shiftSheet) return { success: true, pendingList: [] };
     var shiftData = shiftSheet.getDataRange().getValues();
     
-    var scheduledStaffMap = {}; // staffId -> staffName
+    // キー: "staffId_yyyy-MM-dd", 値: { staffId, staffName, dateStr }
+    var scheduledMap = {}; 
     for (var i = 1; i < shiftData.length; i++) {
       var row = shiftData[i];
       var wDate = row[1];
@@ -1090,14 +1093,19 @@ function getKintaiPendingStaff(targetDateStr) {
       if (isNaN(d.getTime())) continue;
       var dStr = Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd");
       
-      if (dStr === targetDate) {
-        scheduledStaffMap[sId] = sName;
+      // 30日前から今日までの範囲内のみ対象
+      if (dStr >= startStr && dStr <= todayStr) {
+        var key = sId + "_" + dStr;
+        scheduledMap[key] = {
+          staffId: sId,
+          staffName: sName,
+          targetDate: dStr
+        };
       }
     }
 
-    // 2. 指定日にすでに「申請データ」を出しているスタッフを抽出
+    // 2. 過去1か月間の「申請データ」をすべて取得
     var dataSheet = ss.getSheetByName("申請データ");
-    var submittedStaffMap = {};
     if (dataSheet) {
       var kintaiData = dataSheet.getDataRange().getValues();
       for (var j = 1; j < kintaiData.length; j++) {
@@ -1110,25 +1118,25 @@ function getKintaiPendingStaff(targetDateStr) {
         if (isNaN(kd.getTime())) continue;
         var kdStr = Utilities.formatDate(kd, "Asia/Tokyo", "yyyy-MM-dd");
         
-        if (kdStr === targetDate) {
-          submittedStaffMap[kStaffId] = true;
+        // すでに申請があるものは予定マップから削除（＝未提出者だけに絞る）
+        var submittedKey = kStaffId + "_" + kdStr;
+        if (scheduledMap[submittedKey]) {
+          delete scheduledMap[submittedKey];
         }
       }
     }
 
-    // 3. 予定はあるが申請していない人を絞り込み
+    // 3. 残った未提出の予定を配列に変換（日付の新しい順に並び替え）
     var pendingList = [];
-    for (var staffId in scheduledStaffMap) {
-      if (!submittedStaffMap[staffId]) {
-        pendingList.push({
-          staffId: staffId,
-          staffName: scheduledStaffMap[staffId],
-          targetDate: targetDate
-        });
-      }
+    for (var key in scheduledMap) {
+      pendingList.push(scheduledMap[key]);
     }
+    
+    pendingList.sort(function(a, b) {
+      return new Date(b.targetDate) - new Date(a.targetDate);
+    });
 
-    return { success: true, pendingList: pendingList, targetDate: targetDate };
+    return { success: true, pendingList: pendingList };
   } catch (error) {
     return { success: false, message: "未提出者取得エラー: " + error.message, pendingList: [] };
   }
