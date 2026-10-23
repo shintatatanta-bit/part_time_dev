@@ -896,51 +896,6 @@ function deleteScheduleOrPreference(data) {
 }
 
 /**
- * スタッフからのシフト希望を「シフト予定」シートに直接登録（一元化）する関数
- */
-function saveShiftPreferences(data) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("シフト予定");
-    if (!sheet) {
-      sheet = ss.insertSheet("シフト予定");
-      sheet.appendRow(["shiftId", "workDate", "staffId", "staffName"]);
-    }
-    
-    var existingData = sheet.getDataRange().getValues();
-    var staffId = data.staffId;
-    var staffName = data.staffName;
-    var targetDates = data.selectedDates || [];
-    
-    var newRows = [existingData[0]]; // ヘッダー保持
-    for (var i = 1; i < existingData.length; i++) {
-      var row = existingData[i];
-      var rDateStr = String(row[1] || "");
-      var rStaffId = String(row[2] || "");
-      
-      var isSameMonth = rDateStr.indexOf(data.yearMonth) === 0;
-      if (!(isSameMonth && rStaffId === staffId)) {
-        newRows.push(row);
-      }
-    }
-    
-    targetDates.forEach(function(dStr) {
-      var shiftId = "shift_" + Utilities.getUuid().substring(0, 8);
-      newRows.push([shiftId, dStr, staffId, staffName]);
-    });
-    
-    sheet.clearContents();
-    if (newRows.length > 0) {
-      sheet.getRange(1, 1, newRows.length, newRows[0].length).setValues(newRows);
-    }
-    
-    return { success: true, message: "シフト希望を提出し、予定に反映しました！" };
-  } catch (error) {
-    return { success: false, message: "エラーが発生しました: " + error.message };
-  }
-}
-
-/**
  * 互換性のために空の配列を返すダミー関数
  */
 function getShiftPreferences(yearMonth) {
