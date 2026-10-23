@@ -364,6 +364,20 @@
       </div>
     </div>
 
+    <!-- 💡【追加】勤怠未提出者アラートカード -->
+    <div class="card" style="border: 1px solid #e74c3c; background: #fdfefe;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h3 style="margin: 0; color: #c0392b;">⚠️ 勤怠未提出者アラート</h3>
+        <div>
+          <input type="date" id="alertTargetDate" onchange="loadPendingStaff()" style="width: 140px; padding: 4px; font-size: 0.8rem; margin-top: 0;">
+        </div>
+      </div>
+      <p style="font-size: 0.75rem; color: #666; margin: 0 0 8px 0;">💡 シフト予定が入っているのに、まだ勤怠申請が提出されていないスタッフです。申請が完了すると自動で消えます。</p>
+      <div id="pendingStaffContainer">
+        <div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">確認中...</div>
+      </div>
+    </div>
+
     <script>
       var cachedStaffList = [];
       var cachedShiftsData = []; 
@@ -379,14 +393,20 @@
         var now = new Date();
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
+        var d = String(now.getDate()).padStart(2, '0');
         document.getElementById('calendarMonth').value = y + '-' + m;
+        
+        // 💡【追加】アラート用日付の初期値に今日を設定
+        document.getElementById('alertTargetDate').value = y + '-' + m + '-' + d;
 
         renderFreePalette();
         loadStaffList();
         loadAccountOptions();
         setPeriod('first');
         fetchSummary();
-        loadLineHistory(); // 💡【追加】ページ読み込み時に履歴を取得
+        loadLineHistory();
+        loadLineHistory();
+        loadPendingStaff(); // 💡【追加】未提出者リストの読み込み
       };
 
       function switchView(mode) {
@@ -1160,6 +1180,29 @@
             container.innerHTML = html;
           })
           .getLineHistory();
+      }
+
+      // 💡【追加】未提出者リストを取得して表示する関数
+      function loadPendingStaff() {
+        var dateVal = document.getElementById('alertTargetDate').value;
+        var container = document.getElementById('pendingStaffContainer');
+        container.innerHTML = '<div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">確認中...</div>';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success || res.pendingList.length === 0) {
+              container.innerHTML = '<div style="text-align: center; color: #27ae60; font-size: 0.85rem; padding: 10px; font-weight: bold;">🎉 指定日の出勤予定者は全員、勤怠申請済みです！</div>';
+              return;
+            }
+
+            var html = '<ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: #c0392b;">';
+            res.pendingList.forEach(function(staff) {
+              html += '<li style="margin-bottom: 4px;"><strong>' + escapeHtml(staff.staffName) + '</strong> さん（予定日: ' + staff.targetDate + '）</li>';
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+          })
+          .getKintaiPendingStaff(dateVal);
       }
     </script>
   </head>
