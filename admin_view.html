@@ -18,40 +18,29 @@
       button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       
-      /* 📌 画面の右上に常に浮かせて配置するフローティング保存ボタン */
-      .save-action-bar { 
-        position: fixed;
-        top: 15px;
-        right: 20px;
-        z-index: 9999;
-        background: rgba(238, 249, 242, 0.95); 
-        border: 2px solid #27ae60; 
-        padding: 6px 12px; 
-        border-radius: 30px; 
-        display: flex; 
-        align-items: center; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      }
-      .save-btn { 
-        background: #27ae60 !important; 
-        color: white; 
-        font-weight: bold; 
-        padding: 6px 14px; 
-        border-radius: 20px; 
-        border: none; 
-        cursor: pointer; 
-        width: auto; 
-        margin-top: 0; 
-        font-size: 0.85rem; 
-      }
-      .save-btn:hover { background: #219653 !important; }
-
-      /* パレット類は通常の配置（追従させない）にするため sticky を解除 */
-      .staff-chips-wrapper {
+      /* 📌 画面上部に常に固定するトップ固定エリア（保存バー ＋ 予定チップ ＋ スタッフチップ） */
+      .sticky-top-area {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
         background: #f4f7f6;
-        padding-top: 5px;
-        padding-bottom: 5px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
       }
+
+      .save-action-bar { 
+        background: #eef9f2; 
+        border: 2px solid #27ae60; 
+        padding: 8px 14px; 
+        border-radius: 6px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 6px; 
+      }
+      .save-btn { background: #27ae60 !important; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; width: auto; margin-top: 0; font-size: 0.9rem; }
+      .save-btn:hover { background: #219653 !important; }
 
       .quick-btns { display: flex; gap: 8px; margin-top: 8px; }
       .quick-btns button { background: #95a5a6; margin-top: 0; font-size: 0.8rem; padding: 6px; }
@@ -77,7 +66,7 @@
       .view-tab-btn { background: transparent; color: #555; border: none; padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; margin-top: 0; width: auto; font-weight: bold; }
       .view-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; }
+      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; padding: 6px 8px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0; }
       .staff-chip { background: #3498db; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; cursor: grab; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
       .staff-chip:active { cursor: grabbing; background: #2980b9; }
       
@@ -169,15 +158,6 @@
       .url-cell { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .flex-row { display: flex; gap: 8px; }
       .flex-col { flex: 1; }
-
-      .staff-chips-wrapper {
-        position: sticky;
-        top: 65px;
-        z-index: 98;
-        background: #f4f7f6;
-        padding-top: 5px;
-        padding-bottom: 5px;
-      }
     </style>
   </head>
   <body>
@@ -201,26 +181,38 @@
         </div>
       </div>
 
-      <!-- 📌 画面右上に浮遊するコンパクトな保存ボタン -->
-      <div class="save-action-bar">
-        <span style="font-size: 0.75rem; color: #1e7e34; font-weight: bold; margin-right: 8px; display: inline-block;">⚠️未保存の変更あり</span>
-        <button class="save-btn" onclick="saveAllChanges()">💾 変更を保存</button>
+      <!-- 📌 画面上部に固定するエリア（変更保存バー ＋ 予定チップのみ） -->
+      <div class="sticky-top-area">
+        <div class="save-action-bar">
+          <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容は「保存する」ボタンを押すまで確定しません。</span>
+          <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
+        </div>
+
+        <div id="freeChipsContainer" class="staff-chips" style="background: #fff9e6; border-color: #ffeeba; margin-bottom: 0;">
+          <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
+        </div>
       </div>
 
-      <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe;">
+      <!-- 📌 通常の位置にあるよく使う予定の登録・追加カード（追従しない） -->
+      <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe; margin-top: 12px;">
         <h3>📌 よく使う予定パレット（来客・全体予定など）</h3>
         <div style="display: flex; gap: 8px;">
           <input type="text" id="freeItemText" placeholder="例: 来客予定, 会議, 清掃日..." style="flex-grow: 1; margin-top:0;">
           <button type="button" class="secondary" style="margin-top:0; background: #e67e22;" onclick="addFreeItemPalette()">パレットに追加</button>
         </div>
-        <div id="freeChipsContainer" class="staff-chips" style="margin-top: 8px; background: #fff9e6; border-color: #ffeeba;">
-          <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
+      </div>
+
+      <!-- 📌 スタッフパレット（説明テキスト付き・追従しない） -->
+      <div style="margin-top: 12px;">
+        <label style="margin-top: 0; font-weight: bold; font-size: 0.8rem; color: #555;">スタッフパレット (ドラッグ＆ドロップまたはクリックで配置)</label>
+        <div id="staffChipsContainer" class="staff-chips" style="margin-top: 4px;">
+          <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
         </div>
       </div>
 
-      <div class="staff-chips-wrapper">
-        <label style="margin-top: 0;">スタッフパレット (ドラッグ＆ドロップまたはクリックで配置)</label>
-        <div id="staffChipsContainer" class="staff-chips">
+      <!-- 📌 画面上部に一緒に固定するエリア（スタッフチップのみ） -->
+      <div class="sticky-top-area" style="padding-top: 0; margin-top: 4px;">
+        <div id="stickyStaffChipsContainer" class="staff-chips" style="margin-bottom: 0; background: #f0f4f8;">
           <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
         </div>
       </div>
@@ -389,17 +381,17 @@
 
       function renderFreePalette() {
         var container = document.getElementById('freeChipsContainer');
-        if (cachedFreePalette.length === 0) {
-          container.innerHTML = '<span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>';
-          return;
-        }
         var html = '';
-        cachedFreePalette.forEach(function(title, idx) {
-          html += '<div class="staff-chip" style="background: #e67e22;" draggable="true" ondragstart="onDragStartFree(event, \'' + escapeHtml(title) + '\')" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
-          html += '📌 ' + escapeHtml(title);
-          html += ' <span onclick="event.stopPropagation(); removeFreePalette(' + idx + ')" style="font-size:0.7rem; margin-left:4px; opacity:0.8;">×</span>';
-          html += '</div>';
-        });
+        if (cachedFreePalette.length === 0) {
+          html = '<span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>';
+        } else {
+          cachedFreePalette.forEach(function(title, idx) {
+            html += '<div class="staff-chip" style="background: #e67e22;" draggable="true" ondragstart="onDragStartFree(event, \'' + escapeHtml(title) + '\')" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
+            html += '📌 ' + escapeHtml(title);
+            html += ' <span onclick="event.stopPropagation(); removeFreePalette(' + idx + ')" style="font-size:0.7rem; margin-left:4px; opacity:0.8;">×</span>';
+            html += '</div>';
+          });
+        }
         container.innerHTML = html;
       }
 
@@ -471,8 +463,11 @@
             });
 
             var chipsContainer = document.getElementById('staffChipsContainer');
+            var stickyChipsContainer = document.getElementById('stickyStaffChipsContainer');
+
             if (activeStaffList.length === 0) {
               chipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">在籍中のスタッフがいません</span>';
+              stickyChipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">在籍中のスタッフがいません</span>';
             } else {
               var chipsHtml = '';
               activeStaffList.forEach(function(staff) {
@@ -481,6 +476,7 @@
                 chipsHtml += '</div>';
               });
               chipsContainer.innerHTML = chipsHtml;
+              stickyChipsContainer.innerHTML = chipsHtml;
             }
 
             loadCalendar();
@@ -549,7 +545,11 @@
           alert('選択を解除しました');
         } else {
           selectedStaffForClick = { staffId: staffId, staffName: staffName, displayChar: displayChar };
-          elem.style.border = '2px solid #e74c22';
+          chips.forEach(function(c) {
+            if (c.innerText.includes(staffName)) {
+              c.style.border = '2px solid #e74c22';
+            }
+          });
           alert(staffName + 'さんを選択しました。配置したい日付枠をクリックしてください。');
         }
       }
@@ -889,7 +889,7 @@
             freeMap[dateStr].forEach(function(fs) {
               html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
               html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
-              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + \')">×</span>';
               html += '</div>';
             });
           }
