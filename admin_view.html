@@ -300,18 +300,22 @@
         printWin.document.close();
       }
 
-      // フリー予定パレット関連
+      var cachedFreePalette = JSON.parse(localStorage.getItem('cachedFreePalette')) || ["来客予定", "全体ミーティング", "清掃日"];
+
+      // 📌 フリー予定パレットに追加する関数（localStorageに保存）
       function addFreeItemPalette() {
         var input = document.getElementById('freeItemText');
         var val = input.value.trim();
         if (!val) return;
         if (!cachedFreePalette.includes(val)) {
           cachedFreePalette.push(val);
+          localStorage.setItem('cachedFreePalette', JSON.stringify(cachedFreePalette));
           renderFreePalette();
           input.value = '';
         }
       }
 
+      // 📌 フリー予定パレットの描画
       function renderFreePalette() {
         var container = document.getElementById('freeChipsContainer');
         if (cachedFreePalette.length === 0) {
@@ -326,6 +330,12 @@
           html += '</div>';
         });
         container.innerHTML = html;
+      }
+
+      function removeFreePalette(index) {
+        cachedFreePalette.splice(index, 1);
+        localStorage.setItem('cachedFreePalette', JSON.stringify(cachedFreePalette));
+        renderFreePalette();
       }
 
       function removeFreePalette(index) {
