@@ -1309,10 +1309,23 @@ function getUnreadShiftNotifications() {
           timeStr = String(timeObj);
         }
 
+        // 💡 yearMonth（例: "2026-10"）を "2026年10月" に変換する処理
+        var formattedYm = yearMonth;
+        if (yearMonth && yearMonth.indexOf("-") !== -1) {
+          var ymParts = yearMonth.split("-");
+          formattedYm = ymParts[0] + "年" + Number(ymParts[1]) + "月";
+        } else if (yearMonth) {
+          // 万が一 Dateオブジェクト等で入っている場合の保険
+          var ymDate = new Date(yearMonth);
+          if (!isNaN(ymDate.getTime())) {
+            formattedYm = Utilities.formatDate(ymDate, "Asia/Tokyo", "yyyy年M月");
+          }
+        }
+
         notifications.push({
           notifId: notifId,
           staffName: staffName || "スタッフ",
-          yearMonth: yearMonth || "未指定",
+          yearMonth: formattedYm || "未指定",
           timestamp: timeStr
         });
       }
