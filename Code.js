@@ -727,34 +727,64 @@ function toggleStaffStatus(staffId, newStatus) {
 }
 
 /**
- * スタッフからのシフト希望データを保存する関数
+ * 💡【変更】スタッフからのシフト希望を保存し、管理者向けの新着通知（未確認ログ）を記録する関数
  */
 function saveShiftPreferences(data) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("希望シフト");
+    
+    // 1. シフト予定シートへの登録（従来通り）
+    var sheet = ss.getSheetByName("シフト予定");
     if (!sheet) {
-      // 「希望シフト」シートがなければ自動作成してヘッダーを入れる
-      sheet = ss.insertSheet("希望シフト");
-      sheet.appendRow(["prefId", "staffId", "staffName", "yearMonth", "selectedDates", "timestamp"]);
+      sheet = ss.insertSheet("シフト予定");
+      sheet.appendRow(["shiftId", "workDate", "staffId", "staffName"]);
     }
     
-    var prefId = "pref_" + Utilities.getUuid().substring(0, 8);
-    var timestamp = new Date();
+    var existingData = sheet.getDataRange().getValues();
+    var staffId = data.staffId;
+    var staffName = data.staffName;
+    var targetDates = data.selectedDates || [];
     
-    // 選択された日付の配列をカンマ区切りの文字列にする
-    var datesStr = (data.selectedDates || []).join(",");
+    var newRows = [existingData[0]]; 
+    for (var i = 1; i < existingData.length; i++) {
+      var row = existingData[i];
+      var rDateStr = String(row[1] || "");
+      var rStaffId = String(row[2] || "");
+      
+      var isSameMonth = rDateStr.indexOf(data.yearMonth) === 0;
+      if (!(isSameMonth && rStaffId === staffId)) {
+        newRows.push(row);
+      }
+    }
     
-    sheet.appendRow([
-      prefId,
-      data.staffId,
-      data.staffName,
+    targetDates.forEach(function(dStr) {
+      var shiftId = "shift_" + Utilities.getUuid().substring(0, 8);
+      newRows.push([shiftId, dStr, staffId, staffName]);
+    });
+    
+    sheet.clearContents();
+    if (newRows.length > 0) {
+      sheet.getRange(1, 1, newRows.length, newRows[0].length).setValues(newRows);
+    }
+
+    // 💡 2. 管理者向け「新着希望通知」シートへ未読ログを記録
+    var notifSheet = ss.getSheetByName("希望通知ログ");
+    if (!notifSheet) {
+      notifSheet = ss.insertSheet("希望通知ログ");
+      notifSheet.appendRow(["notifId", "staffId", "staffName", "yearMonth", "timestamp", "status"]);
+    }
+    
+    var notifId = "notif_" + Utilities.getUuid().substring(0, 8);
+    notifSheet.appendRow([
+      notifId,
+      staffId,
+      staffName,
       data.yearMonth,
-      datesStr,
-      timestamp
+      new Date(),
+      "未読"
     ]);
     
-    return { success: true, message: "シフト希望を提出しました！ありがとうございます。" };
+    return { success: true, message: "シフト希望を提出し、予定に反映しました！" };
   } catch (error) {
     return { success: false, message: "エラーが発生しました: " + error.message };
   }
@@ -1289,5 +1319,72 @@ function sendKintaiReminderLine(data) {
 
   } catch (error) {
     return { success: false, message: "リマインド送信エラー: " + error.message };
+  }
+}
+
+/**
+ * 💡【追加】管理者向けに未読の「シフト希望申請通知」を取得する関数
+ */
+function getUnreadShiftNotifications() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("希望通知ログ");
+    if (!sheet) return { success: true, notifications: [] };
+
+    var data = sheet.getDataRange().getValues();
+    var notifications = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var notifId = row[0];
+      var staffId = row[1];
+      var staffName = row[2];
+      var yearMonth = row[3];
+      var timeObj = row[4];
+      var status = row[5];
+
+      if (notifId && status === "未読") {
+        var timeStr = "";
+        if (timeObj instanceof Date) {
+          timeStr = Utilities.formatDate(timeObj, "Asia/Tokyo", "MM/dd HH:mm");
+        } else {
+          timeStr = String(timeObj);
+        }
+
+        notifications.push({
+          notifId: notifId,
+          staffName: staffName,
+          yearMonth: yearMonth,
+          timestamp: timeStr
+        });
+      }
+    }
+
+    notifications.reverse(); // 新しい順
+    return { success: true, notifications: notifications };
+  } catch (error) {
+    return { success: false, notifications: [], message: error.message };
+  }
+}
+
+/**
+ * 💡【追加】シフト希望通知を「既読（確認済み）」にする関数
+ */
+function markNotificationAsRead(notifId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("希望通知ログ");
+    if (!sheet) return { success: false, message: "通知シートが見つかりません" };
+
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(notifId)) {
+        sheet.getRange(i + 1, 6).setValue("既読"); // F列（6列目）の状態を既読に
+        return { success: true, message: "確認済みにしました" };
+      }
+    }
+    return { success: false, message: "該当の通知が見つかりませんでした" };
+  } catch (error) {
+    return { success: false, message: "エラー: " + error.message };
   }
 }

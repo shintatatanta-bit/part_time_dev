@@ -240,7 +240,7 @@
   <body>
     <h2>🛠️ 管理者ダッシュボード</h2>
     
-    <!-- 💡【最上部配置】勤怠未提出者アラートカード（常時表示で一番目立たせる） -->
+    <!-- 勤怠未提出者アラートカード（常時表示） -->
     <div class="card" style="border: 1px solid #e74c3c; background: #fdfefe;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
         <h3 style="margin: 0; color: #c0392b;">⚠️ 勤怠未提出者アラート（過去1か月間）</h3>
@@ -252,7 +252,15 @@
       </div>
     </div>
 
-    <!-- 💡【アコーディオン 1】シフト予定管理 -->
+    <!-- 💡【追加】シフト希望の新着お知らせエリア -->
+    <div class="card" id="shiftNotifCard" style="border: 1px solid #3498db; background: #f0f8ff; display: none;">
+      <h3 style="margin: 0 0 4px 0; color: #2980b9;">📥 新着のシフト希望申請があります</h3>
+      <div id="shiftNotifContainer" style="font-size: 0.85rem; color: #333;">
+        読み込み中...
+      </div>
+    </div>
+
+    <!-- アコーディオン 1: シフト予定管理 -->
     <div class="accordion-card open" id="acc-shift">
       <div class="accordion-header" onclick="toggleAccordion('acc-shift')">
         <h3>📅 シフト予定管理</h3>
@@ -449,7 +457,8 @@
         setPeriod('first');
         fetchSummary();
         loadLineHistory();
-        loadPendingStaff(); // 💡【変更】引数なしで過去1か月分を取得
+        loadPendingStaff();
+        loadShiftNotifications(); // 💡【追加】新着の希望申請を読み込み
       };
 
       function switchView(mode) {
@@ -1334,6 +1343,44 @@
       // 💡【追加】アコーディオンの開閉を切り替える関数
       function toggleAccordion(cardId) {
         document.getElementById(cardId).classList.toggle('open');
+      }
+
+      // 💡【追加】新着のシフト希望通知を読み込む関数
+      function loadShiftNotifications() {
+        var card = document.getElementById('shiftNotifCard');
+        var container = document.getElementById('shiftNotifContainer');
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success || res.notifications.length === 0) {
+              card.style.display = 'none'; // 未読がなければカード自体を非表示
+              return;
+            }
+
+            card.style.display = 'block'; // 未読があれば表示
+            var html = '';
+            res.notifications.forEach(function(item) {
+              html += '<div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 4px; margin-top: 6px; border: 1px solid #bce8f1;">';
+              html += '<span>👤 <strong>' + escapeHtml(item.staffName) + '</strong> さんから <strong>' + escapeHtml(item.yearMonth) + '度</strong> の希望シフトが提出されました <span style="font-size:0.75rem; color:#666;">(' + item.timestamp + ')</span></span>';
+              html += '<button type="button" class="secondary" style="background: #2980b9; margin-top: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="markAsRead(\'' + item.notifId + '\')">確認済み</button>';
+              html += '</div>';
+            });
+            container.innerHTML = html;
+          })
+          .getUnreadShiftNotifications();
+      }
+
+      // 💡【追加】通知を既読にして非表示にする関数
+      function markAsRead(notifId) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              loadShiftNotifications(); // リストを再読み込みして更新
+            } else {
+              alert(res.message);
+            }
+          })
+          .markNotificationAsRead(notifId);
       }
     </script>
   </head>
