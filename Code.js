@@ -759,3 +759,43 @@ function saveShiftPreferences(data) {
     return { success: false, message: "エラーが発生しました: " + error.message };
   }
 }
+
+/**
+ * 指定された年月の全スタッフからのシフト希望を取得する関数
+ */
+function getShiftPreferences(yearMonth) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("希望シフト");
+    if (!sheet) {
+      return { success: true, preferences: [] };
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    var preferences = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var prefId = row[0];
+      var staffId = row[1];
+      var staffName = row[2];
+      var ym = row[3];
+      var datesStr = row[4]; // "2026-10-01,2026-10-05..."
+      
+      if (ym === yearMonth) {
+        var datesArray = datesStr ? datesStr.split(",") : [];
+        preferences.push({
+          prefId: prefId,
+          staffId: staffId,
+          staffName: staffName,
+          yearMonth: ym,
+          dates: datesArray
+        });
+      }
+    }
+    
+    return { success: true, preferences: preferences };
+  } catch (error) {
+    return { success: false, message: "希望シフト取得エラー: " + error.message };
+  }
+}
