@@ -127,9 +127,9 @@
         display: flex;
       }
 
-      /* 💡 希望未確定バッジ（薄い青） */
+      /* 💡 希望未確定バッジ（はっきりした明るい青：アイスブルー） */
       .staff-pref-badge {
-        background: #3498db;
+        background: #5dade2;
         color: white;
         width: 24px;
         height: 24px;
@@ -141,13 +141,11 @@
         font-weight: bold;
         position: relative;
         cursor: pointer;
-        opacity: 0.55;
-        border: 1px dashed #2980b9;
+        border: 1px dashed #1b4f72;
         box-shadow: 0 1px 2px rgba(0,0,0,0.1);
       }
       .staff-pref-badge:hover {
-        opacity: 1;
-        background: #2980b9;
+        background: #2e86c1;
       }
 
       .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
@@ -421,7 +419,7 @@
         } else {
           selectedStaffForClick = { type: 'free', title: title };
           elem.style.border = '2px solid #2c3e50';
-          alert('<div>「' + title + '」を選択しました。配置したい日付枠をクリックしてください。');
+          alert('「' + title + '」を選択しました。配置したい日付枠をクリックしてください。');
         }
       }
 
@@ -801,7 +799,7 @@
           if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
 
-          // 🟢 上段：シフトエリア（確定シフト ＋ 薄い青の希望シフト）
+          // 🟢 上段：シフトエリア（確定シフト ＋ はっきりした薄い青の希望シフト）
           html += '<div class="cal-section-shift">';
           
           // 1. 正式確定シフト
@@ -822,7 +820,7 @@
             });
           }
 
-          // 2. スタッフからの希望（薄い青・クリックで昇格）
+          // 2. スタッフからの希望（はっきりした薄い青・クリックで昇格）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -838,7 +836,7 @@
                   break;
                 }
               }
-              // 💡 クラス名に .staff-pref-badge を使用して確実に薄い青にする
+              // 💡 希望未確定時は「明るいスカイブルー（.staff-pref-badge）」にする
               html += '<div class="staff-pref-badge" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '</div>';
@@ -933,7 +931,7 @@
           
           html += '<div class="list-badge-col">';
 
-          // 🟢 左側：シフトエリア（確定シフト ＋ 薄い青の希望シフト）
+          // 🟢 左側：シフトエリア（確定シフト ＋ はっきりした薄い青の希望シフト）
           html += '<div class="list-section-shift">';
           
           // 1. 正式確定シフト
@@ -954,7 +952,7 @@
             });
           }
 
-          // 2. スタッフからの希望（薄い青・クリックで昇格）
+          // 2. スタッフからの希望（はっきりした薄い青・クリックで昇格）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -970,7 +968,7 @@
                   break;
                 }
               }
-              // 💡 クラス名に .staff-pref-badge を使用
+              // 💡 希望未確定時は「明るいスカイブルー」にする
               html += '<div class="staff-pref-badge" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '</div>';
