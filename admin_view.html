@@ -1366,6 +1366,18 @@
           alert(staffName + 'さんを選択しました。配置したい日付枠をタップしてください。');
         }
       }
+
+      // 👥 スタッフの並び順に従ってシフトデータをソートする関数
+      function sortShiftsByStaffOrder(shifts) {
+        if (!shifts) return [];
+        return shifts.sort(function(a, b) {
+          var indexA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
+          var indexB = cachedStaffList.findIndex(function(st) { return st.staffId === b.staffId; });
+          if (indexA === -1) indexA = 999;
+          if (indexB === -1) indexB = 999;
+          return indexA - indexB;
+        });
+      }
     </script>
   </head>
 </html>
