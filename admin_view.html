@@ -1273,6 +1273,99 @@
           })
           .markNotificationAsRead(notifId);
       }
+
+      // 📋 スタッフ一覧とパレット用チップを読み込む関数
+      function loadStaffList() {
+        google.script.run
+          .withSuccessHandler(function(staffList) {
+            cachedStaffList = staffList;
+            
+            var tbody = document.getElementById('staffTableBody');
+            if (staffList.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">登録されているスタッフがいません</td></tr>';
+            } else {
+              var html = '';
+              staffList.forEach(function(staff) {
+                var isActive = (staff.status === "有効");
+                var statusBadge = isActive ? 
+                  '<span style="color: #27ae60; font-weight: bold;">在籍中</span>' : 
+                  '<span style="color: #e74c3c; font-weight: bold;">退職(非在籍)</span>';
+                
+                var toggleBtnText = isActive ? "退職にする" : "在籍に戻す";
+                var toggleBtnColor = isActive ? "#e74c3c" : "#2ecc71";
+                var nextStatus = isActive ? "退職" : "有効";
+
+                html += '<tr>';
+                html += '<td>' + escapeHtml(staff.staffName) + '</td>';
+                html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
+                html += '<td><input type="text" id="char-' + staff.staffId + '" value="' + escapeHtml(staff.displayChar) + '" style="width: 50px; text-align: center; padding: 4px;" maxlength="4"> ' +
+                        '<button class="secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="updateChar(\'' + staff.staffId + '\')">変更</button></td>';
+                html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
+                html += '<td style="text-align: center;">' + statusBadge + '</td>';
+                html += '<td>';
+                html += '<button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';
+                html += '<button class="secondary" style="background: ' + toggleBtnColor + '; margin-left: 4px;" onclick="changeStatus(\'' + staff.staffId + '\', \'' + nextStatus + '\')">' + toggleBtnText + '</button>';
+                html += '</td>';
+                html += '</tr>';
+              });
+              tbody.innerHTML = html;
+            }
+
+            var activeStaffList = staffList.filter(function(staff) {
+              return staff.status === "有効";
+            });
+
+            var stickyChipsContainer = document.getElementById('stickyStaffChipsContainer');
+
+            if (activeStaffList.length === 0) {
+              stickyChipsContainer.innerHTML = '<span style="font-size:6pt; color:#777;">在籍中のスタッフがいません</span>';
+            } else {
+              var chipsHtml = '';
+              activeStaffList.forEach(function(staff) {
+                chipsHtml += '<div class="staff-chip" draggable="true" ondragstart="onDragStart(event, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')" onclick="selectStaffForClick(this, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')">';
+                chipsHtml += '[' + escapeHtml(staff.displayChar) + '] ' + escapeHtml(staff.staffName);
+                chipsHtml += '</div>';
+              });
+              stickyChipsContainer.innerHTML = chipsHtml;
+            }
+
+            loadCalendar();
+          })
+          .getStaffList();
+      }
+
+      function onDragStart(event, staffId, staffName, displayChar) {
+        event.dataTransfer.setData('text/plain', JSON.stringify({
+          staffId: staffId,
+          staffName: staffName,
+          displayChar: displayChar
+        }));
+      }
+
+      function onDragOver(event) {
+        event.preventDefault();
+        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) {
+          el.classList.remove('drag-over');
+        });
+        var target = event.target.closest('.cal-cell') || event.target.closest('.list-row');
+        if (target && !target.classList.contains('other-month')) {
+          target.classList.add('drag-over');
+        }
+      }
+
+      function selectStaffForClick(elem, staffId, staffName, displayChar) {
+        var chips = document.querySelectorAll('.staff-chip');
+        chips.forEach(function(c) { c.classList.remove('selected-active'); });
+        
+        if (selectedStaffForClick && selectedStaffForClick.staffId === staffId) {
+          selectedStaffForClick = null;
+          alert('選択を解除しました');
+        } else {
+          selectedStaffForClick = { staffId: staffId, staffName: staffName, displayChar: displayChar };
+          elem.classList.add('selected-active');
+          alert(staffName + 'さんを選択しました。配置したい日付枠をタップしてください。');
+        }
+      }
     </script>
   </head>
 </html>
