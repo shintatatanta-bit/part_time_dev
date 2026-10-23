@@ -576,6 +576,24 @@
         }
       }
 
+      function renderFreePalette() {
+        var stickyContainer = document.getElementById('stickyFreeChipsContainer');
+        var html = '';
+        if (!cachedFreePalette || cachedFreePalette.length === 0) {
+          html = '<span style="font-size:6pt; color:#777;">登録された予定はありません</span>';
+        } else {
+          cachedFreePalette.forEach(function(title, idx) {
+            html += '<div class="staff-chip" style="background: #e67e22;" draggable="true" ondragstart="onDragStartFree(event, \'' + escapeHtml(title) + '\')" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
+            html += '📌 ' + escapeHtml(title);
+            html += ' <span onclick="event.stopPropagation(); removeFreePalette(' + idx + ')" style="font-size:6pt; margin-left:3px; opacity:0.8;">×</span>';
+            html += '</div>';
+          });
+        }
+        if (stickyContainer) {
+          stickyContainer.innerHTML = html;
+        }
+      }
+
       function removeFreePalette(index) {
         cachedFreePalette.splice(index, 1);
         localStorage.setItem('cachedFreePalette', JSON.stringify(cachedFreePalette));
