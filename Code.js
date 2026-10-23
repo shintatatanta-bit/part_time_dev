@@ -1326,14 +1326,6 @@ function getUnreadShiftNotifications() {
   }
 }
 
-    notifications.reverse();
-    return { success: true, notifications: notifications };
-  } catch (error) {
-    Logger.log("エラー発生: " + error.message);
-    return { success: false, notifications: [], message: error.message };
-  }
-}
-
 /**
  * 💡【追加】シフト希望通知を「既読（確認済み）」にする関数
  */
