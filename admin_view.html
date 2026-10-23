@@ -90,7 +90,7 @@
       .free-badge .del-x { font-size: 0.6rem; opacity: 0.8; font-weight: bold; }
       .free-badge:hover { background: #c0392b; }
 
-      /* 〇の中に一文字のスタッフ用丸型バッジ */
+      /* 〇の中に一文字のスタッフ用丸型バッジ（確定） */
       .staff-circle-badge {
         background: #27ae60;
         color: white;
@@ -398,7 +398,7 @@
         } else {
           selectedStaffForClick = { type: 'free', title: title };
           elem.style.border = '2px solid #2c3e50';
-          alert('「' + title + '」を選択しました。配置したい日付枠をクリックしてください。');
+          alert('<div>「' + title + '」を選択しました。配置したい日付枠をクリックしてください。');
         }
       }
 
@@ -678,10 +678,8 @@
                   .withSuccessHandler(function(shiftRes) {
                     cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
                     
-                    // 🔍 ここで希望シフトの通信結果をコンソールに出力します！
                     google.script.run
                       .withSuccessHandler(function(prefRes) {
-                        console.log("【デバッグ】希望シフトのサーバーレスポンス:", prefRes);
                         cachedPreferencesData = prefRes.success ? prefRes.preferences : [];
                         
                         google.script.run
@@ -727,7 +725,7 @@
           freeMap[f.workDate].push(f);
         });
 
-        // 📌 スタッフごとの希望日マップを作成（staffIdをキーにする）
+        // 📌 スタッフごとの希望日マップを作成
         var prefMap = {};
         cachedPreferencesData.forEach(function(pref) {
           pref.dates.forEach(function(dStr) {
@@ -773,14 +771,14 @@
           var dateNumClass = isSunOrHol ? 'cal-date-num sun-or-hol' : (dObj.getDay() === 6 ? 'cal-date-num sat' : 'cal-date-num');
           var cellClass = isClosed ? 'cal-cell closed-day' : 'cal-cell';
 
-          html += '<div class="' + cellClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
+          html += '<div class="' + cellClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + \')" onclick="onCellClick(\'' + dateStr + \')">';
           html += '<div class="cal-date-header">';
           html += '<span class="' + dateNumClass + '">' + day + '</span>';
           if (holidayName) html += '<span class="holiday-name">' + escapeHtml(holidayName) + '</span>';
           if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
 
-          // 🟢 上段：シフトエリア（確定シフト ＋ 薄い色の希望シフト）
+          // 🟢 上段：シフトエリア（確定シフト ＋ 薄い青の希望シフト）
           html += '<div class="cal-section-shift">';
           
           // 1. 正式確定シフト
@@ -801,9 +799,8 @@
             });
           }
 
-          // 2. スタッフからの希望（薄い色・クリックで昇格）
+          // 2. スタッフからの希望（薄い青・クリックで昇格）
           if (prefMap[dateStr]) {
-            // スタッフ順にソート
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
               var idxB = cachedStaffList.findIndex(function(st) { return st.staffId === b.staffId; });
@@ -818,7 +815,8 @@
                   break;
                 }
               }
-              html += '<div class="staff-circle-badge" style="opacity: 0.4; border: 1px dashed #27ae60;" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
+              // 💡 希望未確定時は「薄い青（background: #3498db、opacity: 0.5）」にする
+              html += '<div class="staff-circle-badge" style="background: #3498db; opacity: 0.5; border: 1px dashed #2980b9;" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '</div>';
             });
@@ -907,12 +905,12 @@
           var holidayDisplay = holidayName ? ' <span class="list-holiday-label">(' + escapeHtml(holidayName) + ')</span>' : '';
           var closedDisplay = isClosed ? ' <span class="closed-label">休業日</span>' : '';
 
-          html += '<div class="' + rowClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
+          html += '<div class="' + rowClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + \')" onclick="onCellClick(\'' + dateStr + \')">';
           html += '<div class="list-date-col' + dateClass + '">' + month + '/' + day + ' (' + dayOfWeekStr + ')' + holidayDisplay + closedDisplay + '</div>';
           
           html += '<div class="list-badge-col">';
 
-          // 🟢 左側：シフトエリア（確定シフト ＋ 薄い色の希望シフト）
+          // 🟢 左側：シフトエリア（確定シフト ＋ 薄い青の希望シフト）
           html += '<div class="list-section-shift">';
           
           // 1. 正式確定シフト
@@ -928,12 +926,12 @@
               }
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + \')">×</span>';
               html += '</div>';
             });
           }
 
-          // 2. スタッフからの希望（薄い色・クリックで昇格）
+          // 2. スタッフからの希望（薄い青・クリックで昇格）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -949,7 +947,8 @@
                   break;
                 }
               }
-              html += '<div class="staff-circle-badge" style="opacity: 0.4; border: 1px dashed #27ae60;" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + '\', \'' + pr.staffId + '\', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
+              // 💡 希望未確定時は「薄い青」にする
+              html += '<div class="staff-circle-badge" style="background: #3498db; opacity: 0.5; border: 1px dashed #2980b9;" onclick="event.stopPropagation(); promotePreferenceToShift(\'' + dateStr + \', \'' + pr.staffId + \', \'' + escapeHtml(pr.staffName) + '\')" title="希望日（クリックで確定）: ' + escapeHtml(pr.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '</div>';
             });
@@ -962,7 +961,7 @@
             freeMap[dateStr].forEach(function(fs) {
               html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
               html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
-              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + \')">×</span>';
               html += '</div>';
             });
           }
