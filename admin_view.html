@@ -218,6 +218,13 @@
       .url-cell { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .flex-row { display: flex; gap: 8px; }
       .flex-col { flex: 1; }
+
+      /* 💡【追加】LINE履歴用のスタイル */
+      .history-box { max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 8px; background: #fafafa; }
+      .history-item { border-bottom: 1px solid #eee; padding: 8px 0; font-size: 0.8rem; }
+      .history-item:last-child { border-bottom: none; }
+      .history-meta { color: #666; font-size: 0.75rem; margin-bottom: 2px; }
+      .history-text { white-space: pre-wrap; color: #333; }
     </style>
   </head>
   <body>
@@ -330,6 +337,33 @@
       </div>
     </div>
 
+    <!-- 💡【追加】LINE連絡＆履歴カード -->
+    <div class="card">
+      <h3>📤 LINE連絡送信（一斉・個別）</h3>
+      <label>送信先</label>
+      <select id="lineTargetType" onchange="toggleTargetSelect()">
+        <option value="all">全員に一斉送信</option>
+        <option value="individual">個別スタッフを指定</option>
+      </select>
+
+      <div id="individualSelectContainer" style="display: none;">
+        <label>対象スタッフ</label>
+        <select id="lineTargetStaffId"></select>
+      </div>
+
+      <label>メッセージ本文</label>
+      <textarea id="lineMessageText" rows="4" placeholder="スタッフへ送るメッセージを入力してください..." style="width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; resize: vertical;"></textarea>
+
+      <button type="button" class="btn-green" style="background: #27ae60; margin-top: 10px;" onclick="sendLineMessage()">LINEメッセージを送信する</button>
+    </div>
+
+    <div class="card">
+      <h3>📜 LINE連絡 送信履歴</h3>
+      <div id="lineHistoryContainer" class="history-box">
+        <div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">履歴を読み込み中...</div>
+      </div>
+    </div>
+
     <script>
       var cachedStaffList = [];
       var cachedShiftsData = []; 
@@ -352,6 +386,7 @@
         loadAccountOptions();
         setPeriod('first');
         fetchSummary();
+        loadLineHistory(); // 💡【追加】ページ読み込み時に履歴を取得
       };
 
       function switchView(mode) {
@@ -1050,6 +1085,82 @@
           })
           .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
       }
+
+      // 💡【追加】LINE連絡関連の関数群
+      function toggleTargetSelect() {
+        var type = document.getElementById('lineTargetType').value;
+        var container = document.getElementById('individualSelectContainer');
+        if (type === 'individual') {
+          container.style.display = 'block';
+          populateLineStaffSelect();
+        } else {
+          container.style.display = 'none';
+        }
+      }
+
+      function populateLineStaffSelect() {
+        var select = document.getElementById('lineTargetStaffId');
+        var html = '';
+        var activeStaff = cachedStaffList.filter(function(s) { return s.status === "有効"; });
+        activeStaff.forEach(function(staff) {
+          html += '<option value="' + staff.staffId + '">' + escapeHtml(staff.staffName) + '</option>';
+        });
+        select.innerHTML = html;
+      }
+
+      function sendLineMessage() {
+        var targetType = document.getElementById('lineTargetType').value;
+        var targetId = (targetType === 'individual') ? document.getElementById('lineTargetStaffId').value : "";
+        var messageText = document.getElementById('lineMessageText').value.trim();
+
+        if (!messageText) {
+          alert('メッセージ本文を入力してください。');
+          return;
+        }
+
+        if (!confirm('LINEメッセージを送信しますか？')) return;
+
+        var btn = event.target;
+        btn.disabled = true;
+        btn.innerText = '送信中...';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            alert(res.message);
+            if (res.success) {
+              document.getElementById('lineMessageText').value = '';
+              loadLineHistory();
+            }
+            btn.disabled = false;
+            btn.innerText = 'LINEメッセージを送信する';
+          })
+          .sendLineMessage({
+            targetType: targetType,
+            targetId: targetId,
+            messageText: messageText
+          });
+      }
+
+      function loadLineHistory() {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            var container = document.getElementById('lineHistoryContainer');
+            if (!res.success || res.history.length === 0) {
+              container.innerHTML = '<div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">送信履歴はありません</div>';
+              return;
+            }
+
+            var html = '';
+            res.history.forEach(function(item) {
+              html += '<div class="history-item">';
+              html += '<div class="history-meta">📅 ' + item.timestamp + ' | 宛先: <strong>' + escapeHtml(item.targetName) + '</strong> | ' + item.resultSummary + '</div>';
+              html += '<div class="history-text">' + escapeHtml(item.messageText) + '</div>';
+              html += '</div>';
+            });
+            container.innerHTML = html;
+          })
+          .getLineHistory();
+      }
     </script>
-  </body>
+  </head>
 </html>

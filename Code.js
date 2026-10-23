@@ -916,3 +916,146 @@ function saveShiftPreferences(data) {
 function getShiftPreferences(yearMonth) {
   return { success: true, preferences: [] };
 }
+
+/**
+ * 互換性のために空の配列を返すダミー関数
+ */
+function getShiftPreferences(yearMonth) {
+  return { success: true, preferences: [] };
+}
+
+/**
+ * 💡【追加】LINEメッセージを一斉または個別に送信し、履歴を保存する関数
+ */
+function sendLineMessage(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var staffSheet = ss.getSheetByName("スタッフマスタ");
+    if (!staffSheet) throw new Error("スタッフマスタが見つかりません。");
+    var staffData = staffSheet.getDataRange().getValues();
+
+    var targetStaff = [];
+    for (var i = 1; i < staffData.length; i++) {
+      var sId = staffData[i][0];
+      var sName = staffData[i][1];
+      var lineId = staffData[i][2];
+      var account = staffData[i][3];
+      var status = staffData[i][4];
+
+      if (sId && lineId && status === "有効") {
+        if (data.targetType === "all" || data.targetId === sId) {
+          targetStaff.push({ staffId: sId, staffName: sName, lineUserId: lineId, assignedAccount: account });
+        }
+      }
+    }
+
+    if (targetStaff.length === 0) {
+      return { success: false, message: "送信対象の有効なスタッフが見つかりませんでした。" };
+    }
+
+    var accountSheet = ss.getSheetByName("アカウントマスタ");
+    var tokens = {};
+    if (accountSheet) {
+      var accData = accountSheet.getDataRange().getValues();
+      for (var k = 1; k < accData.length; k++) {
+        if (accData[k][0]) tokens[accData[k][0]] = accData[k][1];
+      }
+    }
+
+    var successCount = 0;
+    var failCount = 0;
+
+    targetStaff.forEach(function(staff) {
+      var token = tokens[staff.assignedAccount];
+      if (!token || token.includes("YOUR_")) {
+        failCount++;
+        return;
+      }
+
+      var url = "https://api.line.me/v2/bot/message/push";
+      var payload = {
+        to: staff.lineUserId,
+        messages: [{ type: "text", text: data.messageText }]
+      };
+
+      var options = {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "Authorization": "Bearer " + token
+        },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+
+      try {
+        var res = UrlFetchApp.fetch(url, options);
+        if (res.getResponseCode() === 200) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (e) {
+        failCount++;
+      }
+    });
+
+    var histSheet = ss.getSheetByName("連絡履歴");
+    if (!histSheet) {
+      histSheet = ss.insertSheet("連絡履歴");
+      histSheet.appendRow(["historyId", "timestamp", "targetName", "messageText", "resultSummary"]);
+    }
+
+    var historyId = "hist_" + Utilities.getUuid().substring(0, 8);
+    var timestamp = new Date();
+    var targetNameDisplay = (data.targetType === "all") ? "【一斉送信】全スタッフ" : (targetStaff[0] ? targetStaff[0].staffName : "個別");
+    var resultStr = "成功: " + successCount + "件 / 失敗: " + failCount + "件";
+
+    histSheet.appendRow([historyId, timestamp, targetNameDisplay, data.messageText, resultStr]);
+
+    return { 
+      success: true, 
+      message: "メッセージを送信しました！（" + resultStr + "）" 
+    };
+
+  } catch (error) {
+    return { success: false, message: "送信エラー: " + error.message };
+  }
+}
+
+/**
+ * 💡【追加】送信履歴を取得する関数
+ */
+function getLineHistory() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("連絡履歴");
+    if (!sheet) return { success: true, history: [] };
+
+    var data = sheet.getDataRange().getValues();
+    var history = [];
+
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (row[0]) {
+        var timeStr = "";
+        if (row[1] instanceof Date) {
+          timeStr = Utilities.formatDate(row[1], "Asia/Tokyo", "yyyy/MM/dd HH:mm");
+        } else {
+          timeStr = String(row[1]);
+        }
+
+        history.push({
+          timestamp: timeStr,
+          targetName: row[2],
+          messageText: row[3],
+          resultSummary: row[4]
+        });
+      }
+    }
+    history.reverse();
+    return { success: true, history: history };
+  } catch (error) {
+    return { success: false, history: [], message: error.message };
+  }
+}
