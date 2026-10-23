@@ -1278,15 +1278,19 @@ function sendKintaiReminderLine(data) {
 }
 
 /**
- * 💡【追加】管理者向けに未読の「シフト希望申請通知」を取得する関数
+ * 💡【完全安全版】管理者向けに未読の「シフト希望申請通知」を取得する関数
  */
 function getUnreadShiftNotifications() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) return { success: true, notifications: [] };
+    
     var sheet = ss.getSheetByName("希望通知ログ");
     if (!sheet) return { success: true, notifications: [] };
 
     var data = sheet.getDataRange().getValues();
+    if (!data || data.length <= 1) return { success: true, notifications: [] };
+
     var notifications = [];
 
     for (var i = 1; i < data.length; i++) {
@@ -1295,9 +1299,8 @@ function getUnreadShiftNotifications() {
       var staffName = String(row[2] || "").trim();
       var yearMonth = String(row[3] || "").trim();
       var timeObj = row[4];
-      var status = String(row[5] || "").trim(); // F列の状態
+      var status = String(row[5] || "").trim();
 
-      // 「未読」のものを正確にキャッチする
       if (notifId && status === "未読") {
         var timeStr = "";
         if (timeObj instanceof Date) {
@@ -1308,17 +1311,18 @@ function getUnreadShiftNotifications() {
 
         notifications.push({
           notifId: notifId,
-          staffName: staffName,
-          yearMonth: yearMonth,
+          staffName: staffName || "スタッフ",
+          yearMonth: yearMonth || "未指定",
           timestamp: timeStr
         });
       }
     }
 
-    notifications.reverse(); // 新しい順
+    notifications.reverse();
     return { success: true, notifications: notifications };
   } catch (error) {
-    return { success: false, notifications: [], message: error.message };
+    // 万が一エラーが起きても絶対におかしな値を返さず、空の配列を返すようにする
+    return { success: true, notifications: [], message: error.message };
   }
 }
 
