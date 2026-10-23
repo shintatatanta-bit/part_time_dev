@@ -4,72 +4,162 @@
     <base target="_top">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>アルバイト勤怠申請</title>
+    <title>シフト希望提出フォーム</title>
     <style>
-      body { font-family: sans-serif; margin: 0; padding: 16px; background: #f4f7f6; color: #333; }
-      h2 { color: #2c3e50; font-size: 1.2rem; margin-bottom: 4px; text-align: center; }
-      .subtitle { text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 20px; }
-      .card { background: #fff; padding: 16px; border-radius: 8px; max-width: 400px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-      label { display: block; margin-top: 12px; font-weight: bold; font-size: 0.85rem; color: #555; }
-      input, select { width: 100%; padding: 10px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-      button { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; }
-      button:hover { background: #219653; }
-      .loading { text-align: center; padding: 40px; color: #777; }
+      body { font-family: sans-serif; margin: 0; padding: 12px; background: #f4f7f6; color: #333; }
+      h2 { color: #2c3e50; font-size: 1.1rem; margin-bottom: 4px; text-align: center; }
+      .subtitle { text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 14px; }
+      .card { background: #fff; padding: 14px; border-radius: 8px; max-width: 450px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      
+      .month-selector { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      .month-selector input { width: 140px; padding: 6px; font-size: 0.9rem; }
+
+      /* ミニカレンダー用グリッド */
+      .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 16px; }
+      .mini-header { text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded; border-radius: 3px; }
+      .mini-header:nth-child(1) { color: #c0392b; }
+      .mini-header:nth-child(7) { color: #2980b9; }
+
+      .mini-cell {
+        aspect-ratio: 1;
+        background: #fff;
+        border: 1px solid #dcdcdc;
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.1s;
+      }
+      .mini-cell.other-month { background: #f9f9f9; opacity: 0.3; pointer-events: none; }
+      .mini-cell.selected { background: #27ae60 !important; color: white !important; font-weight: bold; border-color: #219653; }
+      
+      button.submit-btn { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+      button.submit-btn:hover { background: #219653; }
+      .selected-count { text-align: center; font-size: 0.85rem; color: #e67e22; font-weight: bold; margin-bottom: 8px; }
     </style>
   </head>
   <body>
-    <h2>⏰ 勤怠・交通費 申請フォーム</h2>
+    <h2>📅 シフト希望提出フォーム</h2>
     <p class="subtitle">スタッフ名: <strong id="staffNameDisplay"><?= staffName ?></strong></p>
     
     <div class="card">
-      <form id="kintaiForm">
-        <input type="hidden" id="staffId" value="<?= staffId ?>">
-        <input type="hidden" id="staffName" value="<?= staffName ?>">
-        
-        <label>勤務日</label>
-        <input type="date" id="workDate" required>
-        
-        <label>出勤時刻</label>
-        <input type="time" id="startTime" required>
-        
-        <label>退勤時刻</label>
-        <input type="time" id="endTime" required>
-        
-        <label>休憩時間 (分)</label>
-        <input type="number" id="breakTime" value="60" min="0" step="15" required>
-        
-        <label>交通費 (円)</label>
-        <input type="number" id="transportCost" value="0" min="0" required>
-        
-        <button type="button" onclick="submitKintai()">申請を送信する</button>
-      </form>
+      <input type="hidden" id="staffId" value="<?= staffId ?>">
+      <input type="hidden" id="staffName" value="<?= staffName ?>">
+
+      <div class="month-selector">
+        <label style="margin:0; font-size:0.85rem;">対象月:</label>
+        <input type="month" id="targetMonth" onchange="renderMiniCalendar()">
+      </div>
+
+      <p style="font-size: 0.75rem; color: #666; margin: 0 0 8px 0;">💡 出勤できる日をポチポチタップして選択してください。（緑色になれば選択完了です）</p>
+      
+      <div id="selectedCount" class="selected-count">選択中の日数: 0日</div>
+
+      <div class="mini-cal-grid" id="miniCalendarGrid">
+        <div class="mini-header">日</div>
+        <div class="mini-header">月</div>
+        <div class="mini-header">火</div>
+        <div class="mini-header">水</div>
+        <div class="mini-header">木</div>
+        <div class="mini-header">金</div>
+        <div class="mini-header">土</div>
+      </div>
+
+      <button type="button" class="submit-btn" onclick="submitPreferences()">シフト希望を送信する</button>
     </div>
 
     <script>
+      var selectedDatesMap = {}; // 選択された日付を保持するオブジェクト ("2026-10-05": true)
+
       window.onload = function() {
-        // 勤務日の初期値を今日に設定
         var now = new Date();
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
-        var d = String(now.getDate()).padStart(2, '0');
-        document.getElementById('workDate').value = y + '-' + m + '-' + d;
+        document.getElementById('targetMonth').value = y + '-' + m;
+        renderMiniCalendar();
       };
 
-      function submitKintai() {
+      function renderMiniCalendar() {
+        var ymVal = document.getElementById('targetMonth').value;
+        if (!ymVal) return;
+        var parts = ymVal.split('-');
+        var year = Number(parts[0]);
+        var month = Number(parts[1]);
+
+        var grid = document.getElementById('miniCalendarGrid');
+        var headerHtml = '';
+        var headers = grid.querySelectorAll('.mini-header');
+        headers.forEach(function(h) { headerHtml += h.outerHTML; });
+        var html = headerHtml;
+
+        var firstDayObj = new Date(year, month - 1, 1);
+        var lastDayObj = new Date(year, month, 0);
+        var firstDayOfWeek = firstDayObj.getDay();
+        var totalDays = lastDayObj.getDate();
+        var prevLastDayObj = new Date(year, month - 1, 0);
+        var prevLastDay = prevLastDayObj.getDate();
+
+        // 前月のはみ出し分
+        for (var i = 0; i < firstDayOfWeek; i++) {
+          var pDay = prevLastDay - (firstDayOfWeek - 1 - i);
+          html += '<div class="mini-cell other-month"><span>' + pDay + '</span></div>';
+        }
+
+        // 当月の日付
+        for (var day = 1; day <= totalDays; day++) {
+          var mStr = String(month).padStart(2, '0');
+          var dStr = String(day).padStart(2, '0');
+          var dateStr = year + '-' + mStr + '-' + dStr;
+          
+          var isSelected = selectedDatesMap[dateStr] ? ' selected' : '';
+          html += '<div class="mini-cell' + isSelected + '" onclick="toggleDate(\'' + dateStr + '\')">';
+          html += '<span>' + day + '</span>';
+          html += '</div>';
+        }
+
+        // 翌月のはみ出し分
+        var totalCellsCount = firstDayOfWeek + totalDays;
+        var remainingCells = (totalCellsCount % 7 === 0) ? 0 : 7 - (totalCellsCount % 7);
+        for (var n = 1; n <= remainingCells; n++) {
+          html += '<div class="mini-cell other-month"><span>' + n + '</span></div>';
+        }
+
+        grid.innerHTML = html;
+        updateCountDisplay();
+      }
+
+      function toggleDate(dateStr) {
+        if (selectedDatesMap[dateStr]) {
+          delete selectedDatesMap[dateStr];
+        } else {
+          selectedDatesMap[dateStr] = true;
+        }
+        renderMiniCalendar();
+      }
+
+      function updateCountDisplay() {
+        var count = Object.keys(selectedDatesMap).length;
+        document.getElementById('selectedCount').innerText = '選択中の日数: ' + count + '日';
+      }
+
+      function submitPreferences() {
+        var datesArray = Object.keys(selectedDatesMap);
+        if (datesArray.length === 0) {
+          alert('出勤希望日を1日以上選択してください。');
+          return;
+        }
+
+        var ymVal = document.getElementById('targetMonth').value;
         var data = {
           staffId: document.getElementById('staffId').value,
           staffName: document.getElementById('staffName').value,
-          workDate: document.getElementById('workDate').value,
-          startTime: document.getElementById('startTime').value,
-          endTime: document.getElementById('endTime').value,
-          breakTime: document.getElementById('breakTime').value,
-          transportCost: document.getElementById('transportCost').value
+          yearMonth: ymVal,
+          selectedDates: datesArray
         };
-
-        if (!data.workDate || !data.startTime || !data.endTime) {
-          alert('必須項目をすべて入力してください。');
-          return;
-        }
 
         var btn = event.target;
         btn.disabled = true;
@@ -79,20 +169,13 @@
           .withSuccessHandler(function(res) {
             alert(res.message);
             if (res.success) {
-              document.getElementById('kintaiForm').reset();
-              // 日付を再度今日に戻す
-              var now = new Date();
-              var y = now.getFullYear();
-              var m = String(now.getMonth() + 1).padStart(2, '0');
-              var d = String(now.getDate()).padStart(2, '0');
-              document.getElementById('workDate').value = y + '-' + m + '-' + d;
-              document.getElementById('breakTime').value = "60";
-              document.getElementById('transportCost').value = "0";
+              selectedDatesMap = {};
+              renderMiniCalendar();
             }
             btn.disabled = false;
-            btn.innerText = '申請を送信する';
+            btn.innerText = 'シフト希望を送信する';
           })
-          .saveKintaiData(data);
+          .saveShiftPreferences(data);
       }
     </script>
   </body>

@@ -725,3 +725,37 @@ function toggleStaffStatus(staffId, newStatus) {
     return { success: false, message: "ステータス変更エラー: " + error.message };
   }
 }
+
+/**
+ * スタッフからのシフト希望データを保存する関数
+ */
+function saveShiftPreferences(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("希望シフト");
+    if (!sheet) {
+      // 「希望シフト」シートがなければ自動作成してヘッダーを入れる
+      sheet = ss.insertSheet("希望シフト");
+      sheet.appendRow(["prefId", "staffId", "staffName", "yearMonth", "selectedDates", "timestamp"]);
+    }
+    
+    var prefId = "pref_" + Utilities.getUuid().substring(0, 8);
+    var timestamp = new Date();
+    
+    // 選択された日付の配列をカンマ区切りの文字列にする
+    var datesStr = (data.selectedDates || []).join(",");
+    
+    sheet.appendRow([
+      prefId,
+      data.staffId,
+      data.staffName,
+      data.yearMonth,
+      datesStr,
+      timestamp
+    ]);
+    
+    return { success: true, message: "シフト希望を提出しました！ありがとうございます。" };
+  } catch (error) {
+    return { success: false, message: "エラーが発生しました: " + error.message };
+  }
+}
