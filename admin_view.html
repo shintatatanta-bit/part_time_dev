@@ -436,6 +436,19 @@
       </div>
     </div>
 
+<!-- 💡【追加】シフト配置選択用モーダル -->
+    <div id="shiftModal" class="modal-overlay">
+      <div class="modal-content">
+        <h4 id="modalTitle">シフト配置</h4>
+        <p id="modalDesc" style="font-size: 0.85rem; color: #666; margin: 8px 0;">配置方法を選択してください。</p>
+        <div class="modal-btns">
+          <button type="button" class="btn-single" onclick="confirmPlacement('single')">この日だけ配置する</button>
+          <button type="button" class="btn-weekly" onclick="confirmPlacement('weekly')">今月中の同曜日を一括配置</button>
+          <button type="button" class="btn-cancel" onclick="closeModal()">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       var cachedStaffList = [];
       var cachedShiftsData = []; 
