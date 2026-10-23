@@ -181,10 +181,10 @@
         </div>
       </div>
 
-      <!-- 📌 画面上部に常に固定するエリア（変更保存バー ＋ 予定チップ ＋ スタッフチップ） -->
+      <!-- 📌 画面上部に常に固定するエリア（保存バー ＋ 予定チップ ＋ スタッフチップ） -->
       <div class="sticky-top-area">
         <div class="save-action-bar">
-          <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容は「保存する」ボタンを押すまで確定しません。</span>
+          <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容はファイルを保存するボタンを押すまで確定しません。</span>
           <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
         </div>
 
@@ -199,28 +199,16 @@
         </div>
       </div>
 
-      <!-- 📌 通常の位置にあるよく使う予定の登録・追加カード（追従しない） -->
+      <!-- 📌 通常の位置にあるよく使う予定の「登録入力欄」のみ（追従しない） -->
       <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe; margin-top: 12px;">
         <h3>📌 よく使う予定パレット（来客・全体予定など）</h3>
         <div style="display: flex; gap: 8px;">
           <input type="text" id="freeItemText" placeholder="例: 来客予定, 会議, 清掃日..." style="flex-grow: 1; margin-top:0;">
           <button type="button" class="secondary" style="margin-top:0; background: #e67e22;" onclick="addFreeItemPalette()">パレットに追加</button>
         </div>
-        <!-- 通常位置の予定チップコンテナ -->
-        <div id="freeChipsContainer" class="staff-chips" style="margin-top: 8px; background: #fff9e6; border-color: #ffeeba; margin-bottom: 0;">
-          <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
-        </div>
       </div>
 
-      <!-- 📌 スタッフパレット（説明テキスト付き・通常位置・追従しない） -->
-      <div style="margin-top: 12px;">
-        <label style="margin-top: 0; font-weight: bold; font-size: 0.8rem; color: #555;">スタッフパレット (ドラッグ＆ドロップまたはクリックで配置)</label>
-        <div id="staffChipsContainer" class="staff-chips" style="margin-top: 4px;">
-          <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
-        </div>
-      </div>
-
-      <p style="font-size: 0.75rem; color: #888; margin: 4px 0 8px 0;">💡 スタッフを選ばずに日付枠をクリックすると休業日を切り替えられます。スタッフを選択してクリックするとシフトが配置されます。</p>
+      <p style="font-size: 0.75rem; color: #888; margin: 8px 0 8px 0;">💡 スタッフを選ばずに日付枠をクリックすると休業日を切り替えられます。スタッフを選択してクリックするとシフトが配置されます。</p>
 
       <div class="cal-grid" id="calendarGrid">
         <div class="cal-header-cell">日</div>
@@ -383,10 +371,8 @@
       }
 
       function renderFreePalette() {
-        var container = document.getElementById('freeChipsContainer');
         var stickyContainer = document.getElementById('stickyFreeChipsContainer');
         var html = '';
-        
         if (cachedFreePalette.length === 0) {
           html = '<span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>';
         } else {
@@ -397,7 +383,6 @@
             html += '</div>';
           });
         }
-        container.innerHTML = html;
         stickyContainer.innerHTML = html;
       }
 
@@ -472,11 +457,9 @@
               return staff.status === "有効";
             });
 
-            var chipsContainer = document.getElementById('staffChipsContainer');
             var stickyChipsContainer = document.getElementById('stickyStaffChipsContainer');
 
             if (activeStaffList.length === 0) {
-              chipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">在籍中のスタッフがいません</span>';
               stickyChipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">在籍中のスタッフがいません</span>';
             } else {
               var chipsHtml = '';
@@ -485,7 +468,6 @@
                 chipsHtml += '[' + escapeHtml(staff.displayChar) + '] ' + escapeHtml(staff.staffName);
                 chipsHtml += '</div>';
               });
-              chipsContainer.innerHTML = chipsHtml;
               stickyChipsContainer.innerHTML = chipsHtml;
             }
 
