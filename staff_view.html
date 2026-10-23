@@ -4,18 +4,31 @@
     <base target="_top">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>シフト希望提出フォーム</title>
+    <title>スタッフ用ポータル</title>
     <style>
       body { font-family: sans-serif; margin: 0; padding: 12px; background: #f4f7f6; color: #333; }
       h2 { color: #2c3e50; font-size: 1.1rem; margin-bottom: 4px; text-align: center; }
-      .subtitle { text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 14px; }
+      .subtitle { text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 12px; }
       .card { background: #fff; padding: 14px; border-radius: 8px; max-width: 450px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
       
-      .month-selector { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-      .month-selector input { width: 140px; padding: 6px; font-size: 0.9rem; }
+      /* タブ切り替えボタン */
+      .portal-tabs { display: flex; gap: 4px; max-width: 450px; margin: 0 auto 12px auto; background: #eaeded; padding: 3px; border-radius: 6px; }
+      .portal-tab-btn { background: transparent; color: #555; border: none; padding: 8px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold; text-align: center; }
+      .portal-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+      label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.85rem; color: #555; }
+      input, select { width: 100%; padding: 10px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+      button { border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 16px; padding: 12px; color: white; }
+      
+      .btn-green { background: #27ae60; }
+      .btn-green:hover { background: #219653; }
+      .btn-blue { background: #3498db; }
+      .btn-blue:hover { background: #2980b9; }
 
       /* ミニカレンダー用グリッド */
-      .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 16px; }
+      .month-selector { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+      .month-selector input { width: 140px; padding: 6px; font-size: 0.9rem; margin-top:0; }
+      .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 12px; }
       .mini-header { text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded; border-radius: 3px; }
       .mini-header:nth-child(1) { color: #c0392b; }
       .mini-header:nth-child(7) { color: #2980b9; }
@@ -26,37 +39,39 @@
         border: 1px solid #dcdcdc;
         border-radius: 4px;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
         font-size: 0.85rem;
         cursor: pointer;
         user-select: none;
-        transition: background 0.1s;
       }
       .mini-cell.other-month { background: #f9f9f9; opacity: 0.3; pointer-events: none; }
       .mini-cell.selected { background: #27ae60 !important; color: white !important; font-weight: bold; border-color: #219653; }
-      
-      button.submit-btn { background: #27ae60; color: white; border: none; padding: 12px; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-      button.submit-btn:hover { background: #219653; }
-      .selected-count { text-align: center; font-size: 0.85rem; color: #e67e22; font-weight: bold; margin-bottom: 8px; }
+      .selected-count { text-align: center; font-size: 0.85rem; color: #e67e22; font-weight: bold; margin-bottom: 6px; }
     </style>
   </head>
   <body>
-    <h2>📅 シフト希望提出フォーム</h2>
+    <h2>Staff Portal</h2>
     <p class="subtitle">スタッフ名: <strong id="staffNameDisplay"><?= staffName ?></strong></p>
+
+    <!-- 切替タブ -->
+    <div class="portal-tabs">
+      <button id="tabPref" class="portal-tab-btn active" onclick="switchStaffTab('pref')">📅 シフト希望提出</button>
+      <button id="tabKintai" class="portal-tab-btn" onclick="switchStaffTab('kintai')">⏰ 勤怠・交通費申請</button>
+    </div>
     
-    <div class="card">
+    <!-- ① シフト希望提出ビュー -->
+    <div id="viewPref" class="card">
+      <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">シフト希望の提出</h3>
       <input type="hidden" id="staffId" value="<?= staffId ?>">
-      <input type="hidden" id="staffName" value="<?= staffName ?>">
+      <input type="hidden" id="staffNameVal" value="<?= staffName ?>">
 
       <div class="month-selector">
         <label style="margin:0; font-size:0.85rem;">対象月:</label>
         <input type="month" id="targetMonth" onchange="renderMiniCalendar()">
       </div>
 
-      <p style="font-size: 0.75rem; color: #666; margin: 0 0 8px 0;">💡 出勤できる日をポチポチタップして選択してください。（緑色になれば選択完了です）</p>
-      
+      <p style="font-size: 0.75rem; color: #666; margin: 0 0 6px 0;">💡 出勤できる日をタップして選択してください（緑色になります）。</p>
       <div id="selectedCount" class="selected-count">選択中の日数: 0日</div>
 
       <div class="mini-cal-grid" id="miniCalendarGrid">
@@ -69,19 +84,67 @@
         <div class="mini-header">土</div>
       </div>
 
-      <button type="button" class="submit-btn" onclick="submitPreferences()">シフト希望を送信する</button>
+      <button type="button" class="btn-green" onclick="submitPreferences()">シフト希望を送信する</button>
+    </div>
+
+    <!-- ② 勤怠・交通費申請ビュー -->
+    <div id="viewKintai" class="card" style="display: none;">
+      <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">勤怠・交通費の申請</h3>
+      <form id="kintaiForm">
+        <label>勤務日</label>
+        <input type="date" id="workDate" required>
+        
+        <label>出勤時刻</label>
+        <input type="time" id="startTime" required>
+        
+        <label>退勤時刻</label>
+        <input type="time" id="endTime" required>
+        
+        <label>休憩時間 (分)</label>
+        <input type="number" id="breakTime" value="60" min="0" step="15" required>
+        
+        <label>交通費 (円)</label>
+        <input type="number" id="transportCost" value="0" min="0" required>
+        
+        <button type="button" class="btn-blue" onclick="submitKintai()">申請を送信する</button>
+      </form>
     </div>
 
     <script>
-      var selectedDatesMap = {}; // 選択された日付を保持するオブジェクト ("2026-10-05": true)
+      var selectedDatesMap = {};
 
       window.onload = function() {
         var now = new Date();
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
+        var d = String(now.getDate()).padStart(2, '0');
+        
+        // シフト希望用月初期値
         document.getElementById('targetMonth').value = y + '-' + m;
         renderMiniCalendar();
+
+        // 勤怠申請用日付初期値
+        document.getElementById('workDate').value = y + '-' + m + '-' + d;
       };
+
+      function switchStaffTab(mode) {
+        var tabPref = document.getElementById('tabPref');
+        var tabKintai = document.getElementById('tabKintai');
+        var viewPref = document.getElementById('viewPref');
+        var viewKintai = document.getElementById('viewKintai');
+
+        if (mode === 'pref') {
+          tabPref.classList.add('active');
+          tabKintai.classList.remove('active');
+          viewPref.style.display = 'block';
+          viewKintai.style.display = 'none';
+        } else {
+          tabKintai.classList.add('active');
+          tabPref.classList.remove('active');
+          viewKintai.style.display = 'block';
+          viewPref.style.display = 'none';
+        }
+      }
 
       function renderMiniCalendar() {
         var ymVal = document.getElementById('targetMonth').value;
@@ -103,13 +166,11 @@
         var prevLastDayObj = new Date(year, month - 1, 0);
         var prevLastDay = prevLastDayObj.getDate();
 
-        // 前月のはみ出し分
         for (var i = 0; i < firstDayOfWeek; i++) {
           var pDay = prevLastDay - (firstDayOfWeek - 1 - i);
           html += '<div class="mini-cell other-month"><span>' + pDay + '</span></div>';
         }
 
-        // 当月の日付
         for (var day = 1; day <= totalDays; day++) {
           var mStr = String(month).padStart(2, '0');
           var dStr = String(day).padStart(2, '0');
@@ -121,7 +182,6 @@
           html += '</div>';
         }
 
-        // 翌月のはみ出し分
         var totalCellsCount = firstDayOfWeek + totalDays;
         var remainingCells = (totalCellsCount % 7 === 0) ? 0 : 7 - (totalCellsCount % 7);
         for (var n = 1; n <= remainingCells; n++) {
@@ -156,7 +216,7 @@
         var ymVal = document.getElementById('targetMonth').value;
         var data = {
           staffId: document.getElementById('staffId').value,
-          staffName: document.getElementById('staffName').value,
+          staffName: document.getElementById('staffNameVal').value,
           yearMonth: ymVal,
           selectedDates: datesArray
         };
@@ -176,6 +236,45 @@
             btn.innerText = 'シフト希望を送信する';
           })
           .saveShiftPreferences(data);
+      }
+
+      function submitKintai() {
+        var data = {
+          staffId: document.getElementById('staffId').value,
+          staffName: document.getElementById('staffNameVal').value,
+          workDate: document.getElementById('workDate').value,
+          startTime: document.getElementById('startTime').value,
+          endTime: document.getElementById('endTime').value,
+          breakTime: document.getElementById('breakTime').value,
+          transportCost: document.getElementById('transportCost').value
+        };
+
+        if (!data.workDate || !data.startTime || !data.endTime) {
+          alert('必須項目をすべて入力してください。');
+          return;
+        }
+
+        var btn = event.target;
+        btn.disabled = true;
+        btn.innerText = '送信中...';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            alert(res.message);
+            if (res.success) {
+              document.getElementById('kintaiForm').reset();
+              var now = new Date();
+              var y = now.getFullYear();
+              var m = String(now.getMonth() + 1).padStart(2, '0');
+              var d = String(now.getDate()).padStart(2, '0');
+              document.getElementById('workDate').value = y + '-' + m + '-' + d;
+              document.getElementById('breakTime').value = "60";
+              document.getElementById('transportCost').value = "0";
+            }
+            btn.disabled = false;
+            btn.innerText = '申請を送信する';
+          })
+          .saveKintaiData(data);
       }
     </script>
   </body>
