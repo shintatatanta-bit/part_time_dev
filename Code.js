@@ -761,17 +761,19 @@ function saveShiftPreferences(data) {
 }
 
 /**
- * 指定された年月の全スタッフからのシフト希望を取得する関数 (改良版)
+ * 指定された年月の全スタッフからのシフト希望を取得する関数 (テスト用・条件なし)
  */
 function getShiftPreferences(yearMonth) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("希望シフト");
     if (!sheet) {
+      Logger.log("「希望シフト」シートが見つかりません");
       return { success: true, preferences: [] };
     }
     
     var data = sheet.getDataRange().getValues();
+    Logger.log("希望シフトシートの総行数: " + data.length);
     var preferences = [];
     
     for (var i = 1; i < data.length; i++) {
@@ -782,36 +784,33 @@ function getShiftPreferences(yearMonth) {
       var ym = String(row[3] || "").trim();      // D列: yearMonth
       var datesStr = String(row[4] || "").trim(); // E列: 日付カンマ区切り
       
-      // デバッグ用ログ（GASの実行ログに出力されます）
-      Logger.log("行 " + i + " - 読み込んだym: [" + ym + "], 探しているyearMonth: [" + yearMonth + "], datesStr: [" + datesStr + "]");
+      Logger.log(i +行目: staffName= + staffName + ", ym=" + ym + ", dates=" + datesStr);
       
-      // 厳密な一致、または文字列に含まれているかを許容する
-      if (ym === yearMonth || ym.indexOf(yearMonth) !== -1 || datesStr.indexOf(yearMonth) !== -1) {
-        var datesArray = [];
-        if (datesStr) {
-          datesStr.split(",").forEach(function(d) {
-            var trimmed = d.trim();
-            if (trimmed) {
-              datesArray.push(trimmed);
-            }
-          });
-        }
-        
-        if (datesArray.length > 0) {
-          preferences.push({
-            prefId: prefId,
-            staffId: staffId,
-            staffName: staffName,
-            yearMonth: yearMonth,
-            dates: datesArray
-          });
-        }
+      var datesArray = [];
+      if (datesStr) {
+        datesStr.split(",").forEach(function(d) {
+          var trimmed = d.trim();
+          if (trimmed) {
+            datesArray.push(trimmed);
+          }
+        });
+      }
+      
+      if (datesArray.length > 0) {
+        preferences.push({
+          prefId: prefId,
+          staffId: staffId,
+          staffName: staffName,
+          yearMonth: ym || yearMonth,
+          dates: datesArray
+        });
       }
     }
     
-    Logger.log("見つかった希望シフト件数: " + preferences.length);
+    Logger.log("返却する希望シフト件数: " + preferences.length);
     return { success: true, preferences: preferences };
   } catch (error) {
+    Logger.log("希望シフト取得エラー: " + error.message);
     return { success: false, message: "希望シフト取得エラー: " + error.message };
   }
 }
