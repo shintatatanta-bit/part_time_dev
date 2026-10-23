@@ -458,7 +458,7 @@
         fetchSummary();
         loadLineHistory();
         loadPendingStaff();
-        loadShiftNotifications(); // 💡【追加】新着の希望申請を読み込み
+        loadShiftNotifications(); // 💡【追加】ページ読み込み時に新着希望申請を読み込む
       };
 
       function switchView(mode) {
@@ -1343,6 +1343,44 @@
       // 💡【追加】アコーディオンの開閉を切り替える関数
       function toggleAccordion(cardId) {
         document.getElementById(cardId).classList.toggle('open');
+      }
+
+      // 💡【追加】新着のシフト希望通知を読み込む関数
+      function loadShiftNotifications() {
+        var card = document.getElementById('shiftNotifCard');
+        var container = document.getElementById('shiftNotifContainer');
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success || res.notifications.length === 0) {
+              card.style.display = 'none'; // 未読がなければカード自体を非表示
+              return;
+            }
+
+            card.style.display = 'block'; // 未読があれば表示
+            var html = '';
+            res.notifications.forEach(function(item) {
+              html += '<div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 4px; margin-top: 6px; border: 1px solid #bce8f1;">';
+              html += '<span>👤 <strong>' + escapeHtml(item.staffName) + '</strong> さんから <strong>' + escapeHtml(item.yearMonth) + '度</strong> の希望シフトが提出されました <span style="font-size:0.75rem; color:#666;">(' + item.timestamp + ')</span></span>';
+              html += '<button type="button" class="secondary" style="background: #2980b9; margin-top: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="markAsRead(\'' + item.notifId + '\')">確認済み</button>';
+              html += '</div>';
+            });
+            container.innerHTML = html;
+          })
+          .getUnreadShiftNotifications();
+      }
+
+      // 💡【追加】通知を既読にして非表示にする関数
+      function markAsRead(notifId) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              loadShiftNotifications(); // リストを再読み込みして更新
+            } else {
+              alert(res.message);
+            }
+          })
+          .markNotificationAsRead(notifId);
       }
 
       // 💡【追加】新着のシフト希望通知を読み込む関数
