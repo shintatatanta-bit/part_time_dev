@@ -155,7 +155,7 @@
 
       .staff-chips-wrapper {
         position: sticky;
-        top: 65px; /* 保存バーの下に追従するように調整 */
+        top: 65px;
         z-index: 98;
         background: #f4f7f6;
         padding-top: 5px;
@@ -184,7 +184,6 @@
         </div>
       </div>
 
-      <!-- 📌 スクロールしても常に上部に浮いて表示される保存バー -->
       <div class="save-action-bar">
         <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容は「保存する」ボタンを押すまで確定しません。</span>
         <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
@@ -272,7 +271,6 @@
     <script>
       var cachedStaffList = [];
       var cachedShiftsData = []; 
-      var cachedPreferencesData = []; 
       var cachedHolidaysMap = {}; 
       var cachedClosedDays = []; 
       var cachedFreePalette = JSON.parse(localStorage.getItem('cachedFreePalette')) || ["来客予定", "全体ミーティング", "清掃日"];
@@ -873,7 +871,7 @@
             freeMap[dateStr].forEach(function(fs) {
               html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
               html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
-              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + \')">×</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
               html += '</div>';
             });
           }

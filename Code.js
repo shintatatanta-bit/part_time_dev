@@ -882,21 +882,18 @@ function saveShiftPreferences(data) {
     var staffName = data.staffName;
     var targetDates = data.selectedDates || [];
     
-    // 既存の同月内の同スタッフの予定を一度クリア（上書き・重複防止のため）
     var newRows = [existingData[0]]; // ヘッダー保持
     for (var i = 1; i < existingData.length; i++) {
       var row = existingData[i];
       var rDateStr = String(row[1] || "");
       var rStaffId = String(row[2] || "");
       
-      // 対象月（例: "2026-11"）に一致し、かつ同スタッフのデータは一旦除外して再構築
       var isSameMonth = rDateStr.indexOf(data.yearMonth) === 0;
       if (!(isSameMonth && rStaffId === staffId)) {
         newRows.push(row);
       }
     }
     
-    // 新たに選択された日付を「シフト予定」として追加
     targetDates.forEach(function(dStr) {
       var shiftId = "shift_" + Utilities.getUuid().substring(0, 8);
       newRows.push([shiftId, dStr, staffId, staffName]);
@@ -914,9 +911,8 @@ function saveShiftPreferences(data) {
 }
 
 /**
- * 従来の「希望シフト」の代わりに「シフト予定」からデータを取得する関数
+ * 互換性のために空の配列を返すダミー関数
  */
 function getShiftPreferences(yearMonth) {
-  // すでに「シフト予定」が一元化されているため、空配列を返してgetShiftSchedule側で統合管理します
   return { success: true, preferences: [] };
 }
