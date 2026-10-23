@@ -76,14 +76,14 @@
       .list-date-col.sat { color: #2980b9; }
       .list-holiday-label { font-size: 0.7rem; color: #c0392b; font-weight: normal; }
 
-      /* 縦並びリスト用の分割レイアウト（日付 ＞ 予定 ＞ シフト） */
+      /* 縦並びリスト用（左：シフト、右：予定） */
       .list-badge-col { flex-grow: 1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 32px; }
-      .list-section-free { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-      .list-section-shift { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; border-left: 2px solid #ddd; padding-left: 10px; }
+      .list-section-shift { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      .list-section-free { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; border-left: 2px solid #ddd; padding-left: 10px; }
 
-      /* 格子カレンダー用の上下配置コンテナ */
-      .cal-section-free { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; min-height: 20px; }
-      .cal-section-shift { display: flex; flex-wrap: wrap; gap: 5px; border-top: 1px dotted #ccc; padding-top: 3px; min-height: 26px; align-items: center; }
+      /* 格子カレンダー用（上：シフト、下：予定） */
+      .cal-section-shift { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; min-height: 26px; align-items: center; }
+      .cal-section-free { display: flex; flex-wrap: wrap; gap: 3px; border-top: 1px dotted #ccc; padding-top: 3px; min-height: 20px; }
 
       /* フリー予定用バッジ（オレンジ） */
       .free-badge { background: #e67e22; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
@@ -743,19 +743,7 @@
           if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
 
-          // 📌 上段：フリー予定エリア
-          html += '<div class="cal-section-free">';
-          if (freeMap[dateStr]) {
-            freeMap[dateStr].forEach(function(fs) {
-              html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
-              html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
-              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
-              html += '</div>';
-            });
-          }
-          html += '</div>';
-
-          // 🟢 下段：シフトエリア（丸型バッジ）
+          // 🟢 上段：シフトエリア（丸型バッジ）
           html += '<div class="cal-section-shift">';
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
@@ -770,6 +758,18 @@
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '</div>';
+            });
+          }
+          html += '</div>';
+
+          // 📌 下段：フリー予定エリア
+          html += '<div class="cal-section-free">';
+          if (freeMap[dateStr]) {
+            freeMap[dateStr].forEach(function(fs) {
+              html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
+              html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
               html += '</div>';
             });
           }
@@ -836,19 +836,7 @@
           
           html += '<div class="list-badge-col">';
 
-          // 📌 左側：フリー予定エリア
-          html += '<div class="list-section-free">';
-          if (freeMap[dateStr]) {
-            freeMap[dateStr].forEach(function(fs) {
-              html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
-              html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
-              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
-              html += '</div>';
-            });
-          }
-          html += '</div>';
-
-          // 🟢 右側：シフトエリア（丸型バッジ）
+          // 🟢 左側：シフトエリア（丸型バッジ）
           html += '<div class="list-section-shift">';
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
@@ -863,6 +851,18 @@
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '</div>';
+            });
+          }
+          html += '</div>';
+
+          // 📌 右側：フリー予定エリア
+          html += '<div class="list-section-free">';
+          if (freeMap[dateStr]) {
+            freeMap[dateStr].forEach(function(fs) {
+              html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
+              html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
               html += '</div>';
             });
           }
