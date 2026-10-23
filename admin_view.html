@@ -208,7 +208,7 @@
       <h3>📋 登録済みスタッフ一覧</h3>
       <div style="overflow-x: auto;">
         <table>
-          <thead><tr><th>名前</th><th>アカウント</th><th>表示文字</th><th>個別URL</th><th>操作</th></tr></thead>
+          <thead><tr><th>名前</th><th>アカウント</th><th>表示文字</th><th>個別URL</th><th style="text-align: center;">ステータス</th><th>操作</th></tr></thead>
           <tbody id="staffTableBody"><tr><td colspan="5" style="text-align: center;">読み込み中...</td></tr></tbody>
         </table>
       </div>
@@ -369,33 +369,49 @@
           .withSuccessHandler(function(staffList) {
             cachedStaffList = staffList;
             
+            // 1. スタッフ一覧テーブルの描画
             var tbody = document.getElementById('staffTableBody');
             if (staffList.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">登録されているスタッフがいません</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">登録されているスタッフがいません</td></tr>';
             } else {
               var html = '';
               staffList.forEach(function(staff) {
+                var isActive = (staff.status === "有効");
+                var statusBadge = isActive ? 
+                  '<span style="color: #27ae60; font-weight: bold;">在籍中</span>' : 
+                  '<span style="color: #e74c3c; font-weight: bold;">退職(非在籍)</span>';
+                
+                var toggleBtnText = isActive ? "退職にする" : "在籍に戻す";
+                var toggleBtnColor = isActive ? "#e74c3c" : "#2ecc71";
+                var nextStatus = isActive ? "退職" : "有効";
+
                 html += '<tr>';
                 html += '<td>' + escapeHtml(staff.staffName) + '</td>';
                 html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
                 html += '<td><input type="text" id="char-' + staff.staffId + '" value="' + escapeHtml(staff.displayChar) + '" style="width: 50px; text-align: center; padding: 4px;" maxlength="4"> ' +
                         '<button class="secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="updateChar(\'' + staff.staffId + '\')">変更</button></td>';
                 html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
+                html += '<td style="text-align: center;">' + statusBadge + '</td>';
                 html += '<td>';
                 html += '<button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';
-                html += '<button class="secondary" style="background: #e74c3c; margin-left: 4px;" onclick="deleteStaff(\'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\')">削除</button>';
+                html += '<button class="secondary" style="background: ' + toggleBtnColor + '; margin-left: 4px;" onclick="changeStatus(\'' + staff.staffId + '\', \'' + nextStatus + '\')">' + toggleBtnText + '</button>';
                 html += '</td>';
                 html += '</tr>';
               });
               tbody.innerHTML = html;
             }
 
+            // 2. カレンダー用のスタッフチップ（パレット）の描画 ＝ 在籍中（有効）のスタッフのみ抽出！
+            var activeStaffList = staffList.filter(function(staff) {
+              return staff.status === "有効";
+            });
+
             var chipsContainer = document.getElementById('staffChipsContainer');
-            if (staffList.length === 0) {
-              chipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">スタッフが登録されていません</span>';
+            if (activeStaffList.length === 0) {
+              chipsContainer.innerHTML = '<span style="font-size:0.8rem; color:#777;">在籍中のスタッフがいません</span>';
             } else {
               var chipsHtml = '';
-              staffList.forEach(function(staff) {
+              activeStaffList.forEach(function(staff) {
                 chipsHtml += '<div class="staff-chip" draggable="true" ondragstart="onDragStart(event, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')" onclick="selectStaffForClick(this, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')">';
                 chipsHtml += '[' + escapeHtml(staff.displayChar) + '] ' + escapeHtml(staff.staffName);
                 chipsHtml += '</div>';
@@ -406,6 +422,22 @@
             loadCalendar();
           })
           .getStaffList();
+      }
+
+      // スタッフのステータス変更用関数
+      function changeStatus(staffId, newStatus) {
+        if (!confirm('スタッフのステータスを「' + newStatus + '」に変更しますか？')) return;
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              alert(res.message);
+              loadStaffList();
+              fetchSummary();
+            } else {
+              alert(res.message);
+            }
+          })
+          .toggleStaffStatus(staffId, newStatus);
       }
 
       function deleteStaff(staffId, staffName) {

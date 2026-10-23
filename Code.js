@@ -699,3 +699,29 @@ function saveAllSchedulesWithFree(data) {
     return { success: false, message: "一括保存エラー: " + error.message };
   }
 }
+
+/**
+ * スタッフのステータス（有効/退職）を切り替える関数
+ */
+function toggleStaffStatus(staffId, newStatus) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("スタッフマスタ");
+    if (!sheet) {
+      return { success: false, message: "「スタッフマスタ」シートが見つかりません。" };
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(staffId)) {
+        // E列（インデックス4、5列目）にステータスを書き込む
+        sheet.getRange(i + 1, 5).setValue(newStatus);
+        return { success: true, message: "スタッフのステータスを「" + newStatus + "」に変更しました！" };
+      }
+    }
+    
+    return { success: false, message: "対象のスタッフが見つかりませんでした。" };
+  } catch (error) {
+    return { success: false, message: "ステータス変更エラー: " + error.message };
+  }
+}
