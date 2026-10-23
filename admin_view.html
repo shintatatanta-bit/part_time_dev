@@ -607,8 +607,7 @@
         renderCurrentView();
       }
 
-      ffunction removePreferenceItem(prefId, dateStr, staffId) {
-        // 画面上から即座に反映
+      function removePreferenceItem(prefId, dateStr, staffId) {
         cachedPreferencesData.forEach(function(pref) {
           if (pref.prefId === prefId || pref.staffId === staffId) {
             pref.dates = pref.dates.filter(function(d) { return d !== dateStr; });
@@ -616,7 +615,6 @@
         });
         renderCurrentView();
 
-        // サーバー（スプレッドシート）側からも自動削除
         google.script.run
           .withSuccessHandler(function(res) {
             if (!res.success) {
@@ -628,6 +626,7 @@
             staffId: staffId
           });
       }
+
       function sortShiftsByStaffOrder(shifts) {
         if (!shifts) return [];
         return shifts.sort(function(a, b) {
