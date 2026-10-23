@@ -90,7 +90,7 @@
       .free-badge .del-x { font-size: 0.6rem; opacity: 0.8; font-weight: bold; }
       .free-badge:hover { background: #c0392b; }
 
-      /* 〇の中に一文字のスタッフ用丸型バッジ（正式確定シフト：緑） */
+      /* 〇の中に一文字のスタッフ用丸型バッジ（確定シフト・希望反映：緑） */
       .staff-circle-badge {
         background: #27ae60;
         color: white;
@@ -125,27 +125,6 @@
       }
       .staff-circle-badge:hover .del-x {
         display: flex;
-      }
-
-      /* 💡 希望未確定バッジ（はっきりした明るい青：アイスブルー） */
-      .staff-pref-badge {
-        background: #5dade2;
-        color: white;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        font-weight: bold;
-        position: relative;
-        cursor: pointer;
-        border: 1px dashed #1b4f72;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-      }
-      .staff-pref-badge:hover {
-        background: #2e86c1;
       }
 
       .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
@@ -631,18 +610,13 @@
         renderCurrentView();
       }
 
-      // 📌 希望バッジをワンクリックで正式シフトに昇格させる関数
-      function promotePreferenceToShift(dateStr, staffId, staffName) {
-        var tempId = "shift_" + Math.random();
-        if (!cachedShiftsData.some(function(s) { return s.workDate === dateStr && s.staffId === staffId; })) {
-          cachedShiftsData.push({
-            shiftId: tempId,
-            workDate: dateStr,
-            staffId: staffId,
-            staffName: staffName
-          });
-          renderCurrentView();
-        }
+      function removePreferenceItem(prefId, dateStr, staffId) {
+        cachedPreferencesData.forEach(function(pref) {
+          if (pref.prefId === prefId || pref.staffId === staffId) {
+            pref.dates = pref.dates.filter(function(d) { return d !== dateStr; });
+          }
+        });
+        renderCurrentView();
       }
 
       function sortShiftsByStaffOrder(shifts) {
@@ -746,7 +720,7 @@
           freeMap[f.workDate].push(f);
         });
 
-        // 📌 スタッフごとの希望日マップを作成
+        // 📌 スタッフごとの希望日マップを作成（希望をそのまま確定＝緑色として表示）
         var prefMap = {};
         cachedPreferencesData.forEach(function(pref) {
           pref.dates.forEach(function(dStr) {
@@ -755,7 +729,7 @@
               return s.workDate === dStr && s.staffId === pref.staffId;
             });
             if (!alreadyInShift) {
-              prefMap[dStr].push({ staffId: pref.staffId, staffName: pref.staffName });
+              prefMap[dStr].push({ prefId: pref.prefId, staffId: pref.staffId, staffName: pref.staffName });
             }
           });
         });
@@ -799,7 +773,7 @@
           if (isClosed) html += '<span class="closed-label">休業日</span>';
           html += '</div>';
 
-          // 🟢 上段：シフトエリア（確定シフト ＋ はっきりした薄い青の希望シフト）
+          // 🟢 上段：シフトエリア（確定シフト ＋ 希望（自動確定として緑表示））
           html += '<div class="cal-section-shift">';
           
           // 1. 正式確定シフト
@@ -815,12 +789,12 @@
               }
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + \')">×</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
               html += '</div>';
             });
           }
 
-          // 2. スタッフからの希望（最初から確定シフト＝緑色のバッジとして表示）
+          // 2. スタッフからの希望（緑色の確定バッジとして表示）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -836,8 +810,7 @@
                   break;
                 }
               }
-              // 💡 最初から緑色の確定バッジとして表示し、×ボタンで削除できるようにする
-              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="希望シフト（確定）: ' + escapeHtml(pr.staffName) + '">';
+              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="希望シフト（自動確定）: ' + escapeHtml(pr.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '<span class="del-x" onclick="removePreferenceItem(\'' + pr.prefId + '\', \'' + dateStr + '\', \'' + pr.staffId + '\')">×</span>';
               html += '</div>';
@@ -897,7 +870,7 @@
               return s.workDate === dStr && s.staffId === pref.staffId;
             });
             if (!alreadyInShift) {
-              prefMap[dStr].push({ staffId: pref.staffId, staffName: pref.staffName });
+              prefMap[dStr].push({ prefId: pref.prefId, staffId: pref.staffId, staffName: pref.staffName });
             }
           });
         });
@@ -932,7 +905,7 @@
           
           html += '<div class="list-badge-col">';
 
-          // 🟢 左側：シフトエリア（確定シフト ＋ はっきりした薄い青の希望シフト）
+          // 🟢 左側：シフトエリア
           html += '<div class="list-section-shift">';
           
           // 1. 正式確定シフト
@@ -953,7 +926,7 @@
             });
           }
 
-          // 2. スタッフからの希望（リスト表示用）
+          // 2. スタッフからの希望（緑色の確定バッジ）
           if (prefMap[dateStr]) {
             prefMap[dateStr].sort(function(a, b) {
               var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
@@ -969,7 +942,7 @@
                   break;
                 }
               }
-              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="希望シフト（確定）: ' + escapeHtml(pr.staffName) + '">';
+              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="希望シフト（自動確定）: ' + escapeHtml(pr.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
               html += '<span class="del-x" onclick="removePreferenceItem(\'' + pr.prefId + '\', \'' + dateStr + '\', \'' + pr.staffId + '\')">×</span>';
               html += '</div>';
@@ -1098,16 +1071,6 @@
             }
           })
           .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
-      }
-
-      function removePreferenceItem(prefId, dateStr, staffId) {
-        // メモリ上の希望データから該当の日付を外すか、シフトとして除外する処理
-        cachedPreferencesData.forEach(function(pref) {
-          if (pref.prefId === prefId || pref.staffId === staffId) {
-            pref.dates = pref.dates.filter(function(d) { return d !== dateStr; });
-          }
-        });
-        renderCurrentView();
       }
     </script>
   </body>
