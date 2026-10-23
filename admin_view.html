@@ -607,15 +607,27 @@
         renderCurrentView();
       }
 
-      function removePreferenceItem(prefId, dateStr, staffId) {
+      ffunction removePreferenceItem(prefId, dateStr, staffId) {
+        // 画面上から即座に反映
         cachedPreferencesData.forEach(function(pref) {
           if (pref.prefId === prefId || pref.staffId === staffId) {
             pref.dates = pref.dates.filter(function(d) { return d !== dateStr; });
           }
         });
         renderCurrentView();
-      }
 
+        // サーバー（スプレッドシート）側からも自動削除
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) {
+              console.error("サーバー側の削除反映に失敗しました: " + res.message);
+            }
+          })
+          .deleteScheduleOrPreference({
+            workDate: dateStr,
+            staffId: staffId
+          });
+      }
       function sortShiftsByStaffOrder(shifts) {
         if (!shifts) return [];
         return shifts.sort(function(a, b) {

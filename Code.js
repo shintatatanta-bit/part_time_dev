@@ -810,3 +810,57 @@ function getShiftPreferences(yearMonth) {
     return { success: false, message: "希望シフト取得エラー: " + error.message };
   }
 }
+
+/**
+ * カレンダー上で削除されたシフト希望、または確定シフトをシートから削除する関数
+ */
+function deleteScheduleOrPreference(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var targetDate = data.workDate;
+    var staffId = data.staffId;
+    
+    // 1. 「希望シフト」シートからの削除チェック
+    var prefSheet = ss.getSheetByName("希望シフト");
+    if (prefSheet) {
+      var prefData = prefSheet.getDataRange().getValues();
+      for (var i = 0; i < prefData.length; i++) {
+        var row = prefData[i];
+        if (row[1] === staffId) { // B列がstaffId
+          var datesStr = String(row[4] || ""); // E列がカンマ区切りの日付
+          if (datesStr.indexOf(targetDate) !== -1) {
+            var datesArr = datesStr.split(",").map(function(d){ return d.trim(); });
+            var newDatesArr = datesArr.filter(function(d){ return d !== targetDate; });
+            
+            if (newDatesArr.length > 0) {
+              // まだ他の日の希望が残っている場合は、該当日の日付を抜いた文字列に更新
+              prefSheet.getRange(i + 1, 5).setValue(newDatesArr.join(","));
+            } else {
+              // その日の希望しかなかった場合は行ごと削除
+              prefSheet.deleteRow(i + 1);
+            }
+          }
+        }
+      }
+    }
+    
+    // 2. 「シフト予定」シートからの削除チェック（もし確定シフト側を消した場合）
+    var shiftSheet = ss.getSheetByName("シフト予定");
+    if (shiftSheet) {
+      var shiftData = shiftSheet.getDataRange().getValues();
+      for (var j = 1; j < shiftData.length; j++) {
+        var sRow = shiftData[j];
+        var sDate = new Date(sRow[1]);
+        var sDateStr = isNaN(sDate.getTime()) ? String(sRow[1]) : Utilities.formatDate(sDate, "Asia/Tokyo", "yyyy-MM-dd");
+        if (sDateStr === targetDate && sRow[2] === staffId) {
+          shiftSheet.deleteRow(j + 1);
+          break;
+        }
+      }
+    }
+    
+    return { success: true, message: "データを削除しました" };
+  } catch (error) {
+    return { success: false, message: "削除エラー: " + error.message };
+  }
+}
