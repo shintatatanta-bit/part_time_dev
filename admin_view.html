@@ -18,7 +18,7 @@
       button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       
-      /* 📌 画面上部に常に固定するトップエリア（2×2グリッド構造） */
+      /* 📌 画面上部に常に固定するトップ固定エリア */
       .sticky-top-area {
         position: sticky;
         top: 0;
@@ -32,7 +32,7 @@
         gap: 6px;
       }
 
-      /* 左右2列に綺麗に割り振るコンテナ */
+      /* 左右2列に割り振るコンテナ（左：チップ類、右：保存ボタン） */
       .top-grid-container {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -40,14 +40,12 @@
         align-items: center;
       }
 
-      /* 左側のチップ縦並びエリア */
       .left-chips-column {
         display: flex;
         flex-direction: column;
         gap: 4px;
       }
 
-      /* 右側のメッセージと保存ボタンの縦並びエリア */
       .right-action-column {
         display: flex;
         flex-direction: column;
@@ -55,52 +53,29 @@
         align-items: stretch;
       }
 
-      .save-msg-box {
-        background: #fff;
-        border: 1px solid #d1e7dd;
-        padding: 6px 10px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        color: #155724;
-        height: 32px;
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-        white-space: nowrap;
-      }
-
       .save-btn { 
         background: #27ae60 !important; 
         color: white; 
         font-weight: bold; 
-        padding: 6px 14px; 
+        padding: 8px 16px; 
         border-radius: 4px; 
         border: none; 
         cursor: pointer; 
         font-size: 0.85rem; 
         margin-top: 0; 
-        height: 34px;
+        height: 38px;
         box-sizing: border-box;
         white-space: nowrap;
       }
       .save-btn:hover { background: #219653 !important; }
 
-      /* スマホ対応（幅768px以下の場合の縦並び調整） */
+      /* スマホ対応（幅768px以下） */
       @media screen and (max-width: 768px) {
         .top-grid-container {
           grid-template-columns: 1fr;
         }
         .right-action-column {
-          flex-direction: row;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .save-msg-box {
-          font-size: 0.65rem;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          flex-grow: 1;
-          margin-right: 4px;
+          align-items: stretch;
         }
       }
 
@@ -130,7 +105,6 @@
 
       .staff-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; align-items: center; min-height: 28px; box-sizing: border-box; }
       
-      /* パレット上のチップのフォントサイズを 5pt に設定 */
       .staff-chip { 
         background: #3498db; 
         color: white; 
@@ -186,12 +160,10 @@
       .cal-section-shift { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; min-height: 22px; align-items: center; }
       .cal-section-free { display: flex; flex-wrap: wrap; gap: 3px; border-top: 1px dotted #ccc; padding-top: 2px; min-height: 18px; }
 
-      /* カレンダー内のフリー予定バッジのフォントサイズを 5pt に設定 */
       .free-badge { background: #e67e22; color: white; font-size: 5pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
       .free-badge .del-x { font-size: 5pt !important; opacity: 0.8; font-weight: bold; }
       .free-badge:hover { background: #c0392b; }
 
-      /* カレンダー内に配置されたスタッフ用丸型バッジのフォントサイズを 5pt に設定 */
       .staff-circle-badge {
         background: #27ae60;
         color: white;
@@ -266,33 +238,31 @@
         </div>
       </div>
 
-      <!-- 📌 画面上部に常に固定するトップエリア（2×2グリッド構造） -->
-      <div class="sticky-top-area">
-        <div class="top-grid-container">
-          <!-- 左上：予定チップ -->
-          <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 4px 8px; border-radius: 4px;">
-            <span style="font-size:5pt; color:#777;">登録された予定はありません</span>
-          </div>
-          <!-- 右上：メッセージボックス -->
-          <div class="save-msg-box">
-            💡 編集内容は「変更内容を保存する」ボタンを押すまで確定しません。
-          </div>
-
-          <!-- 左下：スタッフチップ -->
-          <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 4px 8px; border-radius: 4px;">
-            <span style="font-size:5pt; color:#777;">読み込み中...</span>
-          </div>
-          <!-- 右下：保存ボタン -->
-          <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
-        </div>
-      </div>
-
-      <!-- 📌 通常の位置にあるよく使う予定の「登録入力欄」のみ（追従しない） -->
-      <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe; margin-top: 12px;">
+      <!-- 📌 通常の位置にあるよく使う予定の「登録入力欄」（最上部・追従しない） -->
+      <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe; margin-bottom: 8px;">
         <h3>📌 よく使う予定パレット（来客・全体予定など）</h3>
         <div style="display: flex; gap: 8px;">
           <input type="text" id="freeItemText" placeholder="例: 来客予定, 会議, 清掃日..." style="flex-grow: 1; margin-top:0;">
           <button type="button" class="secondary" style="margin-top:0; background: #e67e22;" onclick="addFreeItemPalette()">パレットに追加</button>
+        </div>
+      </div>
+
+      <!-- 📌 画面上部に常に固定するトップエリア（浮遊するチップ類 ＆ 保存ボタン） -->
+      <div class="sticky-top-area">
+        <div class="top-grid-container">
+          <!-- 左側：浮遊するチップ類（予定 ＆ スタッフ） -->
+          <div class="left-chips-column">
+            <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 3px 6px; border-radius: 4px;">
+              <span style="font-size:5pt; color:#777;">登録された予定はありません</span>
+            </div>
+            <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 3px 6px; border-radius: 4px;">
+              <span style="font-size:5pt; color:#777;">読み込み中...</span>
+            </div>
+          </div>
+          <!-- 右側：保存ボタン -->
+          <div class="right-action-column">
+            <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
+          </div>
         </div>
       </div>
 
