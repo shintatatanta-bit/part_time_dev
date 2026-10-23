@@ -18,7 +18,7 @@
       button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       
-      /* 📌 画面上部に常に固定するトップ固定エリア */
+      /* 📌 画面上部に常に固定するトップエリア */
       .sticky-top-area {
         position: sticky;
         top: 0;
@@ -105,12 +105,13 @@
 
       .staff-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; align-items: center; min-height: 28px; box-sizing: border-box; }
       
+      /* パレット上のチップのフォントサイズを 6pt に変更 */
       .staff-chip { 
         background: #3498db; 
         color: white; 
         padding: 3px 6px; 
         border-radius: 12px; 
-        font-size: 5pt !important; 
+        font-size: 6pt !important; 
         font-weight: bold; 
         cursor: pointer; 
         display: inline-flex; 
@@ -160,20 +161,22 @@
       .cal-section-shift { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; min-height: 22px; align-items: center; }
       .cal-section-free { display: flex; flex-wrap: wrap; gap: 3px; border-top: 1px dotted #ccc; padding-top: 2px; min-height: 18px; }
 
-      .free-badge { background: #e67e22; color: white; font-size: 5pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
-      .free-badge .del-x { font-size: 5pt !important; opacity: 0.8; font-weight: bold; }
+      /* カレンダー内のフリー予定バッジのフォントサイズを 6pt に変更 */
+      .free-badge { background: #e67e22; color: white; font-size: 6pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+      .free-badge .del-x { font-size: 6pt !important; opacity: 0.8; font-weight: bold; }
       .free-badge:hover { background: #c0392b; }
 
+      /* カレンダー内に配置されたスタッフ用丸型バッジのフォントサイズを 6pt に変更 */
       .staff-circle-badge {
         background: #27ae60;
         color: white;
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 5pt !important;
+        font-size: 6pt !important;
         font-weight: bold;
         position: relative;
         cursor: pointer;
@@ -191,7 +194,7 @@
         border-radius: 50%;
         width: 12px;
         height: 12px;
-        font-size: 5pt !important;
+        font-size: 6pt !important;
         display: none;
         align-items: center;
         justify-content: center;
@@ -253,10 +256,10 @@
           <!-- 左側：浮遊するチップ類（予定 ＆ スタッフ） -->
           <div class="left-chips-column">
             <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 3px 6px; border-radius: 4px;">
-              <span style="font-size:5pt; color:#777;">登録された予定はありません</span>
+              <span style="font-size:6pt; color:#777;">登録された予定はありません</span>
             </div>
             <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 3px 6px; border-radius: 4px;">
-              <span style="font-size:5pt; color:#777;">読み込み中...</span>
+              <span style="font-size:6pt; color:#777;">読み込み中...</span>
             </div>
           </div>
           <!-- 右側：保存ボタン -->
@@ -383,7 +386,7 @@
         
         var cellMinHeight = (size === 'A4') ? '115px' : '175px';
         var fontSizeNum = (size === 'A4') ? '0.8rem' : '1rem';
-        var fontSizeBadge = (size === 'A4') ? '5pt' : '5pt';
+        var fontSizeBadge = (size === 'A4') ? '6pt' : '6pt';
 
         var printDoc = printWin.document;
         printDoc.open();
@@ -404,8 +407,8 @@
         printDoc.write('.cal-date-num.sun-or-hol { color: #c0392b; }');
         printDoc.write('.holiday-name { font-size: 0.6rem; color: #c0392b; font-weight: bold; }');
         printDoc.write('.closed-label { font-size: 0.6rem; color: #4b5563; font-weight: bold; background: #d1d5db; padding: 1px 4px; border-radius: 3px; }');
-        printDoc.write('.staff-circle-badge { background: #27ae60 !important; color: white !important; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 5pt !important; font-weight: bold; }');
-        printDoc.write('.free-badge { background: #e67e22 !important; color: white !important; font-size: 5pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; }');
+        printDoc.write('.staff-circle-badge { background: #27ae60 !important; color: white !important; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 6pt !important; font-weight: bold; }');
+        printDoc.write('.free-badge { background: #e67e22 !important; color: white !important; font-size: 6pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; }');
         printDoc.write('.del-x { display: none; }');
         printDoc.write('</style></head><body>');
         printDoc.write('<h2>' + titleText + '</h2>');
@@ -432,12 +435,12 @@
         var stickyContainer = document.getElementById('stickyFreeChipsContainer');
         var html = '';
         if (cachedFreePalette.length === 0) {
-          html = '<span style="font-size:5pt; color:#777;">登録された予定はありません</span>';
+          html = '<span style="font-size:6pt; color:#777;">登録された予定はありません</span>';
         } else {
           cachedFreePalette.forEach(function(title, idx) {
             html += '<div class="staff-chip" style="background: #e67e22;" draggable="true" ondragstart="onDragStartFree(event, \'' + escapeHtml(title) + '\')" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
             html += '📌 ' + escapeHtml(title);
-            html += ' <span onclick="event.stopPropagation(); removeFreePalette(' + idx + ')" style="font-size:5pt; margin-left:3px; opacity:0.8;">×</span>';
+            html += ' <span onclick="event.stopPropagation(); removeFreePalette(' + idx + ')" style="font-size:6pt; margin-left:3px; opacity:0.8;">×</span>';
             html += '</div>';
           });
         }
@@ -514,7 +517,7 @@
             var stickyChipsContainer = document.getElementById('stickyStaffChipsContainer');
 
             if (activeStaffList.length === 0) {
-              stickyChipsContainer.innerHTML = '<span style="font-size:5pt; color:#777;">在籍中のスタッフがいません</span>';
+              stickyChipsContainer.innerHTML = '<span style="font-size:6pt; color:#777;">在籍中のスタッフがいません</span>';
             } else {
               var chipsHtml = '';
               activeStaffList.forEach(function(staff) {
