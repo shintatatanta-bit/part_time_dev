@@ -18,7 +18,7 @@
       button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       
-      /* 📌 画面上部に常に固定するトップ固定エリア（2カラム・グリッド構造） */
+      /* 📌 画面上部に常に固定するトップ固定エリア */
       .sticky-top-area {
         position: sticky;
         top: 0;
@@ -32,7 +32,7 @@
         gap: 6px;
       }
 
-      /* 左右2列に綺麗に割り振るコンテナ */
+      /* PC用グリッド構造 */
       .top-grid-container {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -40,14 +40,12 @@
         align-items: center;
       }
 
-      /* 左側のチップ縦並びエリア */
       .left-chips-column {
         display: flex;
         flex-direction: column;
         gap: 4px;
       }
 
-      /* 右側のメッセージと保存ボタンの縦並びエリア */
       .right-action-column {
         display: flex;
         flex-direction: column;
@@ -85,6 +83,30 @@
       }
       .save-btn:hover { background: #219653 !important; }
 
+      /* 📱 スマホ画面（幅768px以下）用の自動レイアウト切り替え */
+      @media screen and (max-width: 768px) {
+        .top-grid-container {
+          grid-template-columns: 1fr; /* 1カラム（縦並び）に変更 */
+          gap: 6px;
+        }
+        .right-action-column {
+          flex-direction: row; /* スマホではメッセージと保存ボタンを横並びにして省スペース化 */
+          justify-content: space-between;
+          align-items: center;
+        }
+        .save-msg-box {
+          font-size: 0.65rem;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex-grow: 1;
+          margin-right: 4px;
+        }
+        .staff-chips {
+          max-height: 80px; /* チップが多い場合にスクロールまたは高さを制限 */
+          overflow-y: auto;
+        }
+      }
+
       .quick-btns { display: flex; gap: 8px; margin-top: 8px; }
       .quick-btns button { background: #95a5a6; margin-top: 0; font-size: 0.8rem; padding: 6px; }
       
@@ -109,7 +131,7 @@
       .view-tab-btn { background: transparent; color: #555; border: none; padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; margin-top: 0; width: auto; font-weight: bold; }
       .view-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; align-items: center; min-height: 34px; box-sizing: border-box; }
+      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; align-items: center; box-sizing: border-box; }
       .staff-chip { background: #3498db; color: white; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; cursor: grab; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
       .staff-chip:active { cursor: grabbing; background: #2980b9; }
       
@@ -224,24 +246,25 @@
         </div>
       </div>
 
-      <!-- 📌 画面上部に常に固定するトップエリア（2×2グリッド構造） -->
+      <!-- 📌 画面上部に常に固定するトップエリア（レスポンシブ対応） -->
       <div class="sticky-top-area">
         <div class="top-grid-container">
-          <!-- 左上：予定チップ -->
-          <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 4px 8px; border-radius: 4px;">
-            <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
+          <!-- 左側（スマホでは上）：チップ類 -->
+          <div class="left-chips-column">
+            <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 4px 8px; border-radius: 4px;">
+              <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
+            </div>
+            <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 4px 8px; border-radius: 4px;">
+              <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
+            </div>
           </div>
-          <!-- 右上：メッセージボックス -->
-          <div class="save-msg-box">
-            💡 編集内容は「変更内容を保存する」ボタンを押すまで確定しません。
+          <!-- 右側（スマホでは下）：メッセージボックスと保存ボタン -->
+          <div class="right-action-column">
+            <div class="save-msg-box">
+              💡 編集内容は「変更内容を保存する」ボタンを押すまで確定しません。
+            </div>
+            <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
           </div>
-
-          <!-- 左下：スタッフチップ -->
-          <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 4px 8px; border-radius: 4px;">
-            <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
-          </div>
-          <!-- 右下：保存ボタン -->
-          <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
         </div>
       </div>
 
