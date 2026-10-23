@@ -18,7 +18,21 @@
       button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       
-      .save-action-bar { background: #eef9f2; border: 2px solid #27ae60; padding: 10px 14px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+      /* 📌 保存バーを画面上部に常に固定（追従）させる設定 */
+      .save-action-bar { 
+        position: sticky;
+        top: 10px;
+        z-index: 100;
+        background: #eef9f2; 
+        border: 2px solid #27ae60; 
+        padding: 10px 14px; 
+        border-radius: 6px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 12px; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
       .save-btn { background: #27ae60 !important; color: white; font-weight: bold; padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; width: auto; margin-top: 0; font-size: 0.9rem; }
       .save-btn:hover { background: #219653 !important; }
 
@@ -141,8 +155,8 @@
 
       .staff-chips-wrapper {
         position: sticky;
-        top: 10px;
-        z-index: 99;
+        top: 65px; /* 保存バーの下に追従するように調整 */
+        z-index: 98;
         background: #f4f7f6;
         padding-top: 5px;
         padding-bottom: 5px;
@@ -170,6 +184,7 @@
         </div>
       </div>
 
+      <!-- 📌 スクロールしても常に上部に浮いて表示される保存バー -->
       <div class="save-action-bar">
         <span style="font-size: 0.85rem; color: #1e7e34; font-weight: bold;">💡 編集内容は「保存する」ボタンを押すまで確定しません。</span>
         <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
@@ -515,7 +530,7 @@
         
         if (selectedStaffForClick && selectedStaffForClick.staffId === staffId) {
           selectedStaffForClick = null;
-          alert('配置選択を解除しました');
+          alert('選択を解除しました');
         } else {
           selectedStaffForClick = { staffId: staffId, staffName: staffName, displayChar: displayChar };
           elem.style.border = '2px solid #e74c22';
@@ -605,26 +620,6 @@
       function removeFreeScheduleById(scheduleId) {
         cachedFreeSchedules = cachedFreeSchedules.filter(function(s) { return s.scheduleId !== scheduleId; });
         renderCurrentView();
-      }
-
-      function removePreferenceItem(prefId, dateStr, staffId) {
-        cachedPreferencesData.forEach(function(pref) {
-          if (pref.prefId === prefId || pref.staffId === staffId) {
-            pref.dates = pref.dates.filter(function(d) { return d !== dateStr; });
-          }
-        });
-        renderCurrentView();
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            if (!res.success) {
-              console.error("サーバー側の削除反映に失敗しました: " + res.message);
-            }
-          })
-          .deleteScheduleOrPreference({
-            workDate: dateStr,
-            staffId: staffId
-          });
       }
 
       function sortShiftsByStaffOrder(shifts) {
@@ -722,19 +717,6 @@
           freeMap[f.workDate].push(f);
         });
 
-        var prefMap = {};
-        cachedPreferencesData.forEach(function(pref) {
-          pref.dates.forEach(function(dStr) {
-            if (!prefMap[dStr]) prefMap[dStr] = [];
-            var alreadyInShift = cachedShiftsData.some(function(s) {
-              return s.workDate === dStr && s.staffId === pref.staffId;
-            });
-            if (!alreadyInShift) {
-              prefMap[dStr].push({ prefId: pref.prefId, staffId: pref.staffId, staffName: pref.staffName });
-            }
-          });
-        });
-
         var grid = document.getElementById('calendarGrid');
         var headerHtml = '';
         var headers = grid.querySelectorAll('.cal-header-cell');
@@ -792,28 +774,6 @@
               html += '</div>';
             });
           }
-
-          if (prefMap[dateStr]) {
-            prefMap[dateStr].sort(function(a, b) {
-              var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
-              var idxB = cachedStaffList.findIndex(function(st) { return st.staffId === b.staffId; });
-              return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
-            });
-
-            prefMap[dateStr].forEach(function(pr) {
-              var dispChar = pr.staffName.substring(0, 1);
-              for (var s = 0; s < cachedStaffList.length; s++) {
-                if (cachedStaffList[s].staffId === pr.staffId) {
-                  dispChar = cachedStaffList[s].displayChar;
-                  break;
-                }
-              }
-              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="希望シフト（自動確定）: ' + escapeHtml(pr.staffName) + '">';
-              html += '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removePreferenceItem(\'' + pr.prefId + '\', \'' + dateStr + '\', \'' + pr.staffId + '\')">×</span>';
-              html += '</div>';
-            });
-          }
           html += '</div>';
 
           html += '<div class="cal-section-free">';
@@ -856,19 +816,6 @@
         cachedFreeSchedules.forEach(function(f) {
           if (!freeMap[f.workDate]) freeMap[f.workDate] = [];
           freeMap[f.workDate].push(f);
-        });
-
-        var prefMap = {};
-        cachedPreferencesData.forEach(function(pref) {
-          pref.dates.forEach(function(dStr) {
-            if (!prefMap[dStr]) prefMap[dStr] = [];
-            var alreadyInShift = cachedShiftsData.some(function(s) {
-              return s.workDate === dStr && s.staffId === pref.staffId;
-            });
-            if (!alreadyInShift) {
-              prefMap[dStr].push({ prefId: pref.prefId, staffId: pref.staffId, staffName: pref.staffName });
-            }
-          });
         });
 
         var lastDayObj = new Date(year, month, 0);
@@ -919,28 +866,6 @@
               html += '</div>';
             });
           }
-
-          if (prefMap[dateStr]) {
-            prefMap[dateStr].sort(function(a, b) {
-              var idxA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
-              var idxB = cachedStaffList.findIndex(function(st) { return st.staffId === b.staffId; });
-              return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
-            });
-
-            prefMap[dateStr].forEach(function(pr) {
-              var dispChar = pr.staffName.substring(0, 1);
-              for (var s = 0; s < cachedStaffList.length; s++) {
-                if (cachedStaffList[s].staffId === pr.staffId) {
-                  dispChar = cachedStaffList[s].displayChar;
-                  break;
-                }
-              }
-              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="希望シフト（自動確定）: ' + escapeHtml(pr.staffName) + '">';
-              html += '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removePreferenceItem(\'' + pr.prefId + '\', \'' + dateStr + '\', \'' + pr.staffId + '\')">×</span>';
-              html += '</div>';
-            });
-          }
           html += '</div>';
 
           html += '<div class="list-section-free">';
@@ -948,7 +873,7 @@
             freeMap[dateStr].forEach(function(fs) {
               html += '<div class="free-badge" onclick="event.stopPropagation()" title="予定: ' + escapeHtml(fs.title) + '">';
               html += '<span>📌 ' + escapeHtml(fs.title) + '</span>';
-              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + '\')">×</span>';
+              html += '<span class="del-x" onclick="removeFreeScheduleById(\'' + fs.scheduleId + \')">×</span>';
               html += '</div>';
             });
           }
