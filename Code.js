@@ -933,18 +933,30 @@ function getShiftPreferences(yearMonth) {
       var prefId = row[0];
       var staffId = row[1];
       var staffName = row[2];
-      var ym = row[3];
-      var datesStr = row[4]; // "2026-10-01,2026-10-05..."
+      var ym = String(row[3] || "").trim(); // D列: 年月 (例: 2026-11)
+      var datesStr = String(row[4] || "").trim(); // E列: カンマ区切りの日付
       
+      // 対象月が一致する場合
       if (ym === yearMonth) {
-        var datesArray = datesStr ? datesStr.split(",") : [];
-        preferences.push({
-          prefId: prefId,
-          staffId: staffId,
-          staffName: staffName,
-          yearMonth: ym,
-          dates: datesArray
-        });
+        var datesArray = [];
+        if (datesStr) {
+          datesStr.split(",").forEach(function(d) {
+            var trimmed = d.trim();
+            if (trimmed) {
+              datesArray.push(trimmed);
+            }
+          });
+        }
+        
+        if (datesArray.length > 0) {
+          preferences.push({
+            prefId: prefId,
+            staffId: staffId,
+            staffName: staffName,
+            yearMonth: ym,
+            dates: datesArray
+          });
+        }
       }
     }
     
