@@ -1285,12 +1285,10 @@ function getUnreadShiftNotifications() {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("希望通知ログ");
     if (!sheet) {
-      Logger.log("希望通知ログシートが見つかりません");
       return { success: true, notifications: [] };
     }
 
     var data = sheet.getDataRange().getValues();
-    Logger.log("取得したデータ行数: " + data.length);
     if (data.length <= 1) {
       return { success: true, notifications: [] };
     }
@@ -1300,14 +1298,10 @@ function getUnreadShiftNotifications() {
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       var notifId = row[0];
-      var staffId = row[1];
       var staffName = row[2];
       var yearMonth = row[3];
       var timeObj = row[4];
       var status = row[5];
-
-      // デバッグ用ログ
-      Logger.log(i +行目: notifId= + notifId + ", status=" + status);
 
       if (notifId && String(status).trim() === "未読") {
         var timeStr = "";
@@ -1319,12 +1313,18 @@ function getUnreadShiftNotifications() {
 
         notifications.push({
           notifId: notifId,
-          staffName: staffName,
-          yearMonth: yearMonth,
+          staffName: staffName || "スタッフ",
+          yearMonth: yearMonth || "未指定",
           timestamp: timeStr
         });
       }
     }
+
+    return { success: true, notifications: notifications };
+  } catch (error) {
+    return { success: false, notifications: [], message: error.message };
+  }
+}
 
     notifications.reverse();
     return { success: true, notifications: notifications };
