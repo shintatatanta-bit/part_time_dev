@@ -1284,26 +1284,21 @@ function getUnreadShiftNotifications() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("希望通知ログ");
-    if (!sheet) {
-      return { success: true, notifications: [] };
-    }
+    if (!sheet) return { success: true, notifications: [] };
 
     var data = sheet.getDataRange().getValues();
-    if (data.length <= 1) {
-      return { success: true, notifications: [] };
-    }
-
     var notifications = [];
 
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
-      var notifId = row[0];
-      var staffName = row[2];
-      var yearMonth = row[3];
+      var notifId = String(row[0] || "").trim();
+      var staffName = String(row[2] || "").trim();
+      var yearMonth = String(row[3] || "").trim();
       var timeObj = row[4];
-      var status = row[5];
+      var status = String(row[5] || "").trim(); // F列の状態
 
-      if (notifId && String(status).trim() === "未読") {
+      // 「未読」のものを正確にキャッチする
+      if (notifId && status === "未読") {
         var timeStr = "";
         if (timeObj instanceof Date) {
           timeStr = Utilities.formatDate(timeObj, "Asia/Tokyo", "MM/dd HH:mm");
@@ -1313,13 +1308,14 @@ function getUnreadShiftNotifications() {
 
         notifications.push({
           notifId: notifId,
-          staffName: staffName || "スタッフ",
-          yearMonth: yearMonth || "未指定",
+          staffName: staffName,
+          yearMonth: yearMonth,
           timestamp: timeStr
         });
       }
     }
 
+    notifications.reverse(); // 新しい順
     return { success: true, notifications: notifications };
   } catch (error) {
     return { success: false, notifications: [], message: error.message };
