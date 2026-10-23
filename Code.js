@@ -864,3 +864,59 @@ function deleteScheduleOrPreference(data) {
     return { success: false, message: "削除エラー: " + error.message };
   }
 }
+
+/**
+ * スタッフからのシフト希望を「シフト予定」シートに直接登録（一元化）する関数
+ */
+function saveShiftPreferences(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("シフト予定");
+    if (!sheet) {
+      sheet = ss.insertSheet("シフト予定");
+      sheet.appendRow(["shiftId", "workDate", "staffId", "staffName"]);
+    }
+    
+    var existingData = sheet.getDataRange().getValues();
+    var staffId = data.staffId;
+    var staffName = data.staffName;
+    var targetDates = data.selectedDates || [];
+    
+    // 既存の同月内の同スタッフの予定を一度クリア（上書き・重複防止のため）
+    var newRows = [existingData[0]]; // ヘッダー保持
+    for (var i = 1; i < existingData.length; i++) {
+      var row = existingData[i];
+      var rDateStr = String(row[1] || "");
+      var rStaffId = String(row[2] || "");
+      
+      // 対象月（例: "2026-11"）に一致し、かつ同スタッフのデータは一旦除外して再構築
+      var isSameMonth = rDateStr.indexOf(data.yearMonth) === 0;
+      if (!(isSameMonth && rStaffId === staffId)) {
+        newRows.push(row);
+      }
+    }
+    
+    // 新たに選択された日付を「シフト予定」として追加
+    targetDates.forEach(function(dStr) {
+      var shiftId = "shift_" + Utilities.getUuid().substring(0, 8);
+      newRows.push([shiftId, dStr, staffId, staffName]);
+    });
+    
+    sheet.clearContents();
+    if (newRows.length > 0) {
+      sheet.getRange(1, 1, newRows.length, newRows[0].length).setValues(newRows);
+    }
+    
+    return { success: true, message: "シフト希望を提出し、予定に反映しました！" };
+  } catch (error) {
+    return { success: false, message: "エラーが発生しました: " + error.message };
+  }
+}
+
+/**
+ * 従来の「希望シフト」の代わりに「シフト予定」からデータを取得する関数
+ */
+function getShiftPreferences(yearMonth) {
+  // すでに「シフト予定」が一元化されているため、空配列を返してgetShiftSchedule側で統合管理します
+  return { success: true, preferences: [] };
+}

@@ -682,17 +682,11 @@
                     cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
                     
                     google.script.run
-                      .withSuccessHandler(function(prefRes) {
-                        cachedPreferencesData = prefRes.success ? prefRes.preferences : [];
-                        
-                        google.script.run
-                          .withSuccessHandler(function(freeRes) {
-                            cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
-                            renderCurrentView();
-                          })
-                          .getFreeSchedules(yearMonthVal);
+                      .withSuccessHandler(function(freeRes) {
+                        cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
+                        renderCurrentView();
                       })
-                      .getShiftPreferences(yearMonthVal);
+                      .getFreeSchedules(yearMonthVal);
                   })
                   .getShiftSchedule(yearMonthVal);
               })
