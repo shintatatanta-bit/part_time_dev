@@ -314,8 +314,7 @@
               </div>
             </div>
             <div class="right-action-column">
-              <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
-            </div>
+<button class="save-btn" id="saveButton" onclick="saveAllChanges()">💾 変更内容を保存する</button>            </div>
           </div>
         </div>
 
@@ -553,21 +552,11 @@
         setTimeout(function() { printWin.print(); printWin.close(); }, 500);
       }
 
-      function addFreeItemPalette() {
-        var input = document.getElementById('freeItemText');
-        var val = input.value.trim();
-        if (!val) return;
-        if (!cachedFreePalette.includes(val)) {
-          cachedFreePalette.push(val);
-          localStorage.setItem('cachedFreePalette', JSON.stringify(cachedFreePalette));
-          renderFreePalette();
-          input.value = '';
-        }
-      }
 
-// 💡 変更があったときにボタンを強調状態にする関数
+
+// // 💡 変更があったときにボタンを強調状態にする関数
       function markAsUnsaved() {
-        var saveBtn = document.querySelector('.save-btn');
+        var saveBtn = document.getElementById('saveButton');
         if (saveBtn) {
           saveBtn.classList.add('unsaved');
           saveBtn.innerText = '💾 変更内容を保存する（未保存）';
@@ -583,7 +572,7 @@
           localStorage.setItem('cachedFreePalette', JSON.stringify(cachedFreePalette));
           renderFreePalette();
           input.value = '';
-          markAsUnsaved(); // 💡 追加
+          markAsUnsaved();
         }
       }
 
@@ -591,7 +580,7 @@
         cachedFreePalette.splice(index, 1);
         localStorage.setItem('cachedFreePalette', JSON.stringify(cachedFreePalette));
         renderFreePalette();
-        markAsUnsaved(); // 💡 追加
+        markAsUnsaved();
       }
 
       function onDrop(event, dateStr) {
@@ -607,7 +596,7 @@
           var tempId = "local_free_" + Math.random();
           cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
           renderCurrentView();
-          markAsUnsaved(); // 💡 追加
+          markAsUnsaved();
         } else {
           openModal(dateStr, data.staffId, data.staffName, data.displayChar);
         }
@@ -619,7 +608,7 @@
             var tempId = "local_free_" + Math.random();
             cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: selectedStaffForClick.title });
             renderCurrentView();
-            markAsUnsaved(); // 💡 追加
+            markAsUnsaved();
           } else {
             openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
           }
@@ -631,7 +620,7 @@
             cachedClosedDays.push(dateStr);
           }
           renderCurrentView();
-          markAsUnsaved(); // 💡 休業日切替時も未保存にする
+          markAsUnsaved();
         }
       }
 
@@ -645,7 +634,7 @@
           if (!cachedShiftsData.some(function(s) { return s.workDate === p.dateStr && s.staffId === p.staffId; })) {
             cachedShiftsData.push({ shiftId: tempId, workDate: p.dateStr, staffId: p.staffId, staffName: p.staffName });
             renderCurrentView();
-            markAsUnsaved(); // 💡 追加
+            markAsUnsaved();
           }
         } else if (mode === 'weekly') {
           var dates = getSameDayOfWeekInMonth(p.dateStr);
@@ -656,20 +645,20 @@
             }
           });
           renderCurrentView();
-          markAsUnsaved(); // 💡 追加
+          markAsUnsaved();
         }
       }
 
       function removeShiftById(shiftId) {
         cachedShiftsData = cachedShiftsData.filter(function(s) { return s.shiftId !== shiftId; });
         renderCurrentView();
-        markAsUnsaved(); // 💡 追加
+        markAsUnsaved();
       }
 
       function removeFreeScheduleById(scheduleId) {
         cachedFreeSchedules = cachedFreeSchedules.filter(function(s) { return s.scheduleId !== scheduleId; });
         renderCurrentView();
-        markAsUnsaved(); // 💡 追加
+        markAsUnsaved();
       }
 
       function saveAllChanges() {
@@ -687,7 +676,7 @@
               loadCalendar();
               
               // 保存成功したらボタンの未保存強調を解除する
-              var saveBtn = document.querySelector('.save-btn');
+              var saveBtn = document.getElementById('saveButton');
               if (saveBtn) {
                 saveBtn.classList.remove('unsaved');
                 saveBtn.innerText = '💾 変更内容を保存する';
