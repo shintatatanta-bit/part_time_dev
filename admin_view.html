@@ -18,7 +18,7 @@
       button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
       
-      /* 📌 画面上部に常に固定するトップ固定エリア */
+      /* 📌 画面上部に常に固定するトップ固定エリア（2×2グリッド構造） */
       .sticky-top-area {
         position: sticky;
         top: 0;
@@ -32,6 +32,7 @@
         gap: 6px;
       }
 
+      /* 左右2列に綺麗に割り振るコンテナ */
       .top-grid-container {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -39,12 +40,14 @@
         align-items: center;
       }
 
+      /* 左側のチップ縦並びエリア */
       .left-chips-column {
         display: flex;
         flex-direction: column;
         gap: 4px;
       }
 
+      /* 右側のメッセージと保存ボタンの縦並びエリア */
       .right-action-column {
         display: flex;
         flex-direction: column;
@@ -82,11 +85,10 @@
       }
       .save-btn:hover { background: #219653 !important; }
 
-      /* スマホ対応（幅768px以下） */
+      /* スマホ対応（幅768px以下の場合の縦並び調整） */
       @media screen and (max-width: 768px) {
         .top-grid-container {
           grid-template-columns: 1fr;
-          gap: 6px;
         }
         .right-action-column {
           flex-direction: row;
@@ -126,15 +128,14 @@
       .view-tab-btn { background: transparent; color: #555; border: none; padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; margin-top: 0; width: auto; font-weight: bold; }
       .view-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; align-items: center; box-sizing: border-box; }
+      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; align-items: center; min-height: 34px; box-sizing: border-box; }
       
-      /* タップ選択されたチップを目立たせるスタイル */
       .staff-chip { 
         background: #3498db; 
         color: white; 
-        padding: 6px 12px; 
+        padding: 5px 10px; 
         border-radius: 20px; 
-        font-size: 0.85rem; 
+        font-size: 0.8rem; 
         font-weight: bold; 
         cursor: pointer; 
         display: inline-flex; 
@@ -262,25 +263,24 @@
         </div>
       </div>
 
-      <!-- 📌 画面上部に常に固定するトップエリア（スマホ対応・タップ配置対応） -->
+      <!-- 📌 画面上部に常に固定するトップエリア（2×2グリッド構造） -->
       <div class="sticky-top-area">
         <div class="top-grid-container">
-          <!-- 左側：チップ類（タップで選択可能） -->
-          <div class="left-chips-column">
-            <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 4px 8px; border-radius: 4px;">
-              <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
-            </div>
-            <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 4px 8px; border-radius: 4px;">
-              <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
-            </div>
+          <!-- 左上：予定チップ -->
+          <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 4px 8px; border-radius: 4px;">
+            <span style="font-size:0.8rem; color:#777;">登録された予定はありません</span>
           </div>
-          <!-- 右側：メッセージボックスと保存ボタン -->
-          <div class="right-action-column">
-            <div class="save-msg-box">
-              💡 編集内容は「変更内容を保存する」ボタンを押すまで確定しません。
-            </div>
-            <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
+          <!-- 右上：メッセージボックス -->
+          <div class="save-msg-box">
+            💡 編集内容は「変更内容を保存する」ボタンを押すまで確定しません。
           </div>
+
+          <!-- 左下：スタッフチップ -->
+          <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 4px 8px; border-radius: 4px;">
+            <span style="font-size:0.8rem; color:#777;">読み込み中...</span>
+          </div>
+          <!-- 右下：保存ボタン -->
+          <button class="save-btn" onclick="saveAllChanges()">💾 変更内容を保存する</button>
         </div>
       </div>
 
@@ -293,7 +293,7 @@
         </div>
       </div>
 
-      <p style="font-size: 0.75rem; color: #888; margin: 8px 0 8px 0;">💡 スマホ・PC共通：上のパレットから**チップをタップして選択（赤枠で強調）**し、配置したい日付枠をタップしてください。</p>
+      <p style="font-size: 0.75rem; color: #888; margin: 8px 0 8px 0;">💡 スマホ・PC共通：上のパレットから**チップをタップして選択**し、配置したい日付枠をタップしてください。</p>
 
       <div class="cal-grid" id="calendarGrid">
         <div class="cal-header-cell">日</div>
@@ -361,7 +361,7 @@
       var cachedClosedDays = []; 
       var cachedFreePalette = JSON.parse(localStorage.getItem('cachedFreePalette')) || ["来客予定", "全体ミーティング", "清掃日"];
       var cachedFreeSchedules = [];
-      var selectedStaffForClick = null; // 現在選択中のチップ（スタッフまたはフリー予定）
+      var selectedStaffForClick = null; 
       var pendingPlacement = null;
       var currentViewMode = 'grid'; 
 
@@ -1014,7 +1014,7 @@
             html += '<div class="staff-summary-badge"><div class="badge-main">交通費: ¥' + item.totalCost.toLocaleString() + '</div><div class="badge-sub">休憩合計: ' + item.totalBreakHoursStr + '</div><div style="font-size: 0.7rem; color: #888; margin-top:2px;">詳細 ▼</div></div></div>';
             html += '<div class="staff-details">';
             if (item.records.length === 0) {
-              html += '<p style="font-size:0.8rem; color:#888; text-align:center; margin:8px 0;">এই期間の申請データはありません</p>';
+              html += '<p style="font-size:0.8rem; color:#888; text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
             } else {
               html += '<table><thead><tr><th>勤務日</th><th>時間</th><th>休憩</th><th>交通費</th></tr></thead><tbody>';
               item.records.forEach(function(rec) {
