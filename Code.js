@@ -1141,3 +1141,153 @@ function getKintaiPendingStaff() {
     return { success: false, message: "未提出者取得エラー: " + error.message, pendingList: [] };
   }
 }
+
+/**
+ * 💡【追加】未提出者リストをLINEリマインド用に詳細情報つきで取得する関数
+ */
+function getKintaiPendingForReminder() {
+  try {
+    // 既存の未提出者取得ロジックを利用
+    var res = getKintaiPendingStaff();
+    if (!res.success) return res;
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var staffSheet = ss.getSheetByName("スタッフマスタ");
+    if (!staffSheet) return { success: true, pendingList: [] };
+    var staffData = staffSheet.getDataRange().getValues();
+    
+    // staffIdごとのLINEの有効性をマップ化
+    var staffLineMap = {};
+    for (var i = 1; i < staffData.length; i++) {
+      var sId = staffData[i][0];
+      var lineId = staffData[i][2];
+      var status = staffData[i][4];
+      if (sId && lineId && status === "有効") {
+        staffLineMap[sId] = true;
+      }
+    }
+
+    // LINE連携が有効な未提出者だけに絞り込み
+    var validPendingList = [];
+    res.pendingList.forEach(function(item) {
+      if (staffLineMap[item.staffId]) {
+        validPendingList.push(item);
+      }
+    });
+
+    return { success: true, pendingList: validPendingList };
+  } catch (error) {
+    return { success: false, message: "リマインド対象取得エラー: " + error.message, pendingList: [] };
+  }
+}
+
+/**
+ * 💡【追加】未提出者へ個別（または一斉）にリマインドLINEを送信する関数
+ */
+function sendKintaiReminderLine(data) {
+  try {
+    var targets = data.targets || []; // 送信対象の staffId の配列
+    var messageText = data.messageText;
+
+    if (targets.length === 0) {
+      return { success: false, message: "送信対象のスタッフが選択されていません。" };
+    }
+    if (!messageText) {
+      return { success: false, message: "メッセージ本文が入力されていません。" };
+    }
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var staffSheet = ss.getSheetByName("スタッフマスタ");
+    if (!staffSheet) throw new Error("スタッフマスタが見つかりません。");
+    var staffData = staffSheet.getDataRange().getValues();
+
+    var staffMap = {};
+    for (var i = 1; i < staffData.length; i++) {
+      if (staffData[i][0]) {
+        staffMap[staffData[i][0]] = {
+          staffName: staffData[i][1],
+          lineUserId: staffData[i][2],
+          assignedAccount: staffData[i][3]
+        };
+      }
+    }
+
+    var accountSheet = ss.getSheetByName("アカウントマスタ");
+    var tokens = {};
+    if (accountSheet) {
+      var accData = accountSheet.getDataRange().getValues();
+      for (var k = 1; k < accData.length; k++) {
+        if (accData[k][0]) tokens[accData[k][0]] = accData[k][1];
+      }
+    }
+
+    var successCount = 0;
+    var failCount = 0;
+    var targetNames = [];
+
+    targets.forEach(function(staffId) {
+      var staff = staffMap[staffId];
+      if (!staff || !staff.lineUserId) {
+        failCount++;
+        return;
+      }
+
+      var token = tokens[staff.assignedAccount];
+      if (!token || token.includes("YOUR_")) {
+        failCount++;
+        return;
+      }
+
+      targetNames.push(staff.staffName);
+
+      var url = "https://api.line.me/v2/bot/message/push";
+      var payload = {
+        to: staff.lineUserId,
+        messages: [{ type: "text", text: messageText }]
+      };
+
+      var options = {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "Authorization": "Bearer " + token
+        },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+
+      try {
+        var res = UrlFetchApp.fetch(url, options);
+        if (res.getResponseCode() === 200) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (e) {
+        failCount++;
+      }
+    });
+
+    // 履歴シートへ保存
+    var histSheet = ss.getSheetByName("連絡履歴");
+    if (!histSheet) {
+      histSheet = ss.insertSheet("連絡履歴");
+      histSheet.appendRow(["historyId", "timestamp", "targetName", "messageText", "resultSummary"]);
+    }
+
+    var historyId = "hist_" + Utilities.getUuid().substring(0, 8);
+    var timestamp = new Date();
+    var targetNameDisplay = "【勤怠リマインド】" + targetNames.join(", ");
+    var resultStr = "成功: " + successCount + "件 / 失敗: " + failCount + "件";
+
+    histSheet.appendRow([historyId, timestamp, targetNameDisplay, messageText, resultStr]);
+
+    return { 
+      success: true, 
+      message: "リマインドを送信しました！（" + resultStr + "）" 
+    };
+
+  } catch (error) {
+    return { success: false, message: "リマインド送信エラー: " + error.message };
+  }
+}

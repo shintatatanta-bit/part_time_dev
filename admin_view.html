@@ -365,11 +365,38 @@
     </div>
 
     <!-- 💡【変更】勤怠未提出者アラートカード（過去1か月間対象） -->
+<!-- 💡【変更】勤怠未提出者アラート ＆ リマインド送信カード -->
     <div class="card" style="border: 1px solid #e74c3c; background: #fdfefe;">
-      <h3 style="margin: 0 0 4px 0; color: #c0392b;">⚠️ 勤怠未提出者アラート（過去1か月間）</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <h3 style="margin: 0; color: #c0392b;">⚠️ 勤怠未提出者アラート（過去1か月間）</h3>
+        <button type="button" class="secondary" style="background: #e67e22; margin-top: 0; padding: 4px 8px; font-size: 0.75rem;" onclick="openReminderPreview()">📢 未提出者にリマインドを送る</button>
+      </div>
       <p style="font-size: 0.75rem; color: #666; margin: 0 0 8px 0;">💡 過去30日間のうち、シフト予定があるのにまだ勤怠申請が提出されていないスタッフ一覧です。申請されると自動で消えます。</p>
       <div id="pendingStaffContainer">
         <div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">確認中...</div>
+      </div>
+    </div>
+
+    <!-- 💡【追加】リマインド確認・プレビュー用モーダル -->
+    <div id="reminderModal" class="modal-overlay">
+      <div class="modal-content" style="width: 380px; text-align: left;">
+        <h4 style="margin-top: 0; color: #2c3e50;">📢 LINEリマインドの確認・送信</h4>
+        <p style="font-size: 0.8rem; color: #555; margin: 6px 0;">以下の未提出者を確認し、問題なければ送信ボタンを押してください。</p>
+        
+        <label>送信対象スタッフ一覧:</label>
+        <div id="reminderTargetsBox" style="max-height: 100px; overflow-y: auto; border: 1px solid #ddd; padding: 6px; font-size: 0.8rem; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px;">
+          読み込み中...
+        </div>
+
+        <label>メッセージ本文 (編集可能):</label>
+        <textarea id="reminderMessageText" rows="4" style="width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; resize: vertical;">お疲れ様です！
+過去の勤務について、まだ勤怠・交通費の申請が提出されていない日がございます。
+お手数ですが、スタッフポータルより申請のご入力をお願いいたします！</textarea>
+
+        <div class="modal-btns" style="margin-top: 12px;">
+          <button type="button" class="btn-green" style="background: #27ae60; margin-top:0;" onclick="confirmAndSendReminder()">🚀 確認してLINE一斉送信</button>
+          <button type="button" class="btn-cancel" style="background: #95a5a6; margin-top:0;" onclick="closeReminderModal()">キャンセル</button>
+        </div>
       </div>
     </div>
 
@@ -1192,6 +1219,90 @@
             container.innerHTML = html;
           })
           .getKintaiPendingStaff();
+      }
+
+      // 💡【追加】リマインド対象を保持する変数
+      var cachedPendingListForReminder = [];
+
+      // 💡【追加】リマインド確認モーダルを開く
+      function openReminderPreview() {
+        var box = document.getElementById('reminderTargetsBox');
+        box.innerHTML = '読み込み中...';
+        document.getElementById('reminderModal').style.display = 'flex';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success || res.pendingList.length === 0) {
+              box.innerHTML = '<span style="color: #27ae60; font-weight: bold;">現在、未提出者はいません。</span>';
+              cachedPendingListForReminder = [];
+              return;
+            }
+
+            cachedPendingListForReminder = res.pendingList;
+            
+            // 重複のないスタッフ名をリストアップ
+            var uniqueStaffNames = {};
+            res.pendingList.forEach(function(item) {
+              uniqueStaffNames[item.staffName] = true;
+            });
+            var namesArr = Object.keys(uniqueStaffNames);
+
+            var html = '<ul style="margin: 0; padding-left: 18px;">';
+            namesArr.forEach(function(name) {
+              html += '<li><strong>' + escapeHtml(name) + '</strong> さん</li>';
+            });
+            html += '</ul>';
+            box.innerHTML = html;
+          })
+          .getKintaiPendingForReminder();
+      }
+
+      // 💡【追加】リマインドモーダルを閉じる
+      function closeReminderModal() {
+        document.getElementById('reminderModal').style.display = 'none';
+      }
+
+      // 💡【追加】確認してリマインドを送信する
+      function confirmAndSendReminder() {
+        if (cachedPendingListForReminder.length === 0) {
+          alert('送信対象のスタッフがいません。');
+          closeReminderModal();
+          return;
+        }
+
+        var messageText = document.getElementById('reminderMessageText').value.trim();
+        if (!messageText) {
+          alert('メッセージ本文を入力してください。');
+          return;
+        }
+
+        // ユニークな staffId のリストを作成
+        var uniqueStaffIds = {};
+        cachedPendingListForReminder.forEach(function(item) {
+          uniqueStaffIds[item.staffId] = true;
+        });
+        var targetsArr = Object.keys(uniqueStaffIds);
+
+        if (!confirm('未提出のスタッフ（' + targetsArr.length + '名）にリマインドLINEを送信しますか？')) return;
+
+        var btn = event.target;
+        btn.disabled = true;
+        btn.innerText = '送信中...';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            alert(res.message);
+            if (res.success) {
+              closeReminderModal();
+              loadLineHistory(); // 送信履歴を更新
+            }
+            btn.disabled = false;
+            btn.innerText = '🚀 確認してLINE一斉送信';
+          })
+          .sendKintaiReminderLine({
+            targets: targetsArr,
+            messageText: messageText
+          });
       }
     </script>
   </head>
