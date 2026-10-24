@@ -1,42 +1,26 @@
 /**
- * 💡 LINEからのイベントを受け取るWebhookの入口（エラーログ強化版）
+ * Webアプリのアクセス入口（URLパラメータに応じて画面を切り替える）
  */
-function doPost(e) {
-  try {
-    if (!e || !e.postData || !e.postData.contents) {
-      return ContentService.createTextOutput(JSON.stringify({status: "no data"}))
-                 .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    var json = JSON.parse(e.postData.contents);
-    var events = json.events;
-    
-    if (!events) {
-      return ContentService.createTextOutput(JSON.stringify({status: "no events"}))
-                 .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    for (var i = 0; i < events.length; i++) {
-      var event = events[i];
-      
-      if (event.type === 'message' && event.message.type === 'text') {
-        var userMessage = event.message.text.trim();
-        var lineUserId = event.source.userId;
-        var replyToken = event.replyToken;
-        
-        if (userMessage === "登録" || userMessage === "ID確認") {
-          saveLineIdLog(lineUserId);
-          sendLineReply(replyToken, "LINE IDを確認しました！スタッフ登録にお進みください。");
-        }
-      }
-    }
-  } catch (error) {
-    // 💡 エラーが発生した内容をGASの「ログ」に記録する
-    Logger.log("doPost内でのエラー: " + error.message);
+function doGet(e) {
+  var params = e.parameter || {};
+  var page = params.page || "admin";
+  var staffId = params.staffId || "";
+  
+  var template;
+  if (page === "staff") {
+    // ※もしGAS上のファイル名が 「staff_view_4」の場合はここを合わせてください
+    template = HtmlService.createTemplateFromFile("staff_view_4");
+    template.staffId = staffId;
+    template.staffName = getStaffName(staffId);
+  } else {
+    // ※もしGAS上のファイル名が 「admin_view_6」の場合はここを合わせてください
+    template = HtmlService.createTemplateFromFile("admin_view_6");
   }
   
-  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
-             .setMimeType(ContentService.MimeType.JSON);
+  return template.evaluate()
+    .setTitle("アルバイト勤怠管理システム")
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 /**
