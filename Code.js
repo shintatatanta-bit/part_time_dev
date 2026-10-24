@@ -889,6 +889,9 @@ function toggleStaffStatus(staffId, newStatus) {
 /**
  * スタッフからのシフト希望を保存し、管理者向けの新着通知を記録する関数
  */
+function s/**
+ * スタッフからのシフト希望を保存し、管理者向けの新着通知を記録する関数（伝達事項対応版）
+ */
 function saveShiftPreferences(data) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -903,6 +906,7 @@ function saveShiftPreferences(data) {
     var staffId = data.staffId;
     var staffName = data.staffName;
     var targetDates = data.selectedDates || [];
+    var memo = data.memo || ""; // 💡 伝達事項（備考）を受け取る
     
     var newRows = [existingData[0]]; 
     for (var i = 1; i < existingData.length; i++) {
@@ -929,7 +933,8 @@ function saveShiftPreferences(data) {
     var notifSheet = ss.getSheetByName("希望通知ログ");
     if (!notifSheet) {
       notifSheet = ss.insertSheet("希望通知ログ");
-      notifSheet.appendRow(["notifId", "staffId", "staffName", "yearMonth", "timestamp", "status"]);
+      // 💡 伝達事項を記録できるように列を追加または対応（既存ログとの互換性を考慮）
+      notifSheet.appendRow(["notifId", "staffId", "staffName", "yearMonth", "timestamp", "status", "memo"]);
     }
     
     var notifId = "notif_" + Utilities.getUuid().substring(0, 8);
@@ -939,7 +944,8 @@ function saveShiftPreferences(data) {
       staffName,
       data.yearMonth,
       new Date(),
-      "未読"
+      "未読",
+      memo // 💡 ログに伝達事項を保存
     ]);
     
     return { success: true, message: "シフト希望を提出し、予定に反映しました！" };

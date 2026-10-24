@@ -25,7 +25,7 @@
       h2 { color: var(--text-main); font-size: 1.3rem; text-align: center; margin-top: 0; margin-bottom: 6px; font-weight: 700; }
       p { font-size: 0.9rem; color: var(--text-sub); line-height: 1.5; }
       label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.85rem; color: var(--text-sub); }
-      input, select { width: 100%; padding: 11px 14px; margin-top: 6px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; background: #fff; }
+      input, select, textarea { width: 100%; padding: 11px 14px; margin-top: 6px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; background: #fff; font-family: inherit; }
       button { background: var(--success-color); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; padding: 13px; transition: background 0.15s; }
       button:hover { background: #047857; }
       .portal-container { width: 100%; max-width: 440px; }
@@ -62,11 +62,10 @@
         <button id="tabHistory" class="portal-tab-btn" onclick="switchStaffTab('history')">📋 申請履歴</button>
       </div>
       
-      <!-- 勤怠・交通費申請フォーム（修正モード対応） -->
+      <!-- 勤怠・交通費申請フォーム -->
       <div id="viewKintai" class="card" style="text-align: left; margin: 0;">
         <h3 id="formTitle" style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠・交通費の申請</h3>
         
-        <!-- 💡 修正中のバナー表示 -->
         <div id="editModeBanner" class="edit-banner">
           <span>⚠️ 申請データの修正モード中</span>
           <button type="button" onclick="cancelEditMode()" style="background: transparent; color: #92400e; border: 1px solid #f59e0b; padding: 2px 6px; font-size: 0.75rem; width: auto;">キャンセル</button>
@@ -98,7 +97,7 @@
         </form>
       </div>
 
-      <!-- シフト希望の提出 -->
+      <!-- シフト希望の提出（伝達事項・備考欄追加） -->
       <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
@@ -112,7 +111,7 @@
         <p style="font-size: 0.8rem; color: var(--text-sub); margin: 0 0 8px 0;">💡 出勤できる日をタップして選択してください。</p>
         <div id="selectedCount" style="text-align: center; font-size: 0.9rem; color: #d97706; font-weight: bold; margin-bottom: 8px;">選択中の日数: 0日</div>
 
-        <div class="mini-cal-grid" id="miniCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px;">
+        <div class="mini-cal-grid" id="miniCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 12px;">
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--danger-color); border-radius: 4px;">日</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">月</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">火</div>
@@ -121,6 +120,10 @@
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">金</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
         </div>
+
+        <!-- 💡 伝達事項（備考欄）の入力エリアを追加 -->
+        <label>伝達事項・備考 (任意)</label>
+        <textarea id="shiftMemo" rows="2" placeholder="例: 午後からです、15時までとなります" style="resize: vertical; margin-bottom: 14px;"></textarea>
 
         <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
       </div>
@@ -149,7 +152,7 @@
 
     <script>
       var selectedDatesMap = {};
-      var rawHistoryData = []; // 取得した履歴を保持する配列
+      var rawHistoryData = [];
 
       window.onload = function() {
         var now = new Date();
@@ -209,7 +212,7 @@
               return;
             }
 
-            rawHistoryData = res.history; // データを保持
+            rawHistoryData = res.history;
             var html = '';
             res.history.forEach(function(item, idx) {
               html += '<tr>';
@@ -231,12 +234,10 @@
         loadStaffHistory();
       }
 
-      // 💡 履歴の「修正」ボタンが押されたとき
       function startEdit(index) {
         var item = rawHistoryData[index];
         if (!item) return;
 
-        // フォームに値をセット
         document.getElementById('editRequestId').value = item.requestId;
         document.getElementById('workDate').value = item.workDate;
         document.getElementById('startTime').value = item.startTime;
@@ -244,17 +245,14 @@
         document.getElementById('breakTime').value = item.breakTime;
         document.getElementById('transportCost').value = item.transportCost;
 
-        // UIを修正モードに変更
         document.getElementById('formTitle').innerText = '勤怠・交通費の修正';
         document.getElementById('editModeBanner').style.display = 'flex';
         document.getElementById('submitBtn').innerText = '修正を保存する';
         document.getElementById('submitBtn').style.background = 'var(--warning-color)';
 
-        // 勤怠申請タブに切り替え
         switchStaffTab('kintai');
       }
 
-      // 💡 修正モードをキャンセルする
       function cancelEditMode() {
         document.getElementById('editRequestId').value = '';
         document.getElementById('kintaiForm').reset();
@@ -270,7 +268,6 @@
         var minutes = String(now.getMinutes()).padStart(2, '0');
         document.getElementById('endTime').value = hours + ':' + minutes;
 
-        // UIを通常モードに戻す
         document.getElementById('formTitle').innerText = '勤怠・交通費の申請';
         document.getElementById('editModeBanner').style.display = 'none';
         document.getElementById('submitBtn').innerText = '申請を送信する';
@@ -299,15 +296,14 @@
         btn.disabled = true;
         btn.innerText = '保存中...';
 
-        // 💡 修正モード（requestIdがある）か新規申請（ない）かで分岐
         var actionFunction = requestId ? 'updateKintaiData' : 'saveKintaiData';
 
         google.script.run
           .withSuccessHandler(function(res) {
             alert(res.message);
             if (res.success) {
-              cancelEditMode(); // フォームをリセットして通常モードに戻す
-              loadStaffHistory(); // 履歴を再読み込み
+              cancelEditMode();
+              loadStaffHistory();
             }
             btn.disabled = false;
             btn.innerText = requestId ? '修正を保存する' : '申請を送信する';
@@ -405,11 +401,14 @@
         }
 
         var ymVal = document.getElementById('targetMonth').value;
+        var memoVal = document.getElementById('shiftMemo').value.trim(); // 💡 入力された伝達事項を取得
+
         var data = {
           staffId: document.getElementById('staffId').value,
           staffName: document.getElementById('staffNameVal').value,
           yearMonth: ymVal,
-          selectedDates: datesArray
+          selectedDates: datesArray,
+          memo: memoVal // 💡 送信データに含める
         };
 
         var btn = event.target;
@@ -421,10 +420,11 @@
             alert(res.message);
             if (res.success) {
               selectedDatesMap = {};
+              document.getElementById('shiftMemo').value = ''; // 💡 送信後に備考欄をクリア
               renderMiniCalendar();
             }
             btn.disabled = false;
-            btn.innerText = 'シフト希望を送信する';
+            btn.innerText = 'シフト希望の提出'; // 修正: ボタンテキストを元に戻す
           })
           .saveShiftPreferences(data);
       }
