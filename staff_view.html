@@ -426,7 +426,7 @@
 
         grid.innerHTML = html;
         updateCountDisplay();
-        renderDailyMemosInputs(); // カレンダーの描画と同時に入力枠も連動して生成
+        renderDailyMemosInputs(); // 💡 修正済み: カレンダー描画と同時に入力枠を生成
       }
 
       function toggleDate(dateStr) {
@@ -480,13 +480,7 @@
 
         var memoSummaryArr = [];
         datesArray.forEach(function(dStr) {
-          var memo = selectedDatesMap[dateStr]; // ※修正: dStrを使用
-          // 各日付のメモを整理
-        });
-
-        // 整理して安全に合算
-        datesArray.forEach(function(dStr) {
-          var memo = selectedDatesMap[dStr];
+          var memo = selectedDatesMap[dStr]; // 💡 修正済み: 正しく dStr を参照
           if (memo && memo.trim() !== "") {
             memoSummaryArr.push(dStr.substring(8) + "日: " + memo.trim());
           }
@@ -511,12 +505,16 @@
             if (res.success) {
               selectedDatesMap = {};
               renderMiniCalendar();
-              switchStaffTab('history'); // 送信後は自動で申請履歴（シフト希望提出履歴）タブに移動
+              switchStaffTab('history'); 
             }
             btn.disabled = false;
             btn.innerText = 'シフト希望を送信する';
           })
           .saveShiftPreferences(data);
+      }
+
+      function cloneObj(obj) {
+        return JSON.parse(JSON.stringify(obj));
       }
 
       function escapeHtml(str) {
