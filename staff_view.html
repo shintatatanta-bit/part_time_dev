@@ -87,25 +87,6 @@
 
     <script>
       window.onload = function() {
-        // もしGASのiframe内にいる場合は、誘導カードを表示する
-        if (window.top !== window.self) {
-          document.getElementById('redirectCard').style.display = 'block';
-        } else {
-          // すでにトップウィンドウ（全画面）で開けている場合
-          initPortalMain();
-        }
-      };
-
-      // ユーザーのタップをきっかけにiframeから抜け出す関数
-      function escapeIframeAndOpen() {
-        window.top.location.href = window.self.location.href;
-      }
-
-      var selectedDatesMap = {};
-
-      function initPortalMain() {
-        document.getElementById('portalContent').style.display = 'block';
-        
         var now = new Date();
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
@@ -115,11 +96,14 @@
         renderMiniCalendar();
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
 
+        // 💡 最初からポータルコンテンツを表示する
+        document.getElementById('portalContent').style.display = 'block';
+
         var staffId = document.getElementById('staffId').value;
         if (staffId) {
           initializeLiffAndLink(staffId);
         }
-      }
+      };
 
       function initializeLiffAndLink(staffId) {
         var liffId = "2012184145-HMvvN2iP"; 
@@ -127,7 +111,7 @@
         liff.init({ liffId: liffId })
           .then(function() {
             if (!liff.isLoggedIn()) {
-              liff.login({ redirectUri: window.location.href });
+              liff.login(); // リダイレクトループを防ぐため単純なloginに変更
               return;
             }
             
