@@ -1625,15 +1625,14 @@ function sendLineReply(replyToken, messageText) {
 }
 
 /**
- * 💡 スタッフが初めて専用URLを開いたときにLINE IDを自動紐付けする関数
- * （※実際のLINEプラットフォームやLIFF、あるいはLINEブラウザ経由での初回アクセス時に紐付けを行いますが、
- *    今回はシンプルに初回アクセスを検知してログや紐付けの土台を整える関数です）
+ * 💡 スタッフが専用URLを開いたときにLINE IDを自動紐付けする関数
+ * （スタッフのLINE内ブラウザ等からアクセスされた際、LINE IDを受け取ってスタッフマスタのC列に自動保存します）
  */
-function checkAndLinkStaffAccess(staffId) {
+function checkAndLinkStaffAccess(staffId, lineUserId) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("スタッフマスタ");
-    if (!sheet) return { success: false };
+    if (!sheet) return { success: false, message: "スタッフマスタが見つかりません" };
     
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
@@ -1641,8 +1640,13 @@ function checkAndLinkStaffAccess(staffId) {
         var staffName = data[i][1];
         var currentLineId = data[i][2];
         
-        // すでにLINE IDが入っていればそのままOK
-        return { success: true, staffName: staffName, isLinked: !!currentLineId };
+        // まだC列（LINE ID）が空欄で、かつ今回のアクセスでLINE IDが取得できている場合、自動書き込みする！
+        if (!currentLineId && lineUserId) {
+          sheet.getRange(i + 1, 3).setValue(lineUserId); // C列にLINE IDを保存
+          return { success: true, staffName: staffName, isNewlyLinked: true };
+        }
+        
+        return { success: true, staffName: staffName, isNewlyLinked: false };
       }
     }
     return { success: false, message: "スタッフが見つかりません" };

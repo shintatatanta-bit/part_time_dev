@@ -136,23 +136,24 @@
         var m = String(now.getMonth() + 1).padStart(2, '0');
         var d = String(now.getDate()).padStart(2, '0');
         
-        // シフト希望用月初期値
         document.getElementById('targetMonth').value = y + '-' + m;
         renderMiniCalendar();
-
-        // 勤怠申請用日付初期値
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
 
-        // 💡 ページを開いたときにスタッフの存在確認・アクセスチェックを行う
         var staffId = document.getElementById('staffId').value;
         if (staffId) {
+          // 💡 LINEの環境やLIFFからLINEユーザーIDを取得できる場合の処理
+          // （※もしLIFF IDをお持ちの場合は liff.init() 等で取得したidTokenやuserIdをここに渡します）
+          var detectedLineUserId = ""; 
+          
+          // 例として、URLパラメータやLIFFから取得できたと仮定してサーバーへ送信
           google.script.run
             .withSuccessHandler(function(res) {
-              if (res.success) {
-                console.log("スタッフ確認成功: " + res.staffName);
+              if (res.success && res.isNewlyLinked) {
+                console.log("LINE IDが自動紐付けされました！");
               }
             })
-            .checkAndLinkStaffAccess(staffId);
+            .checkAndLinkStaffAccess(staffId, detectedLineUserId);
         }
       };
 
