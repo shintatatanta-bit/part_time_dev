@@ -5,6 +5,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スタッフ用ポータル</title>
+    <!-- 💡 【重要】GASのiframe枠組みから強制的に抜け出して全画面で開かせる対策 -->
+    <script>
+      if (window.top !== window.self) {
+        window.top.location.href = window.self.location.href;
+      }
+    </script>
     <!-- 💡 LINEのLIFF SDKを読み込み -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
@@ -136,7 +142,6 @@
         renderMiniCalendar();
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
 
-        // 💡 ページを開いたときにLIFFを初期化してLINE IDを自動紐付け
         var staffId = document.getElementById('staffId').value;
         if (staffId) {
           initializeLiffAndLink(staffId);
@@ -148,7 +153,6 @@
 
         liff.init({ liffId: liffId })
           .then(function() {
-            // 💡 ログインしていない場合は、iframe内ではなく全画面でログインさせる
             if (!liff.isLoggedIn()) {
               liff.login({ redirectUri: window.location.href });
               return;
