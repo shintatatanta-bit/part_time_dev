@@ -362,9 +362,18 @@
       </div>
       <div class="accordion-content">
         <form id="staffForm">
-          <label>スタッフ氏名</label><input type="text" id="staffName" placeholder="例: 山田 花子" required>
-          <label>LINEユーザーID</label><input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
-          <label>割当LINEアカウント</label><select id="assignedAccount"></select>
+          <label>スタッフ氏名</label>
+          <input type="text" id="staffName" placeholder="例: 山田 花子" oninput="autoFillDisplayChar()" required>
+          
+          <label>カレンダー表示文字 (1〜4文字)</label>
+          <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
+
+          <label>LINEユーザーID</label>
+          <input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
+          
+          <label>割当LINEアカウント</label>
+          <select id="assignedAccount"></select>
+          
           <button type="button" onclick="registerStaff()">スタッフを登録して専用URLを発行</button>
         </form>
       </div>
@@ -1006,16 +1015,55 @@
         document.getElementById(cardId).classList.toggle('open'); 
       }
 
+      // 💡 スタッフ氏名から最初の1文字を表示文字に自動反映する補助関数
+      function autoFillDisplayChar() {
+        var nameVal = document.getElementById('staffName').value;
+        var charInput = document.getElementById('displayChar');
+        if (nameVal && !charInput.value) {
+          charInput.value = nameVal.substring(0, 1);
+        }
+      }
+
+      // 💡 新規スタッフ登録（空欄チェック付き）
       function registerStaff() {
-        var formData = { staffName: document.getElementById('staffName').value, lineUserId: document.getElementById('lineUserId').value, assignedAccount: document.getElementById('assignedAccount').value };
-        if (!formData.staffName || !formData.lineUserId) { alert('スタッフ氏名とLINEユーザーIDは必須です。'); return; }
+        var staffName = document.getElementById('staffName').value.trim();
+        var displayChar = document.getElementById('displayChar').value.trim();
+        var lineUserId = document.getElementById('lineUserId').value.trim();
+        var assignedAccount = document.getElementById('assignedAccount').value;
+
+        if (!staffName || !displayChar || !lineUserId) {
+          alert('「スタッフ氏名」「カレンダー表示文字」「LINEユーザーID」はすべて必須です。空欄にはできません。');
+          return;
+        }
+
         var btn = event.target;
-        btn.disabled = true; btn.innerText = '登録中...';
-        google.script.run.withSuccessHandler(function(response) {
-          if (response.success) { alert(response.message); document.getElementById('staffForm').reset(); loadStaffList(); fetchSummary(); }
-          else { alert(response.message); }
-          btn.disabled = false; btn.innerText = 'スタッフを登録して専用URLを発行';
-        }).registerNewStaff(formData);
+        btn.disabled = true; 
+        btn.innerText = '登録中...';
+
+        google.script.run
+          .withSuccessHandler(function(response) {
+            if (response.success) {
+              alert(response.message);
+              document.getElementById('staffForm').reset();
+              loadStaffList(); 
+              fetchSummary();
+            } else {
+              alert(response.message);
+            }
+            btn.disabled = false; 
+            btn.innerText = 'スタッフを登録して専用URLを発行';
+          })
+          .withFailureHandler(function(err) {
+            alert('通信エラー: ' + err.message);
+            btn.disabled = false; 
+            btn.innerText = 'スタッフを登録して専用URLを発行';
+          })
+          .registerNewStaff({
+            staffName: staffName,
+            displayChar: displayChar,
+            lineUserId: lineUserId,
+            assignedAccount: assignedAccount
+          });
       }
 
       function copyUrl(url) {
