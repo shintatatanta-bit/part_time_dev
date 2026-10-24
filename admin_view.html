@@ -368,9 +368,6 @@
           <label>カレンダー表示文字 (1〜4文字)</label>
           <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
 
-          <label>LINEユーザーID</label>
-          <input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
-          
           <label>割当LINEアカウント</label>
           <select id="assignedAccount"></select>
           
@@ -1028,11 +1025,10 @@
       function registerStaff() {
         var staffName = document.getElementById('staffName').value.trim();
         var displayChar = document.getElementById('displayChar').value.trim();
-        var lineUserId = document.getElementById('lineUserId').value.trim();
         var assignedAccount = document.getElementById('assignedAccount').value;
 
-        if (!staffName || !displayChar || !lineUserId) {
-          alert('「スタッフ氏名」「カレンダー表示文字」「LINEユーザーID」はすべて必須です。空欄にはできません。');
+        if (!staffName || !displayChar) {
+          alert('「スタッフ氏名」と「カレンダー表示文字」は必須です。');
           return;
         }
 
@@ -1061,7 +1057,6 @@
           .registerNewStaff({
             staffName: staffName,
             displayChar: displayChar,
-            lineUserId: lineUserId,
             assignedAccount: assignedAccount
           });
       }
