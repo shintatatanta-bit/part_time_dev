@@ -1670,7 +1670,7 @@ function checkAndLinkStaffAccess(staffId, lineUserId) {
 }
 
 /**
- * 🌐 ブラウザやLIFFからURLにアクセスされたときの入口
+ * 🌐 ブラウザやURLにアクセスされたときの入口
  */
 function doGet(e) {
   var params = e && e.parameter ? e.parameter : {};
@@ -1678,7 +1678,7 @@ function doGet(e) {
   
   // page=staff の場合はスタッフ用ポータルを表示
   if (page === "staff") {
-    var template = HtmlService.createTemplateFromFile("staff_view"); // またはお使いのスタッフ用HTML名
+    var template = HtmlService.createTemplateFromFile("staff_view"); // 💡 実際のファイル名に合わせる
     template.staffId = params.staffId || "";
     template.staffName = getStaffName(params.staffId);
     return template.evaluate()
@@ -1687,7 +1687,7 @@ function doGet(e) {
   }
   
   // 指定がない場合は管理者ダッシュボードを表示
-  var adminTemplate = HtmlService.createTemplateFromFile("admin_view"); // お使いの管理者用HTML名
+  var adminTemplate = HtmlService.createTemplateFromFile("admin_view"); // 💡 実際のファイル名に合わせる
   return adminTemplate.evaluate()
     .setXOptionsMode(HtmlService.XOptionsMode.XFRAME_OPTIONS_ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
