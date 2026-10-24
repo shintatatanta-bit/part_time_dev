@@ -9,18 +9,14 @@ function doPost(e) {
     for (var i = 0; i < events.length; i++) {
       var event = events[i];
       
-      // ユーザーからのテキストメッセージの場合
       if (event.type === 'message' && event.message.type === 'text') {
         var userMessage = event.message.text.trim();
         var lineUserId = event.source.userId;
         var replyToken = event.replyToken;
         
-        // 「登録」または「ID確認」と送られた場合
         if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
-          // 1. スプレッドシートの「LINE連携ログ」に自動保存
           saveLineIdLog(lineUserId);
           
-          // 2. セルフ登録画面のURLを自動生成して案内する
           var webAppUrl = ScriptApp.getService().getUrl();
           var registerUrl = webAppUrl + "?page=register";
 
@@ -34,6 +30,11 @@ function doPost(e) {
   } catch (error) {
     Logger.log("doPostエラー: " + error.message);
   }
+  
+  // 💡 確実に200 OKを返すためのレスポンス
+  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
+             .setMimeType(ContentService.MimeType.JSON);
+}
   
   return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
              .setMimeType(ContentService.MimeType.JSON);
