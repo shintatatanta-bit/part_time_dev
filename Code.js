@@ -202,7 +202,7 @@ function sendLineNoticeToStaff(data) {
 }
 
 /**
- * 新規スタッフを登録する関数（重複チェック＆表示文字保存対応）
+ * 新規スタッフを登録する関数（氏名と表示文字から自動生成）
  */
 function registerNewStaff(formData) {
   try {
@@ -212,9 +212,9 @@ function registerNewStaff(formData) {
       throw new Error("「スタッフマスタ」シートが見つかりません。");
     }
     
-    // 💡 必須項目のサーバー側バリデーション
-    if (!formData.staffName || !formData.displayChar || !formData.lineUserId) {
-      return { success: false, message: "エラー: 必須項目が入力されていません。" };
+    // 💡 必須項目のサーバー側バリデーション（LINE IDのチェックを削除）
+    if (!formData.staffName || !formData.displayChar) {
+      return { success: false, message: "エラー: スタッフ氏名とカレンダー表示文字は必須です。" };
     }
     
     // 既存のスタッフIDをすべて取得して重複チェック
@@ -233,11 +233,11 @@ function registerNewStaff(formData) {
     var webAppUrl = ScriptApp.getService().getUrl();
     var staffUrl = webAppUrl + "?page=staff&staffId=" + staffId;
     
-    // 💡 列構成: [ID(A), 氏名(B), LINE ID(C), アカウント(D), ステータス(E), 登録日時(F), 個別URL(G), 表示文字(H)]
+    // 💡 列構成: [ID(A), 氏名(B), LINE ID(C:最初は空欄), アカウント(D), ステータス(E), 登録日時(F), 個別URL(G), 表示文字(H)]
     sheet.appendRow([
       staffId,
       formData.staffName,
-      formData.lineUserId,
+      "", // LINE IDは最初は空欄（スタッフがポータルにアクセスした際に自動紐付け）
       formData.assignedAccount,
       "有効",
       timestamp,
