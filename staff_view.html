@@ -24,12 +24,12 @@
       h2 { color: var(--text-main); font-size: 1.3rem; text-align: center; margin-top: 0; margin-bottom: 6px; font-weight: 700; }
       p { font-size: 0.9rem; color: var(--text-sub); line-height: 1.5; }
       label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.85rem; color: var(--text-sub); }
-      input, select { width: 100%; padding: 11px 14px; margin-top: 6px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; }
+      input, select { width: 100%; padding: 11px 14px; margin-top: 6px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; background: #fff; }
       button { background: var(--success-color); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; padding: 13px; transition: background 0.15s; }
       button:hover { background: #047857; }
       .portal-container { width: 100%; max-width: 440px; }
       
-      /* 💡 タブメニュー（アイコンと文字の間隔を狭め、文字を大きく調整） */
+      /* タブメニュー */
       .portal-tabs { display: flex; gap: 6px; margin-bottom: 18px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
       .portal-tab-btn { background: transparent; border: none; padding: 10px 8px; font-size: 0.9rem; border-radius: 6px; cursor: pointer; flex: 1; font-weight: 600; color: var(--text-sub); display: inline-flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s; }
       .portal-tab-btn.active { background: #fff; color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -44,13 +44,13 @@
         スタッフ名: <strong style="color: var(--text-main);"><?= staffName ?></strong>
       </p>
 
-      <!-- 💡 タブ切り替え（アイコンと文字の距離を近づけました） -->
+      <!-- タブ切り替え -->
       <div class="portal-tabs">
         <button id="tabKintai" class="portal-tab-btn active" onclick="switchStaffTab('kintai')">⏰ 勤怠・交通費申請</button>
         <button id="tabPref" class="portal-tab-btn" onclick="switchStaffTab('pref')">📅 シフト希望提出</button>
       </div>
       
-      <!-- 💡 勤怠・交通費申請 -->
+      <!-- 勤怠・交通費申請 -->
       <div id="viewKintai" class="card" style="text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠・交通費の申請</h3>
         <form id="kintaiForm">
@@ -63,17 +63,23 @@
           <label>退勤時刻</label>
           <input type="time" id="endTime" required>
           
+          <!-- 💡 休憩時間（プルダウン: 0, 15, 30分） -->
           <label>休憩時間 (分)</label>
-          <input type="number" id="breakTime" value="60" min="0" step="15" required>
+          <select id="breakTime" required>
+            <option value="0">0分</option>
+            <option value="15">15分</option>
+            <option value="30" selected>30分</option>
+          </select>
           
+          <!-- 💡 交通費（半角数字のみ入力可能） -->
           <label>交通費 (円)</label>
-          <input type="number" id="transportCost" value="0" min="0" required>
+          <input type="number" id="transportCost" value="0" min="0" step="1" pattern="^[0-9]+$" placeholder="例: 500" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
           
           <button type="button" onclick="submitKintai()" style="background: var(--accent-color); margin-top: 18px;">申請を送信する</button>
         </form>
       </div>
 
-      <!-- 💡 シフト希望の提出 -->
+      <!-- シフト希望の提出 -->
       <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
@@ -110,23 +116,14 @@
         var m = String(now.getMonth() + 1).padStart(2, '0');
         var d = String(now.getDate()).padStart(2, '0');
         
-        // 💡 勤務日に今日の日付をセット
         document.getElementById('targetMonth').value = y + '-' + m;
         renderMiniCalendar();
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
 
-        // 💡 開いたときの現在時刻（時・分）を取得して「出勤時刻」または「退勤時刻」にセット
+        // 退勤時刻を開いた時間に自動セット
         var hours = String(now.getHours()).padStart(2, '0');
         var minutes = String(now.getMinutes()).padStart(2, '0');
-        var currentTime = hours + ':' + minutes;
-
-        // 例：退勤時刻を開いた時間に自動入力する場合
-        document.getElementById('endTime').value = currentTime;
-        
-        // ※もし出勤時刻を開いた時間にしたい場合は下の行のコメントアウトを外してください
-        // document.getElementById('startTime').value = currentTime;
-
-        document.getElementById('portalContent').style.display = 'block';
+        document.getElementById('endTime').value = hours + ':' + minutes;
       };
 
       function switchStaffTab(mode) {
@@ -292,8 +289,12 @@
               var m = String(now.getMonth() + 1).padStart(2, '0');
               var d = String(now.getDate()).padStart(2, '0');
               document.getElementById('workDate').value = y + '-' + m + '-' + d;
-              document.getElementById('breakTime').value = "60";
+              document.getElementById('breakTime').value = "30";
               document.getElementById('transportCost').value = "0";
+              
+              var hours = String(now.getHours()).padStart(2, '0');
+              var minutes = String(now.getMinutes()).padStart(2, '0');
+              document.getElementById('endTime').value = hours + ':' + minutes;
             }
             btn.disabled = false;
             btn.innerText = '申請を送信する';
