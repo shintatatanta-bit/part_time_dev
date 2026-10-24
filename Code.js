@@ -20,10 +20,12 @@ function doPost(e) {
           // 1. スプレッドシートの「LINE連携ログ」に自動保存
           saveLineIdLog(lineUserId);
           
-          // 2. その場でスタッフ本人に自分のLINE IDを返信する
-          var replyText = "以下のIDをコピーして教えてください。\n\n" + lineUserId;
-          sendLineReply(replyToken, replyText);
-        }
+          // 2. その場でスタッフ本人に自分のLINE IDを別々の吹き出しで返信する
+          var messages = [
+            { type: "text", text: "以下のIDをコピーして教えてください。" },
+            { type: "text", text: lineUserId }
+          ];
+          sendLineMultipleReplies(replyToken, messages);
       }
     }
   } catch (error) {
@@ -96,6 +98,45 @@ function sendLineReply(replyToken, messageText) {
     UrlFetchApp.fetch(url, options);
   } catch (e) {
     Logger.log("sendLineReplyエラー: " + e.message);
+  }
+}
+
+/**
+ * 複数（配列）のメッセージをまとめて返信する関数
+ */
+function sendLineMultipleReplies(replyToken, messagesArray) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var accountSheet = ss.getSheetByName("アカウントマスタ");
+    if (!accountSheet) return;
+    
+    var accountData = accountSheet.getDataRange().getValues();
+    var accessToken = "";
+    if (accountData.length > 1 && accountData[1][1]) {
+      accessToken = accountData[1][1];
+    }
+    
+    if (!accessToken || accessToken.includes("YOUR_")) return;
+    
+    var url = "https://api.line.me/v2/bot/message/reply";
+    var payload = {
+      replyToken: replyToken,
+      messages: messagesArray
+    };
+    
+    var options = {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json; charset=UTF-8",
+        "Authorization": "Bearer " + accessToken
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    UrlFetchApp.fetch(url, options);
+  } catch (e) {
+    Logger.log("sendLineMultipleRepliesエラー: " + e.message);
   }
 }
 
