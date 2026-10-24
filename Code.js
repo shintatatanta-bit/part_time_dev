@@ -20,8 +20,10 @@ function doPost(e) {
           var webAppUrl = ScriptApp.getService().getUrl();
           var registerUrl = webAppUrl + "?page=register";
 
+          // 💡 メッセージを3つに分割して送信します
           var messages = [
-            { type: "text", text: "お疲れ様です！スタッフ登録を行います。\n\n① まず以下のご自身の【LINE ID】をコピーしてください👇\n\n" + lineUserId },
+            { type: "text", text: "お疲れ様です！スタッフ登録を行います。\n\n① まず以下のご自身の【LINE ID】をコピーしてください👇" },
+            { type: "text", text: lineUserId }, // IDの番号のみ（コピーしやすくするため）
             { type: "text", text: "② 次に、以下のリンクから登録フォームを開き、コピーしたLINE IDを貼り付けてください。\n\n▼ スタッフ初回登録ページ\n" + registerUrl }
           ];
           sendLineMultipleReplies(replyToken, messages);
