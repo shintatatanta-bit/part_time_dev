@@ -230,8 +230,9 @@ function registerNewStaff(formData) {
     } while (existingIds.indexOf(staffId) !== -1);
     
     var timestamp = new Date();
-    var webAppUrl = ScriptApp.getService().getUrl();
-    var staffUrl = webAppUrl + "?page=staff&staffId=" + staffId;
+    // 👇 ご自身が取得したLIFF IDに書き換えてください
+var liffId = "2012184145-HMvvN2iP"; 
+var staffUrl = "https://liff.line.me/" + liffId + "?page=staff&staffId=" + staffId;
     
     // 💡 列構成: [ID(A), 氏名(B), LINE ID(C:最初は空欄), アカウント(D), ステータス(E), 登録日時(F), 個別URL(G), 表示文字(H)]
     sheet.appendRow([
