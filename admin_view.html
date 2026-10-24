@@ -13,7 +13,7 @@
         --text-sub: #475569;         /* 視認性を保ちつつ主張しすぎないサブ文字 */
         --border-color: #e2e8f0;     /* 主張しすぎない上品なボーダー */
         --border-focus: #cbd5e1;
-        --accent-color: #2563eb;     /* 洗練されたインディゴブルー（強調1色） */
+        --accent-color: #2563eb;     /* 洗練されたインディゴブルー */
         --accent-hover: #1d4ed8;
         --danger-color: #e11d48;     /* 落ち着きのある洗練されたレッド */
         --success-color: #059669;    /* 深みのある上質なエメラルド */
@@ -164,7 +164,7 @@
       }
       .staff-circle-badge:hover .del-x { display: flex; }
 
-      /* 💡 LINE風メッセージエディタのデザイン */
+      /* LINE風メッセージエディタのデザイン */
       .line-chat-box {
         background: linear-gradient(135deg, #7494c0 0%, #5d7fa8 100%);
         border-radius: 8px;
@@ -274,7 +274,7 @@
     <!-- ヘッダーエリア（タイトル ＆ スタッフ管理ボタン） -->
     <div class="header-container">
       <h2>🛠️ 管理者ダッシュボード</h2>
-      <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openStaffModal()">⚙️ スタッフ管理・登録</button>
+      <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openStaffModal()">⚙️ スタッフ管理</button>
     </div>
     
     <!-- 勤怠未提出者アラートカード（常時表示） -->
@@ -421,19 +421,18 @@
       </div>
     </div>
 
-    <!-- ⚙️ スタッフ管理・登録 モーダルポップアップ（タブ順入替済み） -->
+    <!-- ⚙️ スタッフ管理 モーダルポップアップ（新規登録フォーム削除・2タブ化） -->
     <div id="staffManagementModal" class="modal-overlay">
       <div class="modal-content" style="max-width: 620px;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
-          <h4 style="margin: 0;">⚙️ スタッフ管理・新規登録</h4>
+          <h4 style="margin: 0;">⚙️ スタッフ管理</h4>
           <button type="button" class="secondary" onclick="closeStaffModal()">✕ 閉じる</button>
         </div>
 
-        <!-- タブ切り替え（「一覧」「LINE ID案内」「新規登録」の順） -->
+        <!-- タブ切り替え（一覧 ＆ LINE ID案内） -->
         <div class="view-tabs" style="margin-bottom: 16px;">
           <button id="modalTabList" class="view-tab-btn active" onclick="switchModalTab('list')">📋 登録済みスタッフ一覧</button>
           <button id="modalTabGuide" class="view-tab-btn" onclick="switchModalTab('guide')">📱 LINE ID案内・QR</button>
-          <button id="modalTabReg" class="view-tab-btn" onclick="switchModalTab('reg')">➕ 新規スタッフ登録</button>
         </div>
 
         <!-- タブ1: 登録済みスタッフ一覧 -->
@@ -459,22 +458,6 @@
               <span style="font-size: 0.75rem; color: var(--text-sub);">アカウントを選択するとQRコードが表示されます</span>
             </div>
           </div>
-        </div>
-
-        <!-- タブ3: 新規スタッフ登録（自動連動なし） -->
-        <div id="modalViewReg" style="display: none;">
-          <form id="staffForm">
-            <label>スタッフ氏名</label>
-            <input type="text" id="staffName" placeholder="例: 山田 花子" required>
-            
-            <label>カレンダー表示文字 (1〜4文字)</label>
-            <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
-
-            <label>割当LINEアカウント</label>
-            <select id="assignedAccount"></select>
-            
-            <button type="button" style="margin-top: 16px; width: 100%;" onclick="registerStaff()">スタッフを登録して専用URLを発行</button>
-          </form>
         </div>
       </div>
     </div>
@@ -546,13 +529,12 @@
       function openStaffModal() { document.getElementById('staffManagementModal').style.display = 'flex'; }
       function closeStaffModal() { document.getElementById('staffManagementModal').style.display = 'none'; }
 
+      /* 💡 新規登録タブを削除したため2つのタブを切り替える関数に整理 */
       function switchModalTab(tab) {
         document.getElementById('modalTabList').classList.remove('active');
         document.getElementById('modalTabGuide').classList.remove('active');
-        document.getElementById('modalTabReg').classList.remove('active');
         document.getElementById('modalViewList').style.display = 'none';
         document.getElementById('modalViewGuide').style.display = 'none';
-        document.getElementById('modalViewReg').style.display = 'none';
 
         if (tab === 'list') {
           document.getElementById('modalTabList').classList.add('active');
@@ -560,9 +542,6 @@
         } else if (tab === 'guide') {
           document.getElementById('modalTabGuide').classList.add('active');
           document.getElementById('modalViewGuide').style.display = 'block';
-        } else if (tab === 'reg') {
-          document.getElementById('modalTabReg').classList.add('active');
-          document.getElementById('modalViewReg').style.display = 'block';
         }
       }
 
@@ -801,6 +780,7 @@
             if (res.success) {
               alert(res.message);
               loadCalendar();
+              loadPendingStaff(); // 💡 保存時に未提出者アラートも連動して更新
               var saveBtn = document.getElementById('saveButton');
               if (saveBtn) {
                 saveBtn.classList.remove('unsaved');
@@ -1048,6 +1028,7 @@
       function loadAccountOptions() {
         google.script.run.withSuccessHandler(function(accounts) {
           var select = document.getElementById('assignedAccount');
+          if (!select) return;
           var html = '';
           (accounts || []).forEach(function(acc) { html += '<option value="' + escapeHtml(acc) + '">' + escapeHtml(acc) + '</option>'; });
           select.innerHTML = html;
@@ -1087,45 +1068,6 @@
       }
 
       function toggleCard(cardId) { document.getElementById(cardId).classList.toggle('open'); }
-
-      function registerStaff() {
-        var staffName = document.getElementById('staffName').value.trim();
-        var displayChar = document.getElementById('displayChar').value.trim();
-        var assignedAccount = document.getElementById('assignedAccount').value;
-
-        if (!staffName || !displayChar) {
-          alert('「スタッフ氏名」と「カレンダー表示文字」は必須です。');
-          return;
-        }
-
-        var btn = event.target;
-        btn.disabled = true; 
-        btn.innerText = '登録中...';
-
-        google.script.run
-          .withSuccessHandler(function(response) {
-            if (response.success) {
-              alert(response.message);
-              document.getElementById('staffForm').reset();
-              loadStaffList(); 
-              fetchSummary();
-            } else {
-              alert(response.message);
-            }
-            btn.disabled = false; 
-            btn.innerText = 'スタッフを登録して専用URLを発行';
-          })
-          .withFailureHandler(function(err) {
-            alert('通信エラー: ' + err.message);
-            btn.disabled = false; 
-            btn.innerText = 'スタッフを登録して専用URLを発行';
-          })
-          .registerNewStaff({
-            staffName: staffName,
-            displayChar: displayChar,
-            assignedAccount: assignedAccount
-          });
-      }
 
       function copyUrl(url) {
         navigator.clipboard.writeText(url).then(function() { alert('専用URLをコピーしました！'); });
@@ -1417,5 +1359,5 @@
         pendingPlacement = null;
       }
     </script>
-  </head>
+  </body>
 </html>
