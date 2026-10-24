@@ -12,7 +12,7 @@ function doPost(e) {
       // ユーザーからのテキストメッセージの場合
       if (event.type === 'message' && event.message.type === 'text') {
         var userMessage = event.message.text.trim();
-        var lineUserId = event.source.userId; // 💡 ここを追加しました！
+        var lineUserId = event.source.userId;
         var replyToken = event.replyToken;
         
         // 「登録」または「ID確認」と送られた場合
@@ -104,7 +104,6 @@ function sendLineReply(replyToken, messageText) {
     
     var accountData = accountSheet.getDataRange().getValues();
     var accessToken = "";
-    // 2行目のアクセストークンを取得（必要に応じて切り替え可能）
     if (accountData.length > 1 && accountData[1][1]) {
       accessToken = accountData[1][1];
     }
@@ -290,7 +289,7 @@ function sendLineNoticeToStaff(data) {
 }
 
 /**
- * 新規スタッフを登録する関数（氏名と表示文字から自動生成）
+ * 新規スタッフを登録する関数（管理者の手動用）
  */
 function registerNewStaff(formData) {
   try {
@@ -1006,7 +1005,7 @@ function getShiftPreferences(yearMonth) {
 }
 
 /**
- * LINEメッセージを一斉または個別に送信し、履歴を保存する関数
+ * LINEアカウントのアクセストークンを考慮して一斉または個別にメッセージを送信する関数
  */
 function sendLineMessage(data) {
   try {
@@ -1465,7 +1464,6 @@ function registerStaffBySelf(data) {
     
     var assignedAccount = data.assignedAccount || "アカウントA"; 
     
-    // 💡 列構成: [ID(A), 氏名(B), LINE ID(C), アカウント(D), ステータス(E), 登録日時(F), 個別URL(G), 表示文字(H)]
     sheet.appendRow([
       staffId,
       data.staffName,
@@ -1477,7 +1475,6 @@ function registerStaffBySelf(data) {
       data.displayChar
     ]);
     
-    // 💡 登録完了と専用URLをLINEへ自動プッシュ通知
     sendWelcomeAndTestNotice(data.lineUserId, assignedAccount, data.staffName, staffUrl);
     
     return {
@@ -1565,26 +1562,6 @@ function checkAndLinkStaffAccess(staffId, lineUserId) {
   } catch (e) {
     return { success: false, message: e.message };
   }
-}
-
-/**
- * ブラウザやURLにアクセスされたときの入口
- */
-function doGet(e) {
-  var params = e && e.parameter ? e.parameter : {};
-  var page = params.page || "";
-  
-  if (page === "staff") {
-    var template = HtmlService.createTemplateFromFile("staff_view");
-    template.staffId = params.staffId || "";
-    template.staffName = getStaffName(params.staffId);
-    return template.evaluate()
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-  }
-  
-  var adminTemplate = HtmlService.createTemplateFromFile("admin_view");
-  return adminTemplate.evaluate()
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**
