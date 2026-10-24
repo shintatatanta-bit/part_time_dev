@@ -103,7 +103,7 @@
 
       <!-- シフト希望の提出（ステップ1: カレンダー選択画面） -->
       <div id="viewPrefStep1" class="card" style="text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出 (1/2)</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
         <input type="hidden" id="staffNameVal" value="<?= staffName ?>">
 
@@ -125,19 +125,20 @@
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
         </div>
 
+        <!-- 💡 送信ではなく「次へ」進むボタンに変更 -->
         <button type="button" style="background: var(--accent-color);" onclick="goToStep2()">伝達事項の入力へ進む ➔</button>
       </div>
 
       <!-- シフト希望の提出（ステップ2: 伝達事項入力・確認画面） -->
       <div id="viewPrefStep2" class="card" style="display: none; text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">伝達事項・備考の入力</h3>
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">伝達事項・備考の入力 (2/2)</h3>
         <p style="font-size: 0.8rem; color: var(--text-sub); margin: 0 0 12px 0;">💡 選択した日ごとに連絡事項があれば入力してください（なければそのままでOKです）。</p>
 
         <div id="dailyMemosContainer" style="max-height: 300px; overflow-y: auto; margin-bottom: 16px;"></div>
 
         <div style="display: flex; gap: 8px;">
-          <button type="button" class="secondary" style="background: #e2e8f0; color: var(--text-main); width: 40%;" onclick="backToStep1()">⬅ 戻る</button>
-          <button type="button" style="background: var(--success-color); width: 60%;" onclick="submitPreferences()">シフト希望を送信する</button>
+          <button type="button" class="secondary" style="background: #e2e8f0; color: var(--text-main); width: 40%; margin-top: 0;" onclick="backToStep1()">⬅ 戻る</button>
+          <button type="button" style="background: var(--success-color); width: 60%; margin-top: 0;" onclick="submitPreferences()">シフト希望を送信する</button>
         </div>
       </div>
 
@@ -224,7 +225,7 @@
           viewKintai.style.display = 'block';
         } else if (mode === 'pref') {
           tabPref.classList.add('active');
-          viewPrefStep1.style.display = 'block'; // ステップ1を表示
+          viewPrefStep1.style.display = 'block'; // 常にステップ1から開始
         } else if (mode === 'history') {
           tabHistory.classList.add('active');
           viewHistory.style.display = 'block';
@@ -535,7 +536,8 @@
             if (res.success) {
               selectedDatesMap = {};
               renderMiniCalendar();
-              switchStaffTab('history'); // 送信後は履歴タブに切り替え
+              backToStep1(); // ステップ1に戻す
+              switchStaffTab('history'); // 履歴タブに切り替え
             }
             btn.disabled = false;
             btn.innerText = 'シフト希望を送信する';
