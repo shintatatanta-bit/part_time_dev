@@ -121,7 +121,7 @@
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
         </div>
 
-        <!-- 💡 伝達事項の入力欄を確実に表示 -->
+        <!-- 💡 伝達事項（備考）の入力欄 -->
         <label>伝達事項・備考 (任意)</label>
         <textarea id="shiftMemo" rows="2" placeholder="例: 午後からです、15時までとなります" style="resize: vertical; margin-bottom: 14px;"></textarea>
 
@@ -245,7 +245,6 @@
           .getStaffKintaiHistory(staffId);
       }
 
-      // 💡 シフト希望の提出履歴を取得して表示する関数
       function loadShiftHistory() {
         var staffId = document.getElementById('staffId').value;
         if (!staffId) return;
@@ -469,6 +468,7 @@
               selectedDatesMap = {};
               document.getElementById('shiftMemo').value = '';
               renderMiniCalendar();
+              loadShiftHistory(); // 💡 提出後に履歴を即時更新
             }
             btn.disabled = false;
             btn.innerText = 'シフト希望を送信する';
