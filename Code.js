@@ -1707,3 +1707,101 @@ function formatTimestamp(val) {
   }
   return String(val);
 }
+
+/**
+ * 💡 スタッフ自身が自分の直近の勤怠申請履歴を確認するための関数（最大20件）
+ */
+function getStaffKintaiHistory(staffId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("申請データ");
+    if (!sheet) return { success: true, history: [] };
+    
+    var data = sheet.getDataRange().getValues();
+    var history = [];
+    
+    // ヘッダーを飛ばして下から（新しい順に）走査
+    for (var i = data.length - 1; i >= 1; i--) {
+      var row = data[i];
+      var requestId = row[0]; // 一意のID (req_xxxx)
+      var sId = row[1];
+      
+      if (String(sId) === String(staffId)) {
+        var workDate = formatTimeOrDate(row[3]);
+        var startTime = formatTime(row[4]);
+        var endTime = formatTime(row[5]);
+        var breakTime = row[6];
+        var cost = Number(row[7]) || 0;
+        
+        history.push({
+          requestId: requestId,
+          workDate: workDate,
+          startTime: startTime,
+          endTime: endTime,
+          breakTime: breakTime,
+          transportCost: cost
+        });
+        
+        if (history.length >= 20) break;
+      }
+    }
+    
+    return { success: true, history: history };
+  } catch (error) {
+    return { success: false, history: [], message: error.message };
+  }
+}
+
+/**
+ * 💡 スタッフが自分の申請履歴を修正してスプレッドシートを更新する関数
+ */
+function updateKintaiData(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("申請データ");
+    if (!sheet) {
+      throw new Error("「申請データ」シートが見つかりません。");
+    }
+    
+    var sheetData = sheet.getDataRange().getValues();
+    var targetRow = -1;
+    
+    // requestId（0列目）が一致する行を検索
+    for (var i = 1; i < sheetData.length; i++) {
+      if (String(sheetData[i][0]) === String(data.requestId)) {
+        targetRow = i + 1; // 1行目がヘッダーなので +1
+        break;
+      }
+    }
+    
+    if (targetRow === -1) {
+      return { success: false, message: "対象の申請データが見つかりませんでした。" };
+    }
+    
+    // 指定された行のデータを更新（勤務日、出勤時刻、退勤時刻、休憩、交通費）
+    sheet.getRange(targetRow, 4).setValue(data.workDate);
+    sheet.getRange(targetRow, 5).setValue(data.startTime);
+    sheet.getRange(targetRow, 6).setValue(data.endTime);
+    sheet.getRange(targetRow, 7).setValue(data.breakTime);
+    sheet.getRange(targetRow, 8).setValue(data.transportCost);
+    
+    return { success: true, message: "申請内容を修正しました！" };
+  } catch (error) {
+    return { success: false, message: "修正エラー: " + error.message };
+  }
+}
+
+function formatTimeOrDate(val) {
+  if (!val) return "";
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, "Asia/Tokyo", "yyyy-MM-dd");
+  }
+  var str = String(val);
+  if (str.indexOf("T") !== -1) {
+    var d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd");
+    }
+  }
+  return str.substring(0, 10);
+}

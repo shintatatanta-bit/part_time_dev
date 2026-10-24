@@ -17,6 +17,7 @@
         --accent-color: #2563eb;
         --success-color: #059669;
         --danger-color: #e11d48;
+        --warning-color: #d97706;
       }
 
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 16px; background: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 90vh; box-sizing: border-box; }
@@ -36,8 +37,13 @@
 
       /* 履歴用テーブル */
       table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.8rem; }
-      th, td { border: 1px solid var(--border-color); padding: 6px; text-align: left; }
+      th, td { border: 1px solid var(--border-color); padding: 6px; text-align: left; vertical-align: middle; }
       th { background-color: #f1f5f9; color: var(--text-main); font-weight: 600; }
+      
+      .btn-edit { background: var(--warning-color); color: white; border: none; padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; font-weight: 600; width: auto; }
+      .btn-edit:hover { background: #b45309; }
+      
+      .edit-banner { background: #fef3c7; border: 1px solid #f59e0b; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.85rem; display: none; justify-content: space-between; align-items: center; color: #92400e; }
     </style>
   </head>
   <body>
@@ -49,17 +55,26 @@
         スタッフ名: <strong style="color: var(--text-main);"><?= staffName ?></strong>
       </p>
 
-      <!-- 💡 タブ切り替え（勤怠申請・シフト希望・申請履歴） -->
+      <!-- タブ切り替え -->
       <div class="portal-tabs">
         <button id="tabKintai" class="portal-tab-btn active" onclick="switchStaffTab('kintai')">⏰ 勤怠申請</button>
         <button id="tabPref" class="portal-tab-btn" onclick="switchStaffTab('pref')">📅 シフト希望</button>
         <button id="tabHistory" class="portal-tab-btn" onclick="switchStaffTab('history')">📋 申請履歴</button>
       </div>
       
-      <!-- 💡 勤怠・交通費申請（デフォルト） -->
+      <!-- 勤怠・交通費申請フォーム（修正モード対応） -->
       <div id="viewKintai" class="card" style="text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠・交通費の申請</h3>
+        <h3 id="formTitle" style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠・交通費の申請</h3>
+        
+        <!-- 💡 修正中のバナー表示 -->
+        <div id="editModeBanner" class="edit-banner">
+          <span>⚠️ 申請データの修正モード中</span>
+          <button type="button" onclick="cancelEditMode()" style="background: transparent; color: #92400e; border: 1px solid #f59e0b; padding: 2px 6px; font-size: 0.75rem; width: auto;">キャンセル</button>
+        </div>
+
         <form id="kintaiForm">
+          <input type="hidden" id="editRequestId" value="">
+
           <label>勤務日</label>
           <input type="date" id="workDate" required>
           
@@ -79,11 +94,11 @@
           <label>交通費 (円)</label>
           <input type="number" id="transportCost" value="0" min="0" step="1" pattern="^[0-9]+$" placeholder="例: 500" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
           
-          <button type="button" onclick="submitKintai()" style="background: var(--accent-color); margin-top: 18px;">申請を送信する</button>
+          <button type="button" id="submitBtn" onclick="submitKintai()" style="background: var(--accent-color); margin-top: 18px;">申請を送信する</button>
         </form>
       </div>
 
-      <!-- 💡 シフト希望の提出 -->
+      <!-- シフト希望の提出 -->
       <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
@@ -110,7 +125,7 @@
         <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
       </div>
 
-      <!-- 💡 自分の申請履歴（過去20件） -->
+      <!-- 自分の申請履歴（過去20件） -->
       <div id="viewHistory" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">過去の申請履歴 (直近20件)</h3>
         <div style="overflow-x: auto; max-height: 380px;">
@@ -121,10 +136,11 @@
                 <th>時間</th>
                 <th>休憩</th>
                 <th>交通費</th>
+                <th style="text-align: center;">操作</th>
               </tr>
             </thead>
             <tbody id="staffHistoryTableBody">
-              <tr><td colspan="4" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>
+              <tr><td colspan="5" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>
             </tbody>
           </table>
         </div>
@@ -133,6 +149,7 @@
 
     <script>
       var selectedDatesMap = {};
+      var rawHistoryData = []; // 取得した履歴を保持する配列
 
       window.onload = function() {
         var now = new Date();
@@ -148,7 +165,6 @@
         var minutes = String(now.getMinutes()).padStart(2, '0');
         document.getElementById('endTime').value = hours + ':' + minutes;
 
-        // 💡 履歴データの読み込み
         loadStaffHistory();
       };
 
@@ -177,7 +193,7 @@
         } else if (mode === 'history') {
           tabHistory.classList.add('active');
           viewHistory.style.display = 'block';
-          loadHistoryTable(); // タブを開いたときに再読み込み
+          loadHistoryTable();
         }
       }
 
@@ -189,17 +205,19 @@
           .withSuccessHandler(function(res) {
             var tbody = document.getElementById('staffHistoryTableBody');
             if (!res.success || res.history.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-sub);">申請履歴はありません</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">申請履歴はありません</td></tr>';
               return;
             }
 
+            rawHistoryData = res.history; // データを保持
             var html = '';
-            res.history.forEach(function(item) {
+            res.history.forEach(function(item, idx) {
               html += '<tr>';
               html += '<td>' + item.workDate + '</td>';
               html += '<td>' + item.startTime + '〜<br>' + item.endTime + '</td>';
               html += '<td>' + item.breakTime + '分</td>';
               html += '<td>¥' + item.transportCost.toLocaleString() + '</td>';
+              html += '<td style="text-align: center;"><button type="button" class="btn-edit" onclick="startEdit(' + idx + ')">修正</button></td>';
               html += '</tr>';
             });
             tbody.innerHTML = html;
@@ -209,8 +227,92 @@
 
       function loadHistoryTable() {
         var tbody = document.getElementById('staffHistoryTableBody');
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
         loadStaffHistory();
+      }
+
+      // 💡 履歴の「修正」ボタンが押されたとき
+      function startEdit(index) {
+        var item = rawHistoryData[index];
+        if (!item) return;
+
+        // フォームに値をセット
+        document.getElementById('editRequestId').value = item.requestId;
+        document.getElementById('workDate').value = item.workDate;
+        document.getElementById('startTime').value = item.startTime;
+        document.getElementById('endTime').value = item.endTime;
+        document.getElementById('breakTime').value = item.breakTime;
+        document.getElementById('transportCost').value = item.transportCost;
+
+        // UIを修正モードに変更
+        document.getElementById('formTitle').innerText = '勤怠・交通費の修正';
+        document.getElementById('editModeBanner').style.display = 'flex';
+        document.getElementById('submitBtn').innerText = '修正を保存する';
+        document.getElementById('submitBtn').style.background = 'var(--warning-color)';
+
+        // 勤怠申請タブに切り替え
+        switchStaffTab('kintai');
+      }
+
+      // 💡 修正モードをキャンセルする
+      function cancelEditMode() {
+        document.getElementById('editRequestId').value = '';
+        document.getElementById('kintaiForm').reset();
+        
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, '0');
+        var d = String(now.getDate()).padStart(2, '0');
+        document.getElementById('workDate').value = y + '-' + m + '-' + d;
+        document.getElementById('breakTime').value = "30";
+        document.getElementById('transportCost').value = "0";
+        var hours = String(now.getHours()).padStart(2, '0');
+        var minutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('endTime').value = hours + ':' + minutes;
+
+        // UIを通常モードに戻す
+        document.getElementById('formTitle').innerText = '勤怠・交通費の申請';
+        document.getElementById('editModeBanner').style.display = 'none';
+        document.getElementById('submitBtn').innerText = '申請を送信する';
+        document.getElementById('submitBtn').style.background = 'var(--accent-color)';
+      }
+
+      function submitKintai() {
+        var requestId = document.getElementById('editRequestId').value;
+        var data = {
+          requestId: requestId,
+          staffId: document.getElementById('staffId').value,
+          staffName: document.getElementById('staffNameVal').value,
+          workDate: document.getElementById('workDate').value,
+          startTime: document.getElementById('startTime').value,
+          endTime: document.getElementById('endTime').value,
+          breakTime: document.getElementById('breakTime').value,
+          transportCost: document.getElementById('transportCost').value
+        };
+
+        if (!data.workDate || !data.startTime || !data.endTime) {
+          alert('必須項目をすべて入力してください。');
+          return;
+        }
+
+        var btn = event.target;
+        btn.disabled = true;
+        btn.innerText = '保存中...';
+
+        // 💡 修正モード（requestIdがある）か新規申請（ない）かで分岐
+        var actionFunction = requestId ? 'updateKintaiData' : 'saveKintaiData';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            alert(res.message);
+            if (res.success) {
+              cancelEditMode(); // フォームをリセットして通常モードに戻す
+              loadStaffHistory(); // 履歴を再読み込み
+            }
+            btn.disabled = false;
+            btn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+          })
+          [actionFunction](data);
       }
 
       var cachedClosedDays = [];
@@ -325,52 +427,6 @@
             btn.innerText = 'シフト希望を送信する';
           })
           .saveShiftPreferences(data);
-      }
-
-      function submitKintai() {
-        var data = {
-          staffId: document.getElementById('staffId').value,
-          staffName: document.getElementById('staffNameVal').value,
-          workDate: document.getElementById('workDate').value,
-          startTime: document.getElementById('startTime').value,
-          endTime: document.getElementById('endTime').value,
-          breakTime: document.getElementById('breakTime').value,
-          transportCost: document.getElementById('transportCost').value
-        };
-
-        if (!data.workDate || !data.startTime || !data.endTime) {
-          alert('必須項目をすべて入力してください。');
-          return;
-        }
-
-        var btn = event.target;
-        btn.disabled = true;
-        btn.innerText = '送信中...';
-
-        google.script.run
-          .withSuccessHandler(function(res) {
-            alert(res.message);
-            if (res.success) {
-              document.getElementById('kintaiForm').reset();
-              var now = new Date();
-              var y = now.getFullYear();
-              var m = String(now.getMonth() + 1).padStart(2, '0');
-              var d = String(now.getDate()).padStart(2, '0');
-              document.getElementById('workDate').value = y + '-' + m + '-' + d;
-              document.getElementById('breakTime').value = "30";
-              document.getElementById('transportCost').value = "0";
-              
-              var hours = String(now.getHours()).padStart(2, '0');
-              var minutes = String(now.getMinutes()).padStart(2, '0');
-              document.getElementById('endTime').value = hours + ':' + minutes;
-
-              // 💡 申請が成功したら履歴テーブルも自動で更新する
-              loadStaffHistory();
-            }
-            btn.disabled = false;
-            btn.innerText = '申請を送信する';
-          })
-          .saveKintaiData(data);
       }
     </script>
   </body>
