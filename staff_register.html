@@ -29,8 +29,7 @@
         <input type="text" id="lineUserId" placeholder="例: Uef491ace4afa9..." required>
 
         <label>スタッフ氏名（フルネーム）</label>
-        <input type="text" id="staffName" placeholder="例: 山田 花子" oninput="autoFillChar()" required>
-        
+<input type="text" id="staffName" placeholder="例: 山田 花子" required>        
         <label>カレンダー表示文字 (1〜4文字)</label>
         <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
 
@@ -67,7 +66,7 @@
         }).getAccountList();
       }
 
-      // スタッフ氏名から最初の1文字を表示文字に自動反映
+// スタッフ氏名から最初の1文字を表示文字に自動反映
       function autoFillChar() {
         var nameVal = document.getElementById('staffName').value;
         var charInput = document.getElementById('displayChar');
@@ -75,7 +74,6 @@
           charInput.value = nameVal.substring(0, 1);
         }
       }
-
       function submitRegistration() {
         var lineUserId = document.getElementById('lineUserId').value.trim();
         var staffName = document.getElementById('staffName').value.trim();
