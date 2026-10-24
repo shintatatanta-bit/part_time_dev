@@ -16,9 +16,10 @@ function doPost(e) {
         
         if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
           saveLineIdLog(lineUserId);
-
+          
           var webAppUrl = ScriptApp.getService().getUrl();
-          var registerUrl = webAppUrl + "?page=register";
+          // 💡 URLの末尾に送信者のLINE IDをパラメータとして埋め込む
+          var registerUrl = webAppUrl + "?page=register&lineId=" + encodeURIComponent(lineUserId);
 
           var messages = [
             { type: "text", text: "お疲れ様です！以下のリンクから初回登録（氏名・アカウント等の設定）を行ってください。\n\n▼ スタッフ初回登録ページ\n" + registerUrl }
