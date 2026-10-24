@@ -45,9 +45,9 @@
       
       .edit-banner { background: #fef3c7; border: 1px solid #f59e0b; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.85rem; display: none; justify-content: space-between; align-items: center; color: #92400e; }
       
-      /* 日付ごとの伝達事項入力ボックス */
-      .memo-item-box { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; margin-bottom: 10px; }
-      .memo-item-box label { margin-top: 0; font-size: 0.85rem; color: var(--accent-color); font-weight: bold; }
+      /* 💡 日付ごとの伝達事項入力ボックス */
+      .memo-item-box { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; margin-top: 8px; }
+      .memo-item-box label { margin-top: 0; font-size: 0.8rem; color: var(--accent-color); font-weight: bold; }
     </style>
   </head>
   <body>
@@ -101,9 +101,9 @@
         </form>
       </div>
 
-      <!-- シフト希望の提出（ステップ1: カレンダー選択画面） -->
-      <div id="viewPrefStep1" class="card" style="text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出 (1/2)</h3>
+      <!-- シフト希望の提出（1画面完結型：カレンダー＋選択した日ごとの伝達事項入力） -->
+      <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
         <input type="hidden" id="staffNameVal" value="<?= staffName ?>">
 
@@ -115,7 +115,7 @@
         <p style="font-size: 0.8rem; color: var(--text-sub); margin: 0 0 8px 0;">💡 出勤できる日をタップして選択してください。</p>
         <div id="selectedCount" style="text-align: center; font-size: 0.9rem; color: #d97706; font-weight: bold; margin-bottom: 8px;">選択中の日数: 0日</div>
 
-        <div class="mini-cal-grid" id="miniCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px;">
+        <div class="mini-cal-grid" id="miniCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 12px;">
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--danger-color); border-radius: 4px;">日</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">月</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">火</div>
@@ -125,21 +125,10 @@
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
         </div>
 
-        <!-- 💡 送信ではなく「次へ」進むボタンに変更 -->
-        <button type="button" style="background: var(--accent-color);" onclick="goToStep2()">伝達事項の入力へ進む ➔</button>
-      </div>
+        <!-- 💡 選択した日ごとに自動で現れる伝達事項入力エリア -->
+        <div id="dailyMemosContainer" style="margin-bottom: 14px;"></div>
 
-      <!-- シフト希望の提出（ステップ2: 伝達事項入力・確認画面） -->
-      <div id="viewPrefStep2" class="card" style="display: none; text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">伝達事項・備考の入力 (2/2)</h3>
-        <p style="font-size: 0.8rem; color: var(--text-sub); margin: 0 0 12px 0;">💡 選択した日ごとに連絡事項があれば入力してください（なければそのままでOKです）。</p>
-
-        <div id="dailyMemosContainer" style="max-height: 300px; overflow-y: auto; margin-bottom: 16px;"></div>
-
-        <div style="display: flex; gap: 8px;">
-          <button type="button" class="secondary" style="background: #e2e8f0; color: var(--text-main); width: 40%; margin-top: 0;" onclick="backToStep1()">⬅ 戻る</button>
-          <button type="button" style="background: var(--success-color); width: 60%; margin-top: 0;" onclick="submitPreferences()">シフト希望を送信する</button>
-        </div>
+        <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
       </div>
 
       <!-- 申請履歴 -->
@@ -208,16 +197,14 @@
         var tabHistory = document.getElementById('tabHistory');
         
         var viewKintai = document.getElementById('viewKintai');
-        var viewPrefStep1 = document.getElementById('viewPrefStep1');
-        var viewPrefStep2 = document.getElementById('viewPrefStep2');
+        var viewPref = document.getElementById('viewPref');
         var viewHistory = document.getElementById('viewHistory');
 
         tabKintai.classList.remove('active');
         tabPref.classList.remove('active');
         tabHistory.classList.remove('active');
         viewKintai.style.display = 'none';
-        viewPrefStep1.style.display = 'none';
-        viewPrefStep2.style.display = 'none';
+        viewPref.style.display = 'none';
         viewHistory.style.display = 'none';
 
         if (mode === 'kintai') {
@@ -225,31 +212,12 @@
           viewKintai.style.display = 'block';
         } else if (mode === 'pref') {
           tabPref.classList.add('active');
-          viewPrefStep1.style.display = 'block'; // 常にステップ1から開始
+          viewPref.style.display = 'block';
         } else if (mode === 'history') {
           tabHistory.classList.add('active');
           viewHistory.style.display = 'block';
           loadHistoryTable();
         }
-      }
-
-      // ステップ1からステップ2へ移動
-      function goToStep2() {
-        var datesArray = Object.keys(selectedDatesMap);
-        if (datesArray.length === 0) {
-          alert('出勤希望日を1日以上選択してください。');
-          return;
-        }
-
-        renderDailyMemosInputs();
-        document.getElementById('viewPrefStep1').style.display = 'none';
-        document.getElementById('viewPrefStep2').style.display = 'block';
-      }
-
-      // ステップ2からステップ1へ戻る
-      function backToStep1() {
-        document.getElementById('viewPrefStep2').style.display = 'none';
-        document.getElementById('viewPrefStep1').style.display = 'block';
       }
 
       function loadStaffHistory() {
@@ -458,6 +426,7 @@
 
         grid.innerHTML = html;
         updateCountDisplay();
+        renderDailyMemosInputs(); // カレンダーの描画と同時に入力枠も連動して生成
       }
 
       function toggleDate(dateStr) {
@@ -479,11 +448,11 @@
         var keys = Object.keys(selectedDatesMap).sort();
 
         if (keys.length === 0) {
-          container.innerHTML = '<p style="color:var(--text-sub); font-size:0.85rem;">選択された日づけはありません。</p>';
+          container.innerHTML = '';
           return;
         }
 
-        var html = '';
+        var html = '<label style="margin-bottom: 6px; color: var(--text-main);">📌 選択した日の伝達事項・備考 (任意)</label>';
         keys.forEach(function(dateStr) {
           var currentMemo = selectedDatesMap[dateStr] || '';
           html += '<div class="memo-item-box">';
@@ -511,6 +480,12 @@
 
         var memoSummaryArr = [];
         datesArray.forEach(function(dStr) {
+          var memo = selectedDatesMap[dateStr]; // ※修正: dStrを使用
+          // 各日付のメモを整理
+        });
+
+        // 整理して安全に合算
+        datesArray.forEach(function(dStr) {
           var memo = selectedDatesMap[dStr];
           if (memo && memo.trim() !== "") {
             memoSummaryArr.push(dStr.substring(8) + "日: " + memo.trim());
@@ -536,8 +511,7 @@
             if (res.success) {
               selectedDatesMap = {};
               renderMiniCalendar();
-              backToStep1(); // ステップ1に戻す
-              switchStaffTab('history'); // 履歴タブに切り替え
+              switchStaffTab('history'); // 送信後は自動で申請履歴（シフト希望提出履歴）タブに移動
             }
             btn.disabled = false;
             btn.innerText = 'シフト希望を送信する';
