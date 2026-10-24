@@ -1676,19 +1676,17 @@ function doGet(e) {
   var params = e && e.parameter ? e.parameter : {};
   var page = params.page || "";
   
-  // page=staff の場合はスタッフ用ポータルを表示
   if (page === "staff") {
-    var template = HtmlService.createTemplateFromFile("staff_view"); // 💡 実際のファイル名に合わせる
+    var template = HtmlService.createTemplateFromFile("staff_view");
     template.staffId = params.staffId || "";
     template.staffName = getStaffName(params.staffId);
     return template.evaluate()
-      .setXOptionsMode(HtmlService.XOptionsMode.XFRAME_OPTIONS_ALLOWALL)
+      .setXOptionsMode(HtmlService.XOptionsMode.XFRAMEOPTIONS_ALLOWALL) // 💡 アンダースコアを消す
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
   
-  // 指定がない場合は管理者ダッシュボードを表示
-  var adminTemplate = HtmlService.createTemplateFromFile("admin_view"); // 💡 実際のファイル名に合わせる
+  var adminTemplate = HtmlService.createTemplateFromFile("admin_view");
   return adminTemplate.evaluate()
-    .setXOptionsMode(HtmlService.XOptionsMode.XFRAME_OPTIONS_ALLOWALL)
+    .setXOptionsMode(HtmlService.XOptionsMode.XFRAMEOPTIONS_ALLOWALL) // 💡 アンダースコアを消す
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
