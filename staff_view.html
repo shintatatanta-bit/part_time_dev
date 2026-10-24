@@ -30,7 +30,7 @@
       button:hover { background: #047857; }
       .portal-container { width: 100%; max-width: 440px; }
       
-      /* タブメニュー（3つのタブをきれいに配置） */
+      /* タブメニュー */
       .portal-tabs { display: flex; gap: 4px; margin-bottom: 18px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
       .portal-tab-btn { background: transparent; border: none; padding: 8px 4px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; flex: 1; font-weight: 600; color: var(--text-sub); display: inline-flex; align-items: center; justify-content: center; gap: 2px; transition: all 0.15s; white-space: nowrap; }
       .portal-tab-btn.active { background: #fff; color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -97,7 +97,7 @@
         </form>
       </div>
 
-      <!-- シフト希望の提出（伝達事項・備考欄追加） -->
+      <!-- シフト希望の提出（伝達事項欄付き） -->
       <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
@@ -121,17 +121,17 @@
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
         </div>
 
-        <!-- 💡 伝達事項（備考欄）の入力エリアを追加 -->
+        <!-- 💡 伝達事項の入力欄を確実に表示 -->
         <label>伝達事項・備考 (任意)</label>
         <textarea id="shiftMemo" rows="2" placeholder="例: 午後からです、15時までとなります" style="resize: vertical; margin-bottom: 14px;"></textarea>
 
         <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
       </div>
 
-      <!-- 自分の申請履歴（過去20件） -->
+      <!-- 申請履歴（勤怠 ＆ シフト希望の両方を表示） -->
       <div id="viewHistory" class="card" style="display: none; text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">過去の申請履歴 (直近20件)</h3>
-        <div style="overflow-x: auto; max-height: 380px;">
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠申請履歴</h3>
+        <div style="overflow-x: auto; max-height: 200px; margin-bottom: 16px;">
           <table>
             <thead>
               <tr>
@@ -144,6 +144,22 @@
             </thead>
             <tbody id="staffHistoryTableBody">
               <tr><td colspan="5" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望提出履歴</h3>
+        <div style="overflow-x: auto; max-height: 180px;">
+          <table>
+            <thead>
+              <tr>
+                <th>対象月</th>
+                <th>希望日数</th>
+                <th>伝達事項・備考</th>
+              </tr>
+            </thead>
+            <tbody id="staffShiftHistoryTableBody">
+              <tr><td colspan="3" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>
             </tbody>
           </table>
         </div>
@@ -169,6 +185,7 @@
         document.getElementById('endTime').value = hours + ':' + minutes;
 
         loadStaffHistory();
+        loadShiftHistory();
       };
 
       function switchStaffTab(mode) {
@@ -228,10 +245,40 @@
           .getStaffKintaiHistory(staffId);
       }
 
+      // 💡 シフト希望の提出履歴を取得して表示する関数
+      function loadShiftHistory() {
+        var staffId = document.getElementById('staffId').value;
+        if (!staffId) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            var tbody = document.getElementById('staffShiftHistoryTableBody');
+            if (!res.success || res.history.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">シフト希望の提出履歴はありません</td></tr>';
+              return;
+            }
+
+            var html = '';
+            res.history.forEach(function(item) {
+              html += '<tr>';
+              html += '<td>' + item.yearMonth + '</td>';
+              html += '<td>' + item.daysCount + '日</td>';
+              html += '<td>' + (item.memo ? escapeHtml(item.memo) : '<span style="color:#94a3b8;">なし</span>') + '</td>';
+              html += '</tr>';
+            });
+            tbody.innerHTML = html;
+          })
+          .getStaffShiftHistory(staffId);
+      }
+
       function loadHistoryTable() {
         var tbody = document.getElementById('staffHistoryTableBody');
         tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
+        var shiftTbody = document.getElementById('staffShiftHistoryTableBody');
+        shiftTbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
+        
         loadStaffHistory();
+        loadShiftHistory();
       }
 
       function startEdit(index) {
@@ -401,14 +448,14 @@
         }
 
         var ymVal = document.getElementById('targetMonth').value;
-        var memoVal = document.getElementById('shiftMemo').value.trim(); // 💡 入力された伝達事項を取得
+        var memoVal = document.getElementById('shiftMemo').value.trim();
 
         var data = {
           staffId: document.getElementById('staffId').value,
           staffName: document.getElementById('staffNameVal').value,
           yearMonth: ymVal,
           selectedDates: datesArray,
-          memo: memoVal // 💡 送信データに含める
+          memo: memoVal
         };
 
         var btn = event.target;
@@ -420,13 +467,21 @@
             alert(res.message);
             if (res.success) {
               selectedDatesMap = {};
-              document.getElementById('shiftMemo').value = ''; // 💡 送信後に備考欄をクリア
+              document.getElementById('shiftMemo').value = '';
               renderMiniCalendar();
             }
             btn.disabled = false;
-            btn.innerText = 'シフト希望の提出'; // 修正: ボタンテキストを元に戻す
+            btn.innerText = 'シフト希望を送信する';
           })
           .saveShiftPreferences(data);
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, function(tag) {
+          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+          return chars[tag] || tag;
+        });
       }
     </script>
   </body>

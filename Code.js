@@ -1811,3 +1811,70 @@ function formatTimeOrDate(val) {
   }
   return str.substring(0, 10);
 }
+
+/**
+ * 💡 スタッフが自分のシフト希望提出履歴（伝達事項含む）を確認するための関数
+ */
+function getStaffShiftHistory(staffId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("希望通知ログ");
+    if (!sheet) return { success: true, history: [] };
+    
+    var data = sheet.getDataRange().getValues();
+    var historyMap = {};
+    
+    // 下から（新しい順に）走査し、月ごとに最新の希望内容をまとめる
+    for (var i = data.length - 1; i >= 1; i--) {
+      var row = data[i];
+      var sId = String(row[1] || "");
+      var yearMonth = String(row[3] || "");
+      var memo = String(row[6] || ""); // 伝達事項
+      
+      if (sId === String(staffId) && yearMonth) {
+        if (!historyMap[yearMonth]) {
+          historyMap[yearMonth] = {
+            yearMonth: yearMonth,
+            memo: memo
+          };
+        }
+      }
+    }
+    
+    // シフト予定シートから該当スタッフの月別希望日数を正確にカウントする
+    var shiftSheet = ss.getSheetByName("シフト予定");
+    var daysCountMap = {};
+    if (shiftSheet) {
+      var shiftData = shiftSheet.getDataRange().getValues();
+      for (var j = 1; j < shiftData.length; j++) {
+        var sRow = shiftData[j];
+        var sDateStr = String(sRow[1] || "");
+        var rowStaffId = String(sRow[2] || "");
+        
+        if (rowStaffId === String(staffId) && sDateStr) {
+          var ym = sDateStr.substring(0, 7); // "yyyy-MM"
+          daysCountMap[ym] = (daysCountMap[ym] || 0) + 1;
+        }
+      }
+    }
+
+    var historyList = [];
+    for (var ymKey in historyMap) {
+      var formattedYm = ymKey;
+      if (ymKey.indexOf("-") !== -1) {
+        var parts = ymKey.split("-");
+        formattedYm = parts[0] + "年" + Number(parts[1]) + "月";
+      }
+
+      historyList.push({
+        yearMonth: formattedYm,
+        daysCount: daysCountMap[ymKey] || 0,
+        memo: historyMap[ymKey].memo
+      });
+    }
+    
+    return { success: true, history: historyList };
+  } catch (error) {
+    return { success: false, history: [], message: error.message };
+  }
+}
