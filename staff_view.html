@@ -44,10 +44,6 @@
       .btn-edit:hover { background: #b45309; }
       
       .edit-banner { background: #fef3c7; border: 1px solid #f59e0b; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.85rem; display: none; justify-content: space-between; align-items: center; color: #92400e; }
-      
-      /* 💡 日付ごとの伝達事項入力ボックス */
-      .memo-item-box { background: #f8fafc; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; margin-top: 8px; }
-      .memo-item-box label { margin-top: 0; font-size: 0.8rem; color: var(--accent-color); font-weight: bold; }
     </style>
   </head>
   <body>
@@ -101,7 +97,7 @@
         </form>
       </div>
 
-      <!-- シフト希望の提出（1画面完結型：カレンダー＋選択した日ごとの伝達事項入力） -->
+      <!-- シフト希望の提出（カレンダー ＋ 固定の伝達事項入力欄） -->
       <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
@@ -125,8 +121,9 @@
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
         </div>
 
-        <!-- 💡 選択した日ごとに自動で現れる伝達事項入力エリア -->
-        <div id="dailyMemosContainer" style="margin-bottom: 14px;"></div>
+        <!-- 💡 常に確実に表示される伝達事項の入力欄 -->
+        <label>伝達事項・備考 (任意)</label>
+        <textarea id="shiftMemo" rows="2" placeholder="例: 8日は午後から、10日は15時まで" style="resize: vertical; margin-bottom: 14px;"></textarea>
 
         <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
       </div>
@@ -402,13 +399,13 @@
         for (var day = 1; day <= totalDays; day++) {
           var mStr = String(month).padStart(2, '0');
           var dStr = String(day).padStart(2, '0');
-          var computedDateStr = year + '-' + mStr + '-' + dStr;
+          var dateStr = year + '-' + mStr + '-' + dStr;
           
-          var isClosed = cachedClosedDays.includes(computedDateStr);
-          var isSelected = (selectedDatesMap[computedDateStr] !== undefined);
+          var isClosed = cachedClosedDays.includes(dateStr);
+          var isSelected = selectedDatesMap[dateStr];
           
           var bgStyle = isClosed ? 'background:#f1f5f9; color:#94a3b8; border:1px dashed #cbd5e1;' : (isSelected ? 'background:var(--success-color); color:white; font-weight:bold;' : 'background:#fff; border:1px solid var(--border-color);');
-          var clickAction = isClosed ? '' : 'onclick="toggleDate(\'' + computedDateStr + '\')"';
+          var clickAction = isClosed ? '' : 'onclick="toggleDate(\'' + dateStr + '\')"';
           
           html += '<div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border-radius:6px; cursor:pointer; ' + bgStyle + '" ' + clickAction + '>';
           html += '<div><span>' + day + '</span>';
@@ -426,14 +423,13 @@
 
         grid.innerHTML = html;
         updateCountDisplay();
-        renderDailyMemosInputs(); // 💡 修正済み: カレンダー描画と同時に入力枠を生成
       }
 
       function toggleDate(dateStr) {
-        if (selectedDatesMap[dateStr] !== undefined) {
+        if (selectedDatesMap[dateStr]) {
           delete selectedDatesMap[dateStr];
         } else {
-          selectedDatesMap[dateStr] = ""; 
+          selectedDatesMap[dateStr] = true;
         }
         renderMiniCalendar();
       }
@@ -441,32 +437,6 @@
       function updateCountDisplay() {
         var count = Object.keys(selectedDatesMap).length;
         document.getElementById('selectedCount').innerText = '選択中の日数: ' + count + '日';
-      }
-
-      function renderDailyMemosInputs() {
-        var container = document.getElementById('dailyMemosContainer');
-        var keys = Object.keys(selectedDatesMap).sort();
-
-        if (keys.length === 0) {
-          container.innerHTML = '';
-          return;
-        }
-
-        var html = '<label style="margin-bottom: 6px; color: var(--text-main);">📌 選択した日の伝達事項・備考 (任意)</label>';
-        keys.forEach(function(dateStr) {
-          var currentMemo = selectedDatesMap[dateStr] || '';
-          html += '<div class="memo-item-box">';
-          html += '<label>📅 ' + dateStr + '</label>';
-          html += '<input type="text" value="' + escapeHtml(currentMemo) + '" placeholder="例: 午後からです、15時まで" oninput="updateDateMemo(\'' + dateStr + '\', this.value)" style="margin-top: 4px; padding: 8px;">';
-          html += '</div>';
-        });
-        container.innerHTML = html;
-      }
-
-      function updateDateMemo(dateStr, val) {
-        if (selectedDatesMap[dateStr] !== undefined) {
-          selectedDatesMap[dateStr] = val;
-        }
       }
 
       function submitPreferences() {
@@ -477,22 +447,14 @@
         }
 
         var ymVal = document.getElementById('targetMonth').value;
-
-        var memoSummaryArr = [];
-        datesArray.forEach(function(dStr) {
-          var memo = selectedDatesMap[dStr]; // 💡 修正済み: 正しく dStr を参照
-          if (memo && memo.trim() !== "") {
-            memoSummaryArr.push(dStr.substring(8) + "日: " + memo.trim());
-          }
-        });
-        var combinedMemo = memoSummaryArr.join(" / ");
+        var memoVal = document.getElementById('shiftMemo').value.trim(); // 💡 確実な固定テキストエリアから値を取得
 
         var data = {
           staffId: document.getElementById('staffId').value,
           staffName: document.getElementById('staffNameVal').value,
           yearMonth: ymVal,
           selectedDates: datesArray,
-          memo: combinedMemo
+          memo: memoVal
         };
 
         var btn = event.target;
@@ -504,17 +466,14 @@
             alert(res.message);
             if (res.success) {
               selectedDatesMap = {};
+              document.getElementById('shiftMemo').value = ''; // 入力欄をクリア
               renderMiniCalendar();
-              switchStaffTab('history'); 
+              switchStaffTab('history'); // 💡 送信後は自動で「申請履歴（シフト希望提出履歴）」タブに切り替わって確認できる
             }
             btn.disabled = false;
             btn.innerText = 'シフト希望を送信する';
           })
           .saveShiftPreferences(data);
-      }
-
-      function cloneObj(obj) {
-        return JSON.parse(JSON.stringify(obj));
       }
 
       function escapeHtml(str) {
