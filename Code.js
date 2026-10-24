@@ -1,4 +1,41 @@
 /**
+ * 💡 LINEからのイベント（メッセージ送信など）を受け取るWebhookの入口
+ */
+function doPost(e) {
+  try {
+    var json = JSON.parse(e.postData.contents);
+    var events = json.events;
+    
+    for (var i = 0; i < events.length; i++) {
+      var event = events[i];
+      
+      // ユーザーからのテキストメッセージの場合
+      if (event.type === 'message' && event.message.type === 'text') {
+        var userMessage = event.message.text.trim();
+        var replyToken = event.replyToken;
+        
+        // 「登録」または「ID確認」と送られた場合
+        if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
+          // セルフ登録画面のURLを自動生成して案内する
+          var webAppUrl = ScriptApp.getService().getUrl();
+          var registerUrl = webAppUrl + "?page=register";
+
+          var messages = [
+            { type: "text", text: "お疲れ様です！以下のリンクから初回登録（氏名・アカウント等の設定）を行ってください。\n\n▼ スタッフ初回登録ページ\n" + registerUrl }
+          ];
+          sendLineMultipleReplies(replyToken, messages);
+        }
+      }
+    }
+  } catch (error) {
+    Logger.log("doPostエラー: " + error.message);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
+             .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
  * 🌐 ブラウザやURLにアクセスされたときの入口
  */
 function doGet(e) {
