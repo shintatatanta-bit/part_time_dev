@@ -26,6 +26,7 @@ function doPost(e) {
             { type: "text", text: lineUserId }
           ];
           sendLineMultipleReplies(replyToken, messages);
+        } // ← 💡 ここに `if` 文を閉じる `}` が抜けていたため追加します
       }
     }
   } catch (error) {
