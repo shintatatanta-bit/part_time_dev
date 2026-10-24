@@ -2,47 +2,107 @@
 <html>
   <head>
     <base target="_top">
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>スタッフ初回登録</title>
-      <style>
-        body { font-family: sans-serif; margin: 0; padding: 16px; background: #f4f7f6; color: #333; }
-        .card { background: #fff; padding: 20px; border-radius: 8px; max-width: 400px; margin: 40px auto; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h2 { color: #2c3e50; font-size: 1.2rem; text-align: center; margin-top: 0; }
-        p { font-size: 0.85rem; color: #666; line-height: 1.4; }
-        label { display: block; margin-top: 12px; font-weight: bold; font-size: 0.85rem; color: #555; }
-        input { width: 100%; padding: 10px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-        button { background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; padding: 12px; }
-        button:hover { background: #219653; }
-        .help-box { background: #eef5fb; border-left: 4px solid #3498db; padding: 10px; font-size: 0.75rem; color: #333; margin-top: 12px; border-radius: 0 4px 4px 0; }
-      </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>スタッフ初回登録</title>
+    <!-- LINEのLIFF SDKを読み込み -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      body { font-family: sans-serif; margin: 0; padding: 16px; background: #f4f7f6; color: #333; display: flex; justify-content: center; align-items: center; min-height: 90vh; box-sizing: border-box; }
+      .card { background: #fff; padding: 24px; border-radius: 8px; max-width: 400px; width: 100%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+      h2 { color: #2c3e50; font-size: 1.2rem; text-align: center; margin-top: 0; }
+      p { font-size: 0.85rem; color: #666; line-height: 1.4; }
+      label { display: block; margin-top: 12px; font-weight: bold; font-size: 0.85rem; color: #555; }
+      input, select { width: 100%; padding: 10px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+      button { background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; padding: 12px; }
+      button:hover { background: #219653; }
+      .help-box { background: #eef5fb; border-left: 4px solid #3498db; padding: 10px; font-size: 0.75rem; color: #333; margin-top: 12px; border-radius: 0 4px 4px 0; }
+    </style>
   </head>
   <body>
     <div class="card">
       <h2>👋 スタッフ初回登録</h2>
-      <p>お疲れ様です！勤怠管理システムへの初回登録を行います。以下のフォームに「お名前」と「LINEのユーザーID」を入力して送信してください。</p>
+      <p>お疲れ様です！勤怠管理システムへの初回登録を行います。以下の項目を入力して送信してください。</p>
       
-      <label>お名前（フルネーム）</label>
-      <input type="text" id="staffName" placeholder="例: 山田 花子" required>
-      
-      <label>LINE ユーザーID</label>
-      <input type="text" id="lineUserId" placeholder="例: U123456789abcdef..." required>
-      
-      <div class="help-box">
-        💡 <strong>LINE IDの確認方法：</strong><br>
-        LINEアプリの「プロフィール」や「設定」からは直接確認できないため、あらかじめ管理者にLINEでチャットを送り、IDを確認してもらってください。
-      </div>
-      
-      <button type="button" onclick="submitRegistration()">登録してテストURLを受け取る</button>
+      <form id="regForm">
+        <label>スタッフ氏名（フルネーム）</label>
+        <input type="text" id="staffName" placeholder="例: 山田 花子" oninput="autoFillChar()" required>
+        
+        <label>カレンダー表示文字 (1〜4文字)</label>
+        <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
+
+        <label>割当LINEアカウント</label>
+        <select id="assignedAccount">
+          <option value="">読み込み中...</option>
+        </select>
+        
+        <input type="hidden" id="lineUserId" value="">
+
+        <div class="help-box">
+          💡 <strong>LINE連携について：</strong><br>
+          LINEアプリ内（またはLIFFブラウザ）から開くことで、ご自身のLINE IDが自動で紐づきます。
+        </div>
+        
+        <button type="button" onclick="submitRegistration()">登録して専用URLを発行する</button>
+      </form>
     </div>
 
     <script>
+      window.onload = function() {
+        loadAccountOptions();
+        initLiffForRegistration();
+      };
+
+      // アカウントマスタからアカウント一覧を取得してプルダウンに反映
+      function loadAccountOptions() {
+        google.script.run.withSuccessHandler(function(accounts) {
+          var select = document.getElementById('assignedAccount');
+          var html = '';
+          (accounts || []).forEach(function(acc) {
+            html += '<option value="' + escapeHtml(acc) + '">' + escapeHtml(acc) + '</option>';
+          });
+          select.innerHTML = html;
+        }).getAccountList();
+      }
+
+      // スタッフ氏名から最初の1文字を表示文字に自動反映
+      function autoFillChar() {
+        var nameVal = document.getElementById('staffName').value;
+        var charInput = document.getElementById('displayChar');
+        if (nameVal && !charInput.value) {
+          charInput.value = nameVal.substring(0, 1);
+        }
+      }
+
+      // LIFFを初期化してユーザーのLINE IDを自動取得
+      function initLiffForRegistration() {
+        var liffId = "2012184145-HMvvN2iP"; // ご自身のLIFF ID
+        liff.init({ liffId: liffId }).then(function() {
+          if (liff.isInClient() || liff.isLoggedIn()) {
+            liff.getProfile().then(function(profile) {
+              document.getElementById('lineUserId').value = profile.userId;
+            }).catch(function(err) {
+              console.log('プロフィール取得失敗: ', err);
+            });
+          }
+        }).catch(function(err) {
+          console.log('LIFF初期化失敗: ', err);
+        });
+      }
+
       function submitRegistration() {
         var staffName = document.getElementById('staffName').value.trim();
+        var displayChar = document.getElementById('displayChar').value.trim();
+        var assignedAccount = document.getElementById('assignedAccount').value;
         var lineUserId = document.getElementById('lineUserId').value.trim();
 
-        if (!staffName || !lineUserId) {
-          alert('お名前とLINEユーザーIDを両方入力してください。');
+        if (!staffName || !displayChar) {
+          alert('スタッフ氏名とカレンダー表示文字を入力してください。');
+          return;
+        }
+
+        if (!lineUserId) {
+          alert('LINE IDが取得できていません。LINEアプリ内（トーク画面のリンクなど）から開き直してください。');
           return;
         }
 
@@ -56,21 +116,30 @@
           .withSuccessHandler(function(res) {
             alert(res.message);
             if (res.success) {
-              document.getElementById('staffName').value = '';
-              document.getElementById('lineUserId').value = '';
+              document.getElementById('regForm').reset();
             }
             btn.disabled = false;
-            btn.innerText = '登録してテストURLを受け取る';
+            btn.innerText = '登録して専用URLを発行する';
           })
           .withFailureHandler(function(err) {
             alert('エラーが発生しました: ' + err.message);
             btn.disabled = false;
-            btn.innerText = '登録してテストURLを受け取る';
+            btn.innerText = '登録して専用URLを発行する';
           })
           .registerStaffBySelf({
             staffName: staffName,
+            displayChar: displayChar,
+            assignedAccount: assignedAccount,
             lineUserId: lineUserId
           });
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, function(tag) {
+          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+          return chars[tag] || tag;
+        });
       }
     </script>
   </body>

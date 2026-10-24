@@ -1,40 +1,30 @@
 /**
- * 💡 LINEからのイベント（メッセージ送信など）を受け取るWebhookの入口
+ * 🌐 ブラウザやURLにアクセスされたときの入口
  */
-function doPost(e) {
-  try {
-    var json = JSON.parse(e.postData.contents);
-    var events = json.events;
-    
-    for (var i = 0; i < events.length; i++) {
-      var event = events[i];
-      
-      // ユーザーからのテキストメッセージの場合
-      if (event.type === 'message' && event.message.type === 'text') {
-        var userMessage = event.message.text.trim();
-        var lineUserId = event.source.userId;
-        var replyToken = event.replyToken;
-        
-        // 「登録」または「ID確認」と送られた場合
-        if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
-          // 1. スプレッドシートの「LINE連携ログ」に自動保存
-          saveLineIdLog(lineUserId);
-          
-          // 2. その場でスタッフ本人に自分のLINE IDを別々の吹き出しで返信する
-          var messages = [
-            { type: "text", text: "以下のIDをコピーして教えてください。" },
-            { type: "text", text: lineUserId }
-          ];
-          sendLineMultipleReplies(replyToken, messages);
-        } // ← 💡 ここに `if` 文を閉じる `}` が抜けていたため追加します
-      }
-    }
-  } catch (error) {
-    Logger.log("doPostエラー: " + error.message);
+function doGet(e) {
+  var params = e && e.parameter ? e.parameter : {};
+  var page = params.page || "";
+  
+  // page=staff の場合はスタッフ用ポータルを表示
+  if (page === "staff") {
+    var template = HtmlService.createTemplateFromFile("staff_view");
+    template.staffId = params.staffId || "";
+    template.staffName = getStaffName(params.staffId);
+    return template.evaluate()
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
   
-  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
-             .setMimeType(ContentService.MimeType.JSON);
+  // 💡 page=register の場合はスタッフ初回登録画面を表示
+  if (page === "register") {
+    var regTemplate = HtmlService.createTemplateFromFile("staff_register");
+    return regTemplate.evaluate()
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+  
+  // 指定がない場合は管理者ダッシュボードを表示
+  var adminTemplate = HtmlService.createTemplateFromFile("admin_view");
+  return adminTemplate.evaluate()
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**
@@ -1413,7 +1403,7 @@ function markNotificationAsRead(notifId) {
 }
 
 /**
- * スタッフ自身がフォームから登録を行った際の処理
+ * 💡 スタッフ自身がフォームから登録を行った際の処理（アカウント・表示文字対応）
  */
 function registerStaffBySelf(data) {
   try {
@@ -1423,13 +1413,18 @@ function registerStaffBySelf(data) {
       throw new Error("「スタッフマスタ」シートが見つかりません。");
     }
     
+    if (!data.staffName || !data.displayChar || !data.lineUserId) {
+      return { success: false, message: "エラー: 氏名、表示文字、LINE IDは必須です。" };
+    }
+    
     var staffId = "st_" + Utilities.getUuid().substring(0, 6);
     var timestamp = new Date();
     var webAppUrl = ScriptApp.getService().getUrl();
     var staffUrl = webAppUrl + "?page=staff&staffId=" + staffId;
     
-    var assignedAccount = "アカウントA"; 
+    var assignedAccount = data.assignedAccount || "アカウントA"; 
     
+    // 💡 列構成: [ID(A), 氏名(B), LINE ID(C), アカウント(D), ステータス(E), 登録日時(F), 個別URL(G), 表示文字(H)]
     sheet.appendRow([
       staffId,
       data.staffName,
@@ -1437,14 +1432,16 @@ function registerStaffBySelf(data) {
       assignedAccount,
       "有効",
       timestamp,
-      staffUrl
+      staffUrl,
+      data.displayChar
     ]);
     
+    // 💡 登録完了と専用URLをLINEへ自動プッシュ通知
     sendWelcomeAndTestNotice(data.lineUserId, assignedAccount, data.staffName, staffUrl);
     
     return {
       success: true,
-      message: "登録が完了しました！ご自身のLINEに専用ポータルURL（テスト用）を送信しましたのでご確認ください。"
+      message: "登録が完了しました！ご自身のLINEに専用ポータルURLを送信しましたのでご確認ください。"
     };
   } catch (error) {
     return { success: false, message: "登録エラー: " + error.message };
