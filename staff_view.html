@@ -8,158 +8,126 @@
     <!-- LINEのLIFF SDKを読み込み -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-      body { font-family: sans-serif; margin: 0; padding: 20px; background: #f4f7f6; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; box-sizing: border-box; }
-      .card { background: #fff; padding: 24px; border-radius: 8px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-      h2 { color: #2c3e50; font-size: 1.2rem; margin-top: 0; }
-      p { font-size: 0.9rem; color: #666; line-height: 1.5; margin-bottom: 20px; }
-      button { background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; padding: 14px; }
-      button:hover { background: #219653; }
-      .portal-container { display: none; }
+      :root {
+        --bg-main: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --text-sub: #475569;
+        --border-color: #e2e8f0;
+        --accent-color: #2563eb;
+        --success-color: #059669;
+        --danger-color: #e11d48;
+      }
+
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 16px; background: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 90vh; box-sizing: border-box; }
+      .card { background: var(--card-bg); padding: 22px; border-radius: 10px; max-width: 440px; width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border-color); }
+      h2 { color: var(--text-main); font-size: 1.3rem; text-align: center; margin-top: 0; margin-bottom: 6px; font-weight: 700; }
+      p { font-size: 0.9rem; color: var(--text-sub); line-height: 1.5; }
+      label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.85rem; color: var(--text-sub); }
+      input, select { width: 100%; padding: 11px 14px; margin-top: 6px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; }
+      button { background: var(--success-color); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; padding: 13px; transition: background 0.15s; }
+      button:hover { background: #047857; }
+      .portal-container { width: 100%; max-width: 440px; }
+      
+      /* 💡 タブメニュー（アイコンと文字の間隔を狭め、文字を大きく調整） */
+      .portal-tabs { display: flex; gap: 6px; margin-bottom: 18px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
+      .portal-tab-btn { background: transparent; border: none; padding: 10px 8px; font-size: 0.9rem; border-radius: 6px; cursor: pointer; flex: 1; font-weight: 600; color: var(--text-sub); display: inline-flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s; }
+      .portal-tab-btn.active { background: #fff; color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     </style>
   </head>
   <body>
 
-    <!-- 💡 iframe内にいる場合の誘導画面（クリックによるユーザー操作を生むため） -->
-    <div id="redirectCard" class="card" style="display: none;">
-      <h2>👋 スタッフポータルへようこそ</h2>
-      <p>安全にシステムを起動するため、下のボタンをタップしてポータル画面を開いてください。</p>
-      <button type="button" onclick="escapeIframeAndOpen()">スタッフポータルを開く</button>
-    </div>
-
     <!-- 本来のスタッフポータル画面 -->
-    <div id="portalContent" class="portal-container" style="width: 100%; max-width: 450px;">
+    <div id="portalContent" class="portal-container">
       <h2>Staff Portal</h2>
-      <div style="text-align: center; margin-bottom: 15px;">
-  <button type="button" onclick="linkMyLineId()" style="background: #06c755; color: white; padding: 10px 20px; font-size: 0.9rem; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; width: auto;">🔗 LINEアカウントを連携する</button>
-</div>
-      <p style="text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 12px;">スタッフ名: <strong id="staffNameDisplay"><?= staffName ?></strong></p>
+      <p style="text-align: center; font-size: 0.9rem; color: var(--text-sub); margin-bottom: 16px;">
+        スタッフ名: <strong style="color: var(--text-main);"><?= staffName ?></strong>
+      </p>
 
-      <div class="portal-tabs" style="display: flex; gap: 4px; margin-bottom: 12px; background: #eaeded; padding: 3px; border-radius: 6px;">
-        <button id="tabPref" class="portal-tab-btn active" onclick="switchStaffTab('pref')" style="background: #fff; border: none; padding: 8px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold;">📅 シフト希望提出</button>
-        <button id="tabKintai" class="portal-tab-btn" onclick="switchStaffTab('kintai')" style="background: transparent; border: none; padding: 8px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold; color: #555;">⏰ 勤怠・交通費申請</button>
+      <!-- 💡 タブ切り替え（アイコンと文字の距離を近づけました） -->
+      <div class="portal-tabs">
+        <button id="tabKintai" class="portal-tab-btn active" onclick="switchStaffTab('kintai')">⏰ 勤怠・交通費申請</button>
+        <button id="tabPref" class="portal-tab-btn" onclick="switchStaffTab('pref')">📅 シフト希望提出</button>
       </div>
       
-      <div id="viewPref" class="card" style="text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">シフト希望の提出</h3>
+      <!-- 💡 勤怠・交通費申請 -->
+      <div id="viewKintai" class="card" style="text-align: left; margin: 0;">
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠・交通費の申請</h3>
+        <form id="kintaiForm">
+          <label>勤務日</label>
+          <input type="date" id="workDate" required>
+          
+          <label>出勤時刻</label>
+          <input type="time" id="startTime" required>
+          
+          <label>退勤時刻</label>
+          <input type="time" id="endTime" required>
+          
+          <label>休憩時間 (分)</label>
+          <input type="number" id="breakTime" value="60" min="0" step="15" required>
+          
+          <label>交通費 (円)</label>
+          <input type="number" id="transportCost" value="0" min="0" required>
+          
+          <button type="button" onclick="submitKintai()" style="background: var(--accent-color); margin-top: 18px;">申請を送信する</button>
+        </form>
+      </div>
+
+      <!-- 💡 シフト希望の提出 -->
+      <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
         <input type="hidden" id="staffNameVal" value="<?= staffName ?>">
 
-        <div class="month-selector" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <label style="margin:0; font-size:0.85rem;">対象月:</label>
-          <input type="month" id="targetMonth" onchange="renderMiniCalendar()" style="width: 140px; padding: 6px;">
+        <div class="month-selector" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <label style="margin:0; font-size:0.9rem;">対象月:</label>
+          <input type="month" id="targetMonth" onchange="renderMiniCalendar()" style="width: 160px; padding: 7px;">
         </div>
 
-        <p style="font-size: 0.75rem; color: #666; margin: 0 0 6px 0;">💡 出勤できる日をタップして選択してください。</p>
-        <div id="selectedCount" style="text-align: center; font-size: 0.85rem; color: #e67e22; font-weight: bold; margin-bottom: 6px;">選択中の日数: 0日</div>
+        <p style="font-size: 0.8rem; color: var(--text-sub); margin: 0 0 8px 0;">💡 出勤できる日をタップして選択してください。</p>
+        <div id="selectedCount" style="text-align: center; font-size: 0.9rem; color: #d97706; font-weight: bold; margin-bottom: 8px;">選択中の日数: 0日</div>
 
-        <div class="mini-cal-grid" id="miniCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 12px;">
-          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded; color: #c0392b;">日</div>
-          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">月</div>
-          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">火</div>
-          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">水</div>
-          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">木</div>
-          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">金</div>
-          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded; color: #2980b9;">土</div>
+        <div class="mini-cal-grid" id="miniCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px;">
+          <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--danger-color); border-radius: 4px;">日</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">月</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">火</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">水</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">木</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">金</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
         </div>
 
-        <button type="button" class="btn-green" onclick="submitPreferences()" style="background: #27ae60; color: white; border: none; border-radius: 4px; padding: 12px; width: 100%; font-weight: bold; cursor: pointer;">シフト希望を送信する</button>
-      </div>
-
-      <div id="viewKintai" class="card" style="display: none; text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">勤怠・交通費の申請</h3>
-        <form id="kintaiForm">
-          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">勤務日</label>
-          <input type="date" id="workDate" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
-          
-          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">出勤時刻</label>
-          <input type="time" id="startTime" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
-          
-          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">退勤時刻</label>
-          <input type="time" id="endTime" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
-          
-          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">休憩時間 (分)</label>
-          <input type="number" id="breakTime" value="60" min="0" step="15" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
-          
-          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">交通費 (円)</label>
-          <input type="number" id="transportCost" value="0" min="0" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
-          
-          <button type="button" onclick="submitKintai()" style="background: #3498db; color: white; border: none; border-radius: 4px; padding: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 16px;">申請を送信する</button>
-        </form>
+        <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
       </div>
     </div>
 
     <script>
+      var selectedDatesMap = {};
+
       window.onload = function() {
         var now = new Date();
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
         var d = String(now.getDate()).padStart(2, '0');
         
+        // 💡 勤務日に今日の日付をセット
         document.getElementById('targetMonth').value = y + '-' + m;
         renderMiniCalendar();
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
 
-        document.getElementById('portalContent').style.display = 'block';
+        // 💡 開いたときの現在時刻（時・分）を取得して「出勤時刻」または「退勤時刻」にセット
+        var hours = String(now.getHours()).padStart(2, '0');
+        var minutes = String(now.getMinutes()).padStart(2, '0');
+        var currentTime = hours + ':' + minutes;
 
-        var staffId = document.getElementById('staffId').value;
-        if (staffId) {
-          setupLiffButton(staffId);
-        }
-      };
-
-      function setupLiffButton(staffId) {
-        var liffId = "2012184145-HMvvN2iP"; 
-
-        liff.init({ liffId: liffId }).then(function() {
-          console.log("LIFF初期化完了");
-          
-          // 💡 LINEアプリ内から開かれた場合、ログイン画面を出さずに自動でユーザーIDを取得して紐付けを試みる
-          if (liff.isInClient()) {
-            liff.getProfile().then(function(profile) {
-              var lineUserId = profile.userId;
-
-              google.script.run
-                .withSuccessHandler(function(res) {
-                  if (res.success && res.isNewlyLinked) {
-                    console.log("LINE IDが自動紐付けされました！");
-                  }
-                })
-                .checkAndLinkStaffAccess(staffId, lineUserId);
-            }).catch(function(err) {
-              console.log('プロフィール取得失敗: ', err);
-            });
-          }
-        }).catch(function(err) {
-          console.log('LIFF初期化失敗: ', err);
-        });
-      }
-
-      // スタッフがボタンを押したとき（または予備として）の連携関数
-      function linkMyLineId() {
-        var staffId = document.getElementById('staffId').value;
+        // 例：退勤時刻を開いた時間に自動入力する場合
+        document.getElementById('endTime').value = currentTime;
         
-        if (!liff.isLoggedIn()) {
-          alert('LINEにログインしていません。LINEアプリ内から開き直してください。');
-          return;
-        }
+        // ※もし出勤時刻を開いた時間にしたい場合は下の行のコメントアウトを外してください
+        // document.getElementById('startTime').value = currentTime;
 
-        liff.getProfile().then(function(profile) {
-          var lineUserId = profile.userId;
-
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.success) {
-                alert(res.isNewlyLinked ? "LINE IDの連携が完了しました！" : "すでに連携済みです。");
-              } else {
-                alert("連携に失敗しました: " + res.message);
-              }
-            })
-            .checkAndLinkStaffAccess(staffId, lineUserId);
-
-        }).catch(function(err) {
-          alert('LINEプロフィールの取得に失敗しました: ' + err);
-        });
-      }
+        document.getElementById('portalContent').style.display = 'block';
+      };
 
       function switchStaffTab(mode) {
         var tabPref = document.getElementById('tabPref');
@@ -167,20 +135,16 @@
         var viewPref = document.getElementById('viewPref');
         var viewKintai = document.getElementById('viewKintai');
 
-        if (mode === 'pref') {
-          tabPref.style.background = '#fff';
-          tabPref.style.color = '#2c3e50';
-          tabKintai.style.background = 'transparent';
-          tabKintai.style.color = '#555';
-          viewPref.style.display = 'block';
-          viewKintai.style.display = 'none';
-        } else {
-          tabKintai.style.background = '#fff';
-          tabKintai.style.color = '#2c3e50';
-          tabPref.style.background = 'transparent';
-          tabPref.style.color = '#555';
+        if (mode === 'kintai') {
+          tabKintai.classList.add('active');
+          tabPref.classList.remove('active');
           viewKintai.style.display = 'block';
           viewPref.style.display = 'none';
+        } else {
+          tabPref.classList.add('active');
+          tabKintai.classList.remove('active');
+          viewPref.style.display = 'block';
+          viewKintai.style.display = 'none';
         }
       }
 
@@ -220,7 +184,7 @@
 
         for (var i = 0; i < firstDayOfWeek; i++) {
           var pDay = prevLastDay - (firstDayOfWeek - 1 - i);
-          html += '<div style="aspect-ratio:1; background:#f9f9f9; opacity:0.3; display:flex; align-items:center; justify-content:center; font-size:0.85rem; border:1px solid #dcdcdc; border-radius:4px;"><span>' + pDay + '</span></div>';
+          html += '<div style="aspect-ratio:1; background:#f8fafc; opacity:0.3; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border:1px solid var(--border-color); border-radius:4px;"><span>' + pDay + '</span></div>';
         }
 
         for (var day = 1; day <= totalDays; day++) {
@@ -231,10 +195,10 @@
           var isClosed = cachedClosedDays.includes(dateStr);
           var isSelected = selectedDatesMap[dateStr];
           
-          var bgStyle = isClosed ? 'background:#e5e7eb; color:#9ca3af; border:1px dashed #9ca3af;' : (isSelected ? 'background:#27ae60; color:white; font-weight:bold;' : 'background:#fff; border:1px solid #dcdcdc;');
+          var bgStyle = isClosed ? 'background:#f1f5f9; color:#94a3b8; border:1px dashed #cbd5e1;' : (isSelected ? 'background:var(--success-color); color:white; font-weight:bold;' : 'background:#fff; border:1px solid var(--border-color);');
           var clickAction = isClosed ? '' : 'onclick="toggleDate(\'' + dateStr + '\')"';
           
-          html += '<div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.85rem; border-radius:4px; cursor:pointer; ' + bgStyle + '" ' + clickAction + '>';
+          html += '<div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border-radius:6px; cursor:pointer; ' + bgStyle + '" ' + clickAction + '>';
           html += '<div><span>' + day + '</span>';
           if (isClosed) {
             html += '<span style="font-size:0.55rem; display:block; line-height:1;">休業日</span>';
@@ -245,7 +209,7 @@
         var totalCellsCount = firstDayOfWeek + totalDays;
         var remainingCells = (totalCellsCount % 7 === 0) ? 0 : 7 - (totalCellsCount % 7);
         for (var n = 1; n <= remainingCells; n++) {
-          html += '<div style="aspect-ratio:1; background:#f9f9f9; opacity:0.3; display:flex; align-items:center; justify-content:center; font-size:0.85rem; border:1px solid #dcdcdc; border-radius:4px;"><span>' + n + '</span></div>';
+          html += '<div style="aspect-ratio:1; background:#f8fafc; opacity:0.3; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border:1px solid var(--border-color); border-radius:4px;"><span>' + n + '</span></div>';
         }
 
         grid.innerHTML = html;
@@ -311,6 +275,7 @@
 
         if (!data.workDate || !data.startTime || !data.endTime) {
           alert('必須項目をすべて入力してください。');
+          return;
         }
 
         var btn = event.target;
