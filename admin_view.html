@@ -363,7 +363,7 @@
       <div class="accordion-content">
         <form id="staffForm">
           <label>スタッフ氏名</label>
-          <input type="text" id="staffName" placeholder="例: 山田 花子" oninput="autoFillDisplayChar()" required>
+          <input type="text" id="staffName" placeholder="例: 山田 花子" required>
           
           <label>カレンダー表示文字 (1〜4文字)</label>
           <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
@@ -1024,7 +1024,7 @@
         }
       }
 
-      // 💡 新規スタッフ登録（空欄チェック付き）
+     // 💡 新規スタッフ登録（空欄チェック付き）
       function registerStaff() {
         var staffName = document.getElementById('staffName').value.trim();
         var displayChar = document.getElementById('displayChar').value.trim();
