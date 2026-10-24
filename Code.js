@@ -227,12 +227,10 @@ function registerNewStaff(formData) {
       throw new Error("「スタッフマスタ」シートが見つかりません。");
     }
     
-    // 💡 必須項目のサーバー側バリデーション（LINE IDのチェックを削除）
     if (!formData.staffName || !formData.displayChar) {
       return { success: false, message: "エラー: スタッフ氏名とカレンダー表示文字は必須です。" };
     }
     
-    // 既存のスタッフIDをすべて取得して重複チェック
     var existingIds = [];
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
@@ -245,15 +243,13 @@ function registerNewStaff(formData) {
     } while (existingIds.indexOf(staffId) !== -1);
     
     var timestamp = new Date();
-    // 👇 ご自身が取得したLIFF IDに書き換えてください
-var liffId = "2012184145-HMvvN2iP"; 
-var staffUrl = "https://liff.line.me/" + liffId + "?page=staff&staffId=" + staffId;
+    var liffId = "2012184145-HMvvN2iP"; 
+    var staffUrl = "https://liff.line.me/" + liffId + "?page=staff&staffId=" + staffId;
     
-    // 💡 列構成: [ID(A), 氏名(B), LINE ID(C:最初は空欄), アカウント(D), ステータス(E), 登録日時(F), 個別URL(G), 表示文字(H)]
     sheet.appendRow([
       staffId,
       formData.staffName,
-      "", // LINE IDは最初は空欄（スタッフがポータルにアクセスした際に自動紐付け）
+      "", 
       formData.assignedAccount,
       "有効",
       timestamp,
@@ -615,7 +611,6 @@ function saveAllSchedules(data) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var yearMonth = data.yearMonth;
     
-    // 1. シフト予定の保存
     var shiftSheet = ss.getSheetByName("シフト予定");
     if (!shiftSheet) {
       shiftSheet = ss.insertSheet("シフト予定");
@@ -644,7 +639,6 @@ function saveAllSchedules(data) {
       shiftSheet.getRange(1, 1, newShiftRows.length, newShiftRows[0].length).setValues(newShiftRows);
     }
     
-    // 2. 休業日の保存
     var holSheet = ss.getSheetByName("休業日");
     if (!holSheet) {
       holSheet = ss.insertSheet("休業日");
@@ -693,7 +687,6 @@ function updateStaffDisplayChar(data) {
     var values = sheet.getDataRange().getValues();
     for (var i = 1; i < values.length; i++) {
       if (String(values[i][0]) === String(data.staffId)) {
-        // H列（インデックス7、8列目）に表示文字を書き込む
         sheet.getRange(i + 1, 8).setValue(data.displayChar);
         return { success: true, message: "表示文字を更新しました！" };
       }
@@ -751,18 +744,16 @@ function getFreeSchedules(yearMonth) {
 }
 
 /**
- * シフト予定、休業日、フリー予定をまとめて一括保存する関数（従来のsaveAllSchedulesを拡張）
+ * シフト予定、休業日、フリー予定をまとめて一括保存する関数
  */
 function saveAllSchedulesWithFree(data) {
   try {
-    // まず既存のシフトと休業日の保存関数を実行
     var res = saveAllSchedules(data);
     if (!res.success) return res;
     
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var yearMonth = data.yearMonth;
     
-    // フリー予定の保存処理
     var freeSheet = ss.getSheetByName("フリー予定");
     if (!freeSheet) {
       freeSheet = ss.insertSheet("フリー予定");
@@ -770,14 +761,14 @@ function saveAllSchedulesWithFree(data) {
     }
     
     var freeData = freeSheet.getDataRange().getValues();
-    var newFreeRows = [freeData[0]]; // ヘッダー保持
+    var newFreeRows = [freeData[0]];
     
     for (var i = 1; i < freeData.length; i++) {
       var fDate = new Date(freeData[i][1]);
       if (isNaN(fDate.getTime())) continue;
       var fYm = fDate.getFullYear() + '-' + ('0' + (fDate.getMonth() + 1)).slice(-2);
       if (fYm !== yearMonth) {
-        newFreeRows.push(freeData[i]); // 他月のデータは保持
+        newFreeRows.push(freeData[i]);
       }
     }
     
@@ -811,7 +802,6 @@ function toggleStaffStatus(staffId, newStatus) {
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]) === String(staffId)) {
-        // E列（インデックス4、5列目）にステータスを書き込む
         sheet.getRange(i + 1, 5).setValue(newStatus);
         return { success: true, message: "スタッフのステータスを「" + newStatus + "」に変更しました！" };
       }
@@ -824,13 +814,12 @@ function toggleStaffStatus(staffId, newStatus) {
 }
 
 /**
- * 💡【変更】スタッフからのシフト希望を保存し、管理者向けの新着通知（未確認ログ）を記録する関数
+ * スタッフからのシフト希望を保存し、管理者向けの新着通知を記録する関数
  */
 function saveShiftPreferences(data) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // 1. シフト予定シートへの登録（従来通り）
     var sheet = ss.getSheetByName("シフト予定");
     if (!sheet) {
       sheet = ss.insertSheet("シフト予定");
@@ -864,7 +853,6 @@ function saveShiftPreferences(data) {
       sheet.getRange(1, 1, newRows.length, newRows[0].length).setValues(newRows);
     }
 
-    // 💡 2. 管理者向け「新着希望通知」シートへ未読ログを記録
     var notifSheet = ss.getSheetByName("希望通知ログ");
     if (!notifSheet) {
       notifSheet = ss.insertSheet("希望通知ログ");
@@ -888,57 +876,6 @@ function saveShiftPreferences(data) {
 }
 
 /**
- * 指定された年月の全スタッフからのシフト希望を取得し、そのまま確定シフトとして扱う関数
- */
-function getShiftPreferences(yearMonth) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("希望シフト");
-    if (!sheet) {
-      return { success: true, preferences: [] };
-    }
-    
-    var data = sheet.getDataRange().getValues();
-    var preferences = [];
-    
-    for (var i = 0; i < data.length; i++) {
-      var row = data[i];
-      var prefId = row[0];   
-      var staffId = row[1];  
-      var staffName = row[2];
-      var ym = String(row[3] || "").trim();      
-      var datesStr = String(row[4] || "").trim(); 
-      
-      if (ym === yearMonth || ym.indexOf(yearMonth) !== -1 || datesStr.indexOf(yearMonth) !== -1) {
-        var datesArray = [];
-        if (datesStr) {
-          datesStr.split(",").forEach(function(d) {
-            var trimmed = d.trim();
-            if (trimmed) {
-              datesArray.push(trimmed);
-            }
-          });
-        }
-        
-        if (datesArray.length > 0) {
-          preferences.push({
-            prefId: prefId,
-            staffId: staffId,
-            staffName: staffName,
-            yearMonth: yearMonth,
-            dates: datesArray
-          });
-        }
-      }
-    }
-    
-    return { success: true, preferences: preferences };
-  } catch (error) {
-    return { success: false, message: "希望シフト取得エラー: " + error.message };
-  }
-}
-
-/**
  * カレンダー上で削除されたシフト希望、または確定シフトをシートから削除する関数
  */
 function deleteScheduleOrPreference(data) {
@@ -947,23 +884,20 @@ function deleteScheduleOrPreference(data) {
     var targetDate = data.workDate;
     var staffId = data.staffId;
     
-    // 1. 「希望シフト」シートからの削除チェック
     var prefSheet = ss.getSheetByName("希望シフト");
     if (prefSheet) {
       var prefData = prefSheet.getDataRange().getValues();
       for (var i = 0; i < prefData.length; i++) {
         var row = prefData[i];
-        if (row[1] === staffId) { // B列がstaffId
-          var datesStr = String(row[4] || ""); // E列がカンマ区切りの日付
+        if (row[1] === staffId) {
+          var datesStr = String(row[4] || "");
           if (datesStr.indexOf(targetDate) !== -1) {
             var datesArr = datesStr.split(",").map(function(d){ return d.trim(); });
             var newDatesArr = datesArr.filter(function(d){ return d !== targetDate; });
             
             if (newDatesArr.length > 0) {
-              // まだ他の日の希望が残っている場合は、該当日の日付を抜いた文字列に更新
               prefSheet.getRange(i + 1, 5).setValue(newDatesArr.join(","));
             } else {
-              // その日の希望しかなかった場合は行ごと削除
               prefSheet.deleteRow(i + 1);
             }
           }
@@ -971,7 +905,6 @@ function deleteScheduleOrPreference(data) {
       }
     }
     
-    // 2. 「シフト予定」シートからの削除チェック（もし確定シフト側を消した場合）
     var shiftSheet = ss.getSheetByName("シフト予定");
     if (shiftSheet) {
       var shiftData = shiftSheet.getDataRange().getValues();
@@ -1000,14 +933,7 @@ function getShiftPreferences(yearMonth) {
 }
 
 /**
- * 互換性のために空の配列を返すダミー関数
- */
-function getShiftPreferences(yearMonth) {
-  return { success: true, preferences: [] };
-}
-
-/**
- * 💡【追加】LINEメッセージを一斉または個別に送信し、履歴を保存する関数
+ * LINEメッセージを一斉または個別に送信し、履歴を保存する関数
  */
 function sendLineMessage(data) {
   try {
@@ -1106,7 +1032,7 @@ function sendLineMessage(data) {
 }
 
 /**
- * 💡【追加】送信履歴を取得する関数
+ * 送信履歴を取得する関数
  */
 function getLineHistory() {
   try {
@@ -1143,13 +1069,12 @@ function getLineHistory() {
 }
 
 /**
- * 💡【変更】「過去1か月間（今日から30日前まで）」の勤怠未提出者をリストアップする関数
+ * 過去1か月間の勤怠未提出者をリストアップする関数
  */
 function getKintaiPendingStaff() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // 今日から30日前（約1か月間）の範囲を設定
     var today = new Date();
     var startDate = new Date();
     startDate.setDate(today.getDate() - 30);
@@ -1157,12 +1082,10 @@ function getKintaiPendingStaff() {
     var todayStr = Utilities.formatDate(today, "Asia/Tokyo", "yyyy-MM-dd");
     var startStr = Utilities.formatDate(startDate, "Asia/Tokyo", "yyyy-MM-dd");
 
-    // 1. 過去1か月間の「シフト予定」をすべて取得
     var shiftSheet = ss.getSheetByName("シフト予定");
     if (!shiftSheet) return { success: true, pendingList: [] };
     var shiftData = shiftSheet.getDataRange().getValues();
     
-    // キー: "staffId_yyyy-MM-dd", 値: { staffId, staffName, dateStr }
     var scheduledMap = {}; 
     for (var i = 1; i < shiftData.length; i++) {
       var row = shiftData[i];
@@ -1175,7 +1098,6 @@ function getKintaiPendingStaff() {
       if (isNaN(d.getTime())) continue;
       var dStr = Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd");
       
-      // 30日前から今日までの範囲内のみ対象
       if (dStr >= startStr && dStr <= todayStr) {
         var key = sId + "_" + dStr;
         scheduledMap[key] = {
@@ -1186,7 +1108,6 @@ function getKintaiPendingStaff() {
       }
     }
 
-    // 2. 過去1か月間の「申請データ」をすべて取得
     var dataSheet = ss.getSheetByName("申請データ");
     if (dataSheet) {
       var kintaiData = dataSheet.getDataRange().getValues();
@@ -1200,7 +1121,6 @@ function getKintaiPendingStaff() {
         if (isNaN(kd.getTime())) continue;
         var kdStr = Utilities.formatDate(kd, "Asia/Tokyo", "yyyy-MM-dd");
         
-        // すでに申請があるものは予定マップから削除（＝未提出者だけに絞る）
         var submittedKey = kStaffId + "_" + kdStr;
         if (scheduledMap[submittedKey]) {
           delete scheduledMap[submittedKey];
@@ -1208,7 +1128,6 @@ function getKintaiPendingStaff() {
       }
     }
 
-    // 3. 残った未提出の予定を配列に変換（日付の新しい順に並び替え）
     var pendingList = [];
     for (var key in scheduledMap) {
       pendingList.push(scheduledMap[key]);
@@ -1225,11 +1144,10 @@ function getKintaiPendingStaff() {
 }
 
 /**
- * 💡【追加】未提出者リストをLINEリマインド用に詳細情報つきで取得する関数
+ * 未提出者リストをLINEリマインド用に詳細情報つきで取得する関数
  */
 function getKintaiPendingForReminder() {
   try {
-    // 既存の未提出者取得ロジックを利用
     var res = getKintaiPendingStaff();
     if (!res.success) return res;
 
@@ -1238,7 +1156,6 @@ function getKintaiPendingForReminder() {
     if (!staffSheet) return { success: true, pendingList: [] };
     var staffData = staffSheet.getDataRange().getValues();
     
-    // staffIdごとのLINEの有効性をマップ化
     var staffLineMap = {};
     for (var i = 1; i < staffData.length; i++) {
       var sId = staffData[i][0];
@@ -1249,7 +1166,6 @@ function getKintaiPendingForReminder() {
       }
     }
 
-    // LINE連携が有効な未提出者だけに絞り込み
     var validPendingList = [];
     res.pendingList.forEach(function(item) {
       if (staffLineMap[item.staffId]) {
@@ -1264,11 +1180,11 @@ function getKintaiPendingForReminder() {
 }
 
 /**
- * 💡【追加】未提出者へ個別（または一斉）にリマインドLINEを送信する関数
+ * 未提出者へリマインドLINEを送信する関数
  */
 function sendKintaiReminderLine(data) {
   try {
-    var targets = data.targets || []; // 送信対象の staffId の配列
+    var targets = data.targets || [];
     var messageText = data.messageText;
 
     if (targets.length === 0) {
@@ -1350,7 +1266,6 @@ function sendKintaiReminderLine(data) {
       }
     });
 
-    // 履歴シートへ保存
     var histSheet = ss.getSheetByName("連絡履歴");
     if (!histSheet) {
       histSheet = ss.insertSheet("連絡履歴");
@@ -1375,7 +1290,7 @@ function sendKintaiReminderLine(data) {
 }
 
 /**
- * 💡【完全安全版】管理者向けに未読の「シフト希望申請通知」を取得する関数
+ * 管理者向けに未読の「シフト希望申請通知」を取得する関数
  */
 function getUnreadShiftNotifications() {
   try {
@@ -1406,13 +1321,11 @@ function getUnreadShiftNotifications() {
           timeStr = String(timeObj);
         }
 
-        // 💡 yearMonth（例: "2026-10"）を "2026年10月" に変換する処理
         var formattedYm = yearMonth;
         if (yearMonth && yearMonth.indexOf("-") !== -1) {
           var ymParts = yearMonth.split("-");
           formattedYm = ymParts[0] + "年" + Number(ymParts[1]) + "月";
         } else if (yearMonth) {
-          // 万が一 Dateオブジェクト等で入っている場合の保険
           var ymDate = new Date(yearMonth);
           if (!isNaN(ymDate.getTime())) {
             formattedYm = Utilities.formatDate(ymDate, "Asia/Tokyo", "yyyy年M月");
@@ -1431,13 +1344,12 @@ function getUnreadShiftNotifications() {
     notifications.reverse();
     return { success: true, notifications: notifications };
   } catch (error) {
-    // 万が一エラーが起きても絶対におかしな値を返さず、空の配列を返すようにする
     return { success: true, notifications: [], message: error.message };
   }
 }
 
 /**
- * 💡【追加】シフト希望通知を「既読（確認済み）」にする関数
+ * シフト希望通知を「既読（確認済み）」にする関数
  */
 function markNotificationAsRead(notifId) {
   try {
@@ -1448,7 +1360,7 @@ function markNotificationAsRead(notifId) {
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]) === String(notifId)) {
-        sheet.getRange(i + 1, 6).setValue("既読"); // F列（6列目）の状態を既読に
+        sheet.getRange(i + 1, 6).setValue("既読");
         return { success: true, message: "確認済みにしました" };
       }
     }
@@ -1459,7 +1371,7 @@ function markNotificationAsRead(notifId) {
 }
 
 /**
- * 💡 スタッフ自身がフォームから登録を行った際の処理
+ * スタッフ自身がフォームから登録を行った際の処理
  */
 function registerStaffBySelf(data) {
   try {
@@ -1474,7 +1386,6 @@ function registerStaffBySelf(data) {
     var webAppUrl = ScriptApp.getService().getUrl();
     var staffUrl = webAppUrl + "?page=staff&staffId=" + staffId;
     
-    // デフォルトのアカウント（例: アカウントマスタの最初のもの、または固定）
     var assignedAccount = "アカウントA"; 
     
     sheet.appendRow([
@@ -1487,7 +1398,6 @@ function registerStaffBySelf(data) {
       staffUrl
     ]);
     
-    // 💡 登録完了とテストURLをLINEへ自動送信
     sendWelcomeAndTestNotice(data.lineUserId, assignedAccount, data.staffName, staffUrl);
     
     return {
@@ -1500,7 +1410,7 @@ function registerStaffBySelf(data) {
 }
 
 /**
- * 💡 登録完了時にスタッフへウェルカムメッセージと個別URLをプッシュ通知する関数
+ * 登録完了時にスタッフへウェルカムメッセージと個別URLをプッシュ通知する関数
  */
 function sendWelcomeAndTestNotice(lineUserId, assignedAccount, staffName, staffUrl) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1550,98 +1460,7 @@ function sendWelcomeAndTestNotice(lineUserId, assignedAccount, staffName, staffU
 }
 
 /**
- * 💡 LINEからのイベント（メッセージ送信など）を受け取るWebhookの入口
- */
-function doPost(e) {
-  try {
-    var json = JSON.parse(e.postData.contents);
-    var events = json.events;
-    
-    for (var i = 0; i < events.length; i++) {
-      var event = events[i];
-      
-      // ユーザーからのテキストメッセージの場合
-      if (event.type === 'message' && event.message.type === 'text') {
-        var userMessage = event.message.text.trim();
-        var lineUserId = event.source.userId;
-        var replyToken = event.replyToken;
-        
-        // 例: 「登録」という言葉が送られてきた場合
-        if (userMessage === "登録" || userMessage === "ID確認") {
-          
-          // 1. スプレッドシートの「LINE連携ログ」などに自動保存する処理
-          saveLineIdLog(lineUserId);
-          
-          // 2. ユーザーへ自動返信を送る（オプション）
-          sendLineReply(replyToken, "LINE IDを確認しました！スタッフ登録にお進みください。");
-        }
-      }
-    }
-  } catch (error) {
-    Logger.log("doPostエラー: " + error.message);
-  }
-  
-  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
-             .setMimeType(ContentService.MimeType.JSON);
-}
-
-/**
- * LINE IDをスプレッドシート（LINE連携ログ）に保存するヘルパー関数
- */
-function saveLineIdLog(lineUserId) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("LINE連携ログ");
-  if (!sheet) {
-    sheet = ss.insertSheet("LINE連携ログ");
-    sheet.appendRow(["timestamp", "lineUserId", "status"]); // ヘッダー
-  }
-  
-  // すでに同じIDが記録されていなければ追加する
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][1] === lineUserId) {
-      return; // 登録済みなら何もしない
-    }
-  }
-  
-  sheet.appendRow([new Date(), lineUserId, "未登録"]);
-}
-
-/**
- * ユーザーへ自動でリプライ（返信）を送る関数
- */
-function sendLineReply(replyToken, messageText) {
-  // アカウントマスタからアクセストークンを取得（最初のものを使用する例）
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var accountSheet = ss.getSheetByName("アカウントマスタ");
-  if (!accountSheet) return;
-  
-  var accountData = accountSheet.getDataRange().getValues();
-  var accessToken = accountData[1] ? accountData[1][1] : ""; // 2行目のトークン
-  
-  if (!accessToken || accessToken.includes("YOUR_")) return;
-  
-  var url = "https://api.line.me/v2/bot/message/reply";
-  var payload = {
-    replyToken: replyToken,
-    messages: [{ type: "text", text: messageText }]
-  };
-  
-  var options = {
-    method: "post",
-    headers: {
-      "Content-Type": "application/json; charset=UTF-8",
-      "Authorization": "Bearer " + accessToken
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-  
-  UrlFetchApp.fetch(url, options);
-}
-
-/**
- * 💡 スタッフがLIFF経由で専用URLを開いたときにLINE IDを自動紐付けする関数
+ * スタッフがLIFF経由で専用URLを開いたときにLINE IDを自動紐付けする関数
  */
 function checkAndLinkStaffAccess(staffId, lineUserId) {
   try {
@@ -1652,9 +1471,8 @@ function checkAndLinkStaffAccess(staffId, lineUserId) {
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0]) === String(staffId)) {
-        var currentLineId = data[i][2]; // C列（LINE ID）
+        var currentLineId = data[i][2];
         
-        // まだC列が空欄で、今回LINE IDが取得できた場合は自動書き込み
         if (!currentLineId && lineUserId) {
           sheet.getRange(i + 1, 3).setValue(lineUserId);
           return { success: true, isNewlyLinked: true };
@@ -1670,13 +1488,12 @@ function checkAndLinkStaffAccess(staffId, lineUserId) {
 }
 
 /**
- * 🌐 ブラウザやURLにアクセスされたときの入口
+ * ブラウザやURLにアクセスされたときの入口
  */
 function doGet(e) {
   var params = e && e.parameter ? e.parameter : {};
   var page = params.page || "";
   
-  // page=staff の場合はスタッフ用ポータルを表示
   if (page === "staff") {
     var template = HtmlService.createTemplateFromFile("staff_view");
     template.staffId = params.staffId || "";
@@ -1685,21 +1502,19 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
   
-  // 指定がない場合は管理者ダッシュボードを表示
   var adminTemplate = HtmlService.createTemplateFromFile("admin_view");
   return adminTemplate.evaluate()
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 /**
- * LINEアカウントの詳細情報（名前、友だち追加URL、QRコード画像URLなど）を取得する関数
+ * LINEアカウントの詳細情報を取得する関数
  */
 function getAccountDetailsList() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("アカウントマスタ");
     if (!sheet) {
-      // シートがない場合のデフォルト値
       return [
         { name: "アカウントA", addUrl: "https://lin.ee/xxxxxA", qrUrl: "" },
         { name: "アカウントB", addUrl: "https://lin.ee/xxxxxB", qrUrl: "" }
@@ -1713,10 +1528,10 @@ function getAccountDetailsList() {
       var row = data[i];
       if (row[0]) {
         accounts.push({
-          name: row[0],                                    // A列: アカウント名
-          channelId: row[1] || "",                         // B列: チャンネルID
-          addUrl: row[2] || "https://lin.ee/default",      // C列: 友だち追加URL
-          qrUrl: row[3] || ""                              // D列: QRコード画像URL
+          name: row[0],
+          channelId: row[1] || "",
+          addUrl: row[2] || "https://lin.ee/default",
+          qrUrl: row[3] || ""
         });
       }
     }
