@@ -1714,8 +1714,9 @@ function getAccountDetailsList() {
       if (row[0]) {
         accounts.push({
           name: row[0],                                    // A列: アカウント名
-          addUrl: row[2] || "https://lin.ee/default",      // C列などに入力されている想定（なければ仮URL）
-          qrUrl: row[3] || ""                              // D列などに入力されているQRコード画像URL
+          channelId: row[1] || "",                         // B列: チャンネルID
+          addUrl: row[2] || "https://lin.ee/default",      // C列: 友だち追加URL
+          qrUrl: row[3] || ""                              // D列: QRコード画像URL
         });
       }
     }
