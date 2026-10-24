@@ -6,319 +6,343 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>管理者ダッシュボード</title>
     <style>
-      body { font-family: sans-serif; margin: 0; padding: 12px; background: #f4f7f6; color: #333; }
-      h2 { color: #2c3e50; font-size: 1.1rem; margin-bottom: 10px; }
-      h3 { font-size: 0.95rem; color: #34495e; margin: 0 0 8px 0; }
-      .card { background: #fff; padding: 14px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-      label { display: block; margin-top: 8px; font-weight: bold; font-size: 0.8rem; color: #555; }
-      input, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
-      button { background: #3498db; color: white; border: none; padding: 10px; border-radius: 4px; font-size: 0.95rem; cursor: pointer; width: 100%; margin-top: 10px; }
-      button.secondary { background: #2ecc71; width: auto; padding: 6px 10px; font-size: 0.8rem; margin-top: 0; }
-      button.search-btn { background: #e67e22; margin-top: 10px; }
-      button.print-btn-a3 { background: #8e44ad; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
-      button.print-btn-a4 { background: #2980b9; width: auto; padding: 6px 12px; font-size: 0.85rem; margin-top: 0; font-weight: bold; }
+      :root {
+        --bg-main: #f8fafc;          /* 清潔感と落ち着きのあるブルーグレーの背景 */
+        --card-bg: #ffffff;          
+        --text-main: #0f172a;        /* 非常に引き締まるダークスレート */
+        --text-sub: #475569;         /* 視認性を保ちつつ主張しすぎないサブ文字 */
+        --border-color: #e2e8f0;     /* 主張しすぎない上品なボーダー */
+        --border-focus: #cbd5e1;
+        --accent-color: #2563eb;     /* 洗練されたインディゴブルー（強調1色） */
+        --accent-hover: #1d4ed8;
+        --danger-color: #e11d48;     /* 落ち着きのある洗練されたレッド */
+        --success-color: #059669;    /* 深みのある上質なエメラルド */
+        --line-green: #06c755;       /* LINE公式カラー */
+      }
+
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; margin: 0; padding: 20px; background: var(--bg-main); color: var(--text-main); -webkit-font-smoothing: antialiased; }
       
-      /* 📌 画面上部に常に固定するトップエリア */
+      .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+      h2 { color: var(--text-main); font-size: 1.25rem; margin: 0; font-weight: 700; letter-spacing: -0.025em; }
+      
+      .card { background: var(--card-bg); padding: 18px; border-radius: 10px; margin-bottom: 16px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04); }
+      label { display: block; margin-top: 10px; font-weight: 600; font-size: 0.75rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em; }
+      input, select, textarea { width: 100%; padding: 9px 12px; margin-top: 4px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; background: #fff; color: var(--text-main); transition: all 0.2s; }
+      input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+      
+      button { background: var(--accent-color); color: white; border: none; padding: 9px 18px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+      button:hover { background: var(--accent-hover); transform: translateY(-1px); }
+      button.secondary { background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); width: auto; padding: 7px 14px; font-size: 0.8rem; margin-top: 0; font-weight: 600; box-shadow: none; }
+      button.secondary:hover { background: #e2e8f0; transform: none; }
+      
       .sticky-top-area {
-  position: sticky;
-  top: 0; /* アコーディオンが開いたエリアの最上部に追従します */
-  z-index: 100;
-  background: #f4f7f6;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-      /* 左右2列に割り振るコンテナ（左：チップ類、右：保存ボタン） */
-      .top-grid-container {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 8px;
-        align-items: center;
-      }
-
-      .left-chips-column {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: #f8fafc;
+        padding: 10px 0;
+        box-shadow: 0 4px 6px -2px rgba(0,0,0,0.03);
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
       }
 
-      .right-action-column {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        align-items: stretch;
-      }
+      .top-grid-container { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+      .left-chips-column { display: flex; flex-direction: column; gap: 6px; }
+      .right-action-column { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
 
       .save-btn { 
-        background: #27ae60 !important; 
+        background: var(--success-color) !important; 
         color: white; 
-        font-weight: bold; 
-        padding: 8px 16px; 
-        border-radius: 4px; 
+        font-weight: 600; 
+        padding: 9px 24px; 
+        border-radius: 6px; 
         border: none; 
         cursor: pointer; 
         font-size: 0.85rem; 
-        margin-top: 0; 
-        height: 38px;
+        height: 40px;
         box-sizing: border-box;
         white-space: nowrap;
+        box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
       }
-      .save-btn:hover { background: #219653 !important; }
+      .save-btn:hover { background: #047857 !important; }
 
-      /* スマホ対応（幅768px以下） */
       @media screen and (max-width: 768px) {
-        .top-grid-container {
-          grid-template-columns: 1fr;
-        }
-        .right-action-column {
-          align-items: stretch;
-        }
+        .top-grid-container { grid-template-columns: 1fr; }
       }
 
       .quick-btns { display: flex; gap: 8px; margin-top: 8px; }
-      .quick-btns button { background: #95a5a6; margin-top: 0; font-size: 0.8rem; padding: 6px; }
+      .quick-btns button { background: #f1f5f9; color: var(--text-main); border: 1px solid var(--border-color); margin-top: 0; font-size: 0.8rem; padding: 6px 12px; box-shadow: none; }
       
-      .staff-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-      .staff-header { padding: 12px 14px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-      .staff-header:active { background: #f0f0f0; }
-      .staff-info h4 { margin: 0 0 4px 0; font-size: 1rem; color: #2c3e50; }
-      .staff-info p { margin: 0; font-size: 0.75rem; color: #666; }
+      .staff-card { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+      .staff-header { padding: 12px 14px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+      .staff-info h4 { margin: 0 0 2px 0; font-size: 0.95rem; color: var(--text-main); font-weight: 600; }
+      .staff-info p { margin: 0; font-size: 0.75rem; color: var(--text-sub); }
       .staff-summary-badge { text-align: right; }
-      .badge-main { font-weight: bold; font-size: 0.85rem; color: #2980b9; }
-      .badge-sub { font-size: 0.75rem; color: #555; margin-top: 2px; }
+      .badge-main { font-weight: 600; font-size: 0.85rem; color: var(--accent-color); }
+      .badge-sub { font-size: 0.75rem; color: var(--text-sub); margin-top: 2px; }
       
-      .staff-details { display: none; padding: 12px; background: #fff; border-top: 1px solid #eee; }
+      .staff-details { display: none; padding: 12px; background: #fff; border-top: 1px solid var(--border-color); }
       .staff-card.open .staff-details { display: block; }
-      .staff-card.open .staff-header { background: #eef5fb; }
       
-      .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
-      .calendar-controls-left { display: flex; gap: 8px; align-items: center; }
+      .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+      .calendar-controls-left { display: flex; gap: 10px; align-items: center; }
       .calendar-controls-right { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
       
-      .view-tabs { display: flex; gap: 4px; background: #eaeded; padding: 3px; border-radius: 6px; }
-      .view-tab-btn { background: transparent; color: #555; border: none; padding: 5px 10px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; margin-top: 0; width: auto; font-weight: bold; }
-      .view-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+      .view-tabs { display: flex; gap: 3px; background: #e2e8f0; padding: 3px; border-radius: 8px; }
+      .view-tab-btn { background: transparent; color: var(--text-sub); border: none; padding: 6px 12px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; margin-top: 0; width: auto; font-weight: 600; box-shadow: none; }
+      .view-tab-btn.active { background: #fff; color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 
-      .staff-chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; align-items: center; min-height: 28px; box-sizing: border-box; }
+      .staff-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; align-items: center; min-height: 32px; box-sizing: border-box; }
       
-      /* パレット上のチップのフォントサイズを 6pt に変更 */
       .staff-chip { 
-        background: #3498db; 
+        background: var(--accent-color); 
         color: white; 
-        padding: 3px 6px; 
-        border-radius: 12px; 
-        font-size: 6pt !important; 
-        font-weight: bold; 
+        padding: 4px 10px; 
+        border-radius: 16px; 
+        font-size: 7pt !important; 
+        font-weight: 600; 
         cursor: pointer; 
         display: inline-flex; 
         align-items: center; 
-        gap: 3px; 
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
+        gap: 4px; 
         border: 2px solid transparent;
+        box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
         transition: all 0.1s;
       }
       .staff-chip.selected-active {
-        border: 2px solid #e74c3c !important;
+        border: 2px solid var(--danger-color) !important;
         transform: scale(1.05);
-        box-shadow: 0 0 8px rgba(231, 76, 60, 0.6);
       }
-      .staff-chip:active { opacity: 0.8; }
       
-      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-      .cal-header-cell { text-align: center; font-weight: bold; font-size: 0.8rem; padding: 4px; background: #eaeded; border-radius: 4px; }
-      .cal-header-cell:nth-child(1) { color: #c0392b; }
-      .cal-header-cell:nth-child(7) { color: #2980b9; }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .cal-header-cell { text-align: center; font-weight: 600; font-size: 0.75rem; padding: 8px; background: #f1f5f9; border-radius: 6px; color: var(--text-sub); letter-spacing: 0.05em; }
+      .cal-header-cell:nth-child(1) { color: var(--danger-color); }
+      .cal-header-cell:nth-child(7) { color: var(--accent-color); }
       
-      .cal-cell { min-height: 85px; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 4px; box-sizing: border-box; position: relative; transition: background 0.1s; cursor: pointer; }
-      .cal-cell.other-month { background: #f9f9f9; opacity: 0.5; }
-      .cal-cell.closed-day { background: #e5e7eb !important; border: 1px dashed #9ca3af !important; }
-      .cal-cell.drag-over { background: #e8f8f5 !important; border: 2px dashed #27ae60 !important; }
+      .cal-cell { min-height: 90px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px; box-sizing: border-box; position: relative; cursor: pointer; transition: border-color 0.15s; }
+      .cal-cell:hover { border-color: var(--border-focus); }
+      .cal-cell.other-month { background: #f8fafc; opacity: 0.4; }
+      .cal-cell.closed-day { background: #f1f5f9 !important; border: 1px dashed #cbd5e1 !important; }
+      .cal-cell.drag-over { background: #eff6ff !important; border: 2px dashed var(--accent-color) !important; }
       
-      .cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-      .cal-date-num { font-size: 0.75rem; font-weight: bold; color: #555; }
-      .cal-date-num.sun-or-hol { color: #c0392b; }
-      .cal-date-num.sat { color: #2980b9; }
-      .holiday-name { font-size: 5pt !important; color: #c0392b; font-weight: bold; }
-      .closed-label { font-size: 0.65rem; color: #4b5563; font-weight: bold; background: #d1d5db; padding: 1px 4px; border-radius: 3px; }
+      .cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+      .cal-date-num { font-size: 0.8rem; font-weight: 600; color: var(--text-sub); }
+      .cal-date-num.sun-or-hol { color: var(--danger-color); }
+      .cal-date-num.sat { color: var(--accent-color); }
+      .holiday-name { font-size: 5pt !important; color: var(--danger-color); font-weight: 600; }
+      .closed-label { font-size: 0.6rem; color: #475569; font-weight: 600; background: #e2e8f0; padding: 1px 5px; border-radius: 4px; }
 
-      .list-view-container { display: flex; flex-direction: column; gap: 4px; }
-      .list-row { display: flex; align-items: center; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px 10px; min-height: 45px; transition: background 0.1s; box-sizing: border-box; cursor: pointer; }
-      .list-row.closed-day { background: #e5e7eb !important; border: 1px dashed #9ca3af !important; }
-      .list-row.drag-over { background: #e8f8f5 !important; border: 2px dashed #27ae60 !important; }
-      .list-date-col { width: 170px; font-weight: bold; font-size: 0.85rem; color: #333; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-      .list-date-col.sun-or-hol { color: #c0392b; }
-      .list-date-col.sat { color: #2980b9; }
-      .list-holiday-label { font-size: 0.7rem; color: #c0392b; font-weight: normal; }
+      .list-view-container { display: flex; flex-direction: column; gap: 6px; }
+      .list-row { display: flex; align-items: center; background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; min-height: 48px; box-sizing: border-box; cursor: pointer; }
+      .list-row.closed-day { background: #f1f5f9 !important; border: 1px dashed #cbd5e1 !important; }
+      .list-date-col { width: 170px; font-weight: 600; font-size: 0.85rem; color: var(--text-main); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .list-date-col.sun-or-hol { color: var(--danger-color); }
+      .list-date-col.sat { color: var(--accent-color); }
+      .list-holiday-label { font-size: 0.7rem; color: var(--danger-color); font-weight: normal; }
 
       .list-badge-col { flex-grow: 1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 32px; }
       .list-section-shift { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-      .list-section-free { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; border-left: 2px solid #ddd; padding-left: 10px; }
+      .list-section-free { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; border-left: 2px solid var(--border-color); padding-left: 10px; }
 
       .cal-section-shift { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; min-height: 22px; align-items: center; }
-      .cal-section-free { display: flex; flex-wrap: wrap; gap: 3px; border-top: 1px dotted #ccc; padding-top: 2px; min-height: 18px; }
+      .cal-section-free { display: flex; flex-wrap: wrap; gap: 3px; border-top: 1px dotted var(--border-color); padding-top: 2px; min-height: 18px; }
 
-      /* カレンダー内のフリー予定バッジのフォントサイズを 6pt に変更 */
-      .free-badge { background: #e67e22; color: white; font-size: 6pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
-      .free-badge .del-x { font-size: 6pt !important; opacity: 0.8; font-weight: bold; }
-      .free-badge:hover { background: #c0392b; }
+      .free-badge { background: #d97706; color: white; font-size: 6pt !important; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; }
+      .free-badge:hover { background: #b45309; }
 
-      /* カレンダー内に配置されたスタッフ用丸型バッジのフォントサイズを 6pt に変更 */
       .staff-circle-badge {
-        background: #27ae60;
-        color: white;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 6pt !important;
-        font-weight: bold;
-        position: relative;
-        cursor: pointer;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        background: var(--success-color); color: white; width: 24px; height: 24px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center; font-size: 7pt !important; font-weight: 600;
+        position: relative; cursor: pointer; box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
       }
-      .staff-circle-badge:hover {
-        background: #c0392b;
-      }
+      .staff-circle-badge:hover { background: var(--danger-color); }
       .staff-circle-badge .del-x {
-        position: absolute;
-        top: -3px;
-        right: -3px;
-        background: #c0392b;
-        color: white;
-        border-radius: 50%;
-        width: 12px;
-        height: 12px;
-        font-size: 6pt !important;
-        display: none;
-        align-items: center;
-        justify-content: center;
+        position: absolute; top: -3px; right: -3px; background: var(--danger-color); color: white;
+        border-radius: 50%; width: 13px; height: 13px; font-size: 6pt !important; display: none;
+        align-items: center; justify-content: center;
       }
-      .staff-circle-badge:hover .del-x {
-        display: flex;
+      .staff-circle-badge:hover .del-x { display: flex; }
+
+      /* 💡 LINE風メッセージエディタのデザイン */
+      .line-chat-box {
+        background: linear-gradient(135deg, #7494c0 0%, #5d7fa8 100%);
+        border-radius: 8px;
+        padding: 14px;
+        margin-top: 6px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+      }
+      .line-bubble {
+        background: #ffffff;
+        border-radius: 12px;
+        border-top-left-radius: 2px;
+        padding: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        position: relative;
+      }
+      .line-bubble textarea {
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        resize: vertical;
+        font-family: inherit;
+        font-size: 0.9rem;
+        color: var(--text-main);
+        min-height: 80px;
+      }
+      .line-bubble textarea:focus {
+        outline: none;
+        box-shadow: none;
       }
 
-      .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
-      .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 320px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-      .modal-content h4 { margin-top: 0; color: #2c3e50; }
+      /* モーダル共通 */
+      .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 16px; box-sizing: border-box; }
+      .modal-content { background: #fff; padding: 24px; border-radius: 10px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); }
+      .modal-content h4 { margin-top: 0; color: var(--text-main); font-size: 1.1rem; }
       .modal-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-      .modal-btns button { margin-top: 0; padding: 10px; font-weight: bold; }
-      .btn-single { background: #3498db; }
-      .btn-weekly { background: #27ae60; }
-      .btn-cancel { background: #95a5a6; }
+      .modal-btns button { margin-top: 0; padding: 10px; font-weight: 600; width: 100%; }
 
       table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.8rem; }
-      th, td { border: 1px solid #e0e0e0; padding: 6px; text-align: left; }
-      th { background-color: #f8f9fa; color: #333; }
+      th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; }
+      th { background-color: #f1f5f9; color: var(--text-main); font-weight: 600; }
       .url-cell { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .flex-row { display: flex; gap: 8px; }
       .flex-col { flex: 1; }
 
-      /* LINE履歴用のスタイル */
-      .history-box { max-height: 250px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 8px; background: #fafafa; }
-      .history-item { border-bottom: 1px solid #eee; padding: 8px 0; font-size: 0.8rem; }
+      .history-box { max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; background: #f8fafc; }
+      .history-item { border-bottom: 1px solid var(--border-color); padding: 8px 0; font-size: 0.8rem; }
       .history-item:last-child { border-bottom: none; }
-      .history-meta { color: #666; font-size: 0.75rem; margin-bottom: 2px; }
-      .history-text { white-space: pre-wrap; color: #333; }
+      .history-meta { color: var(--text-sub); font-size: 0.75rem; margin-bottom: 2px; }
+      .history-text { white-space: pre-wrap; color: var(--text-main); }
 
-      /* 💡【追加】アコーディオン（折りたたみ）用のスタイル */
-      .accordion-card { background: #fff; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.accordion-content { display: none; padding: 14px; background: #fff; }
-.accordion-card.open .accordion-content { display: block; overflow: visible; }
-      .accordion-header { padding: 12px 14px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 1px solid transparent; }
-      .accordion-header:hover { background: #f0f0f0; }
-      .accordion-header h3 { margin: 0; font-size: 0.95rem; color: #2c3e50; }
-      .accordion-content { display: none; padding: 14px; background: #fff; }
+      /* アコーディオン */
+      .accordion-card { 
+        background: #ffffff; 
+        border-radius: 10px; 
+        margin-bottom: 20px; 
+        border: 1px solid var(--border-color); 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        overflow: hidden;
+        transition: all 0.2s ease;
+      }
+      .accordion-card.open {
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05);
+        border-color: #94a3b8;
+      }
+
+      .accordion-header { 
+        padding: 16px 20px; 
+        background: #f1f5f9; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        cursor: pointer; 
+        font-weight: 700;
+        color: #0f172a;
+        border-left: 4px solid transparent;
+        transition: background 0.15s;
+      }
+      .accordion-card.open .accordion-header {
+        border-left-color: var(--accent-color);
+        background: #e2e8f0;
+      }
+      .accordion-header:hover { background: #e2e8f0; }
+      .accordion-header h3 { margin: 0; font-size: 0.95rem; color: #0f172a; letter-spacing: -0.01em; }
+
+      .accordion-content { 
+        display: none; 
+        padding: 24px; 
+        background: #ffffff; 
+        border-top: 1px solid var(--border-color);
+      }
       .accordion-card.open .accordion-content { display: block; }
-      .accordion-card.open .accordion-header { border-bottom: 1px solid #eee; background: #eef5fb; }
 
-      /* 保存ボタンの強調アニメーション用クラス */
-  @keyframes pulseAttention {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
-    50% { transform: scale(1.05); box-shadow: 0 0 10px 5px rgba(231, 76, 60, 0.5); background: #e74c3c !important; }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-  }
-
-  .save-btn.unsaved {
-    background: #e74c3c !important; /* 未保存時は赤系に変える */
-    animation: pulseAttention 1.5s infinite;
-  }
+      @keyframes pulseAttention {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
+        50% { transform: scale(1.02); box-shadow: 0 0 8px 3px rgba(225, 29, 72, 0.3); background: #be123c !important; }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+      }
+      .save-btn.unsaved {
+        background: var(--danger-color) !important;
+        animation: pulseAttention 1.5s infinite;
+      }
     </style>
   </head>
 
   <body>
-    <h2>🛠️ 管理者ダッシュボード</h2>
+    <!-- ヘッダーエリア（タイトル ＆ スタッフ管理ボタン） -->
+    <div class="header-container">
+      <h2>🛠️ 管理者ダッシュボード</h2>
+      <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openStaffModal()">⚙️ スタッフ管理・登録</button>
+    </div>
     
     <!-- 勤怠未提出者アラートカード（常時表示） -->
-    <div class="card" style="border: 1px solid #e74c3c; background: #fdfefe;">
+    <div class="card" style="border-left: 4px solid var(--danger-color);">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-        <h3 style="margin: 0; color: #c0392b;">⚠️ 勤怠未提出者アラート（過去1か月間）</h3>
-        <button type="button" class="secondary" style="background: #e67e22; margin-top: 0; padding: 4px 8px; font-size: 0.75rem;" onclick="openReminderPreview()">📢 未提出者にリマインドを送る</button>
+        <h3 style="margin: 0; color: var(--danger-color); font-size: 0.85rem; font-weight: 700;">⚠️ 勤怠未提出者アラート（過去1か月間）</h3>
+        <button type="button" class="secondary" style="margin-top: 0; padding: 5px 10px; font-size: 0.75rem;" onclick="openReminderPreview()">📢 未提出者にリマインドを送る</button>
       </div>
-      <p style="font-size: 0.75rem; color: #666; margin: 0 0 8px 0;">💡 過去30日間のうち、シフト予定があるのにまだ勤怠申請が提出されていないスタッフ一覧です。申請されると自動で消えます。</p>
-      <div id="pendingStaffContainer">
-        <div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">確認中...</div>
+      <p style="font-size: 0.75rem; color: var(--text-sub); margin: 6px 0 0 0;">💡 過去30日間のうち、シフト予定があるのにまだ勤怠申請が提出されていないスタッフ一覧です。申請されると自動で消えます。</p>
+      <div id="pendingStaffContainer" style="margin-top: 8px;">
+        <div style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 8px;">確認中...</div>
       </div>
     </div>
 
-    <!-- 💡【追加】新着のシフト希望お知らせエリア -->
-    <div class="card" id="shiftNotifCard" style="border: 1px solid #3498db; background: #f0f8ff; display: none;">
-      <h3 style="margin: 0 0 4px 0; color: #2980b9;">📥 新着のシフト希望申請があります</h3>
-      <div id="shiftNotifContainer" style="font-size: 0.85rem; color: #333;">
+    <!-- 新着のシフト希望お知らせエリア -->
+    <div class="card" id="shiftNotifCard" style="border-left: 4px solid var(--accent-color); background: #f8fafc; display: none;">
+      <h3 style="margin: 0 0 4px 0; color: var(--accent-color); font-size: 0.85rem; font-weight: 700;">📥 新着のシフト希望申請があります</h3>
+      <div id="shiftNotifContainer" style="font-size: 0.85rem; color: var(--text-main);">
         読み込み中...
       </div>
     </div>
 
     <!-- アコーディオン 1: シフト予定管理 -->
-    <div class="accordion-card" id="acc-shift">
+    <div class="accordion-card open" id="acc-shift">
       <div class="accordion-header" onclick="toggleAccordion('acc-shift')">
         <h3>📅 シフト予定管理</h3>
-        <span>▼ 開閉</span>
+        <span style="font-size:0.75rem; color:var(--text-sub); font-weight:600;">▼ 開閉</span>
       </div>
       <div class="accordion-content">
         <div class="calendar-controls">
           <div class="calendar-controls-left">
-            <input type="month" id="calendarMonth" onchange="loadCalendar()" style="width: 140px; padding: 4px; margin-top:0;">
+            <input type="month" id="calendarMonth" onchange="loadCalendar()" style="width: 150px; padding: 7px; margin-top:0;">
             <div class="view-tabs">
               <button id="tabGrid" class="view-tab-btn active" onclick="switchView('grid')">📅 格子カレンダー</button>
               <button id="tabList" class="view-tab-btn" onclick="switchView('list')">📋 縦並びリスト</button>
             </div>
           </div>
           <div class="calendar-controls-right">
-            <button class="print-btn-a3" onclick="openPrintPreview('A3')">🖨️ A3横 印刷</button>
-            <button class="print-btn-a4" onclick="openPrintPreview('A4')">🖨️ A4横 印刷</button>
+            <button class="secondary" onclick="openPrintPreview('A3')">🖨️ A3横 印刷</button>
+            <button class="secondary" onclick="openPrintPreview('A4')">🖨️ A4横 印刷</button>
           </div>
         </div>
 
-        <div class="card" style="border: 1px dashed #e67e22; background: #fdfefe; margin-bottom: 8px;">
-          <h3 style="font-size:0.85rem;">📌 よく使う予定パレット（来客・全体予定など）</h3>
+        <div class="card" style="border: 1px dashed var(--border-color); background: #f8fafc; margin-bottom: 16px; padding: 14px;">
+          <h3 style="font-size: 0.75rem; margin-bottom: 6px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em;">📌 よく使う予定パレット（来客・全体予定など）</h3>
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="freeItemText" placeholder="例: 来客予定, 会議, 清掃日..." style="flex-grow: 1; margin-top:0;">
-            <button type="button" class="secondary" style="margin-top:0; background: #e67e22;" onclick="addFreeItemPalette()">パレットに追加</button>
+            <input type="text" id="freeItemText" placeholder="例: 来客予定, 会議, 清掃日..." style="flex-grow: 1; margin-top:0; padding: 7px 10px;">
+            <button type="button" class="secondary" style="margin-top:0; background: #0f172a; color: #fff; border: none;" onclick="addFreeItemPalette()">パレットに追加</button>
           </div>
         </div>
 
         <div class="sticky-top-area">
           <div class="top-grid-container">
             <div class="left-chips-column">
-              <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fff9e6; border: 1px solid #ffeeba; padding: 3px 6px; border-radius: 4px;">
-                <span style="font-size:6pt; color:#777;">登録された予定はありません</span>
+              <div id="stickyFreeChipsContainer" class="staff-chips" style="background: #fffbeb; border: 1px solid #fef3c7; padding: 8px 12px; border-radius: 8px;">
+                <span style="font-size:6pt; color:var(--text-sub);">登録された予定はありません</span>
               </div>
-              <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f0f4f8; border: 1px solid #d0e1f9; padding: 3px 6px; border-radius: 4px;">
-                <span style="font-size:6pt; color:#777;">読み込み中...</span>
+              <div id="stickyStaffChipsContainer" class="staff-chips" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 8px;">
+                <span style="font-size:6pt; color:var(--text-sub);">読み込み中...</span>
               </div>
             </div>
             <div class="right-action-column">
-<button class="save-btn" id="saveButton" onclick="saveAllChanges()">💾 変更内容を保存する</button>            </div>
+              <button class="save-btn" id="saveButton" onclick="saveAllChanges()">💾 変更内容を保存する</button>
+            </div>
           </div>
         </div>
 
-        <p style="font-size: 0.75rem; color: #888; margin: 8px 0 8px 0;">💡 スマホ・PC共通：上のパレットから**チップをタップして選択**し、配置したい日付枠をタップしてください。</p>
+        <p style="font-size: 0.75rem; color: var(--text-sub); margin: 12px 0 12px 0;">💡 スマホ・PC共通：上のパレットから**チップをタップして選択**し、配置したい日付枠をタップしてください。</p>
 
         <div class="cal-grid" id="calendarGrid">
           <div class="cal-header-cell">日</div>
@@ -330,15 +354,15 @@
           <div class="cal-header-cell">土</div>
         </div>
 
-        <div id="calendarList" class="list-view-container" style="display: none;"></div>
+        <div id="calendarList" class="list-view-container" style="display: none; margin-top: 12px;"></div>
       </div>
     </div>
 
-    <!-- 💡【アコーディオン 2】月半期別 勤怠集計 -->
+    <!-- アコーディオン 2: 月半期別 勤怠集計 -->
     <div class="accordion-card" id="acc-summary">
       <div class="accordion-header" onclick="toggleAccordion('acc-summary')">
         <h3>📊 月半期別 勤怠集計＆詳細確認</h3>
-        <span>▼ 開閉</span>
+        <span style="font-size:0.75rem; color:var(--text-sub); font-weight:600;">▼ 開閉</span>
       </div>
       <div class="accordion-content">
         <div class="flex-row">
@@ -349,76 +373,16 @@
           <button type="button" onclick="setPeriod('first')">📅 今月 前半 (1日〜15日)</button>
           <button type="button" onclick="setPeriod('second')">📅 今月 後半 (16日〜末日)</button>
         </div>
-        <button class="search-btn" onclick="fetchSummary()">この期間で集計する</button>
-        <div id="summaryCardContainer" style="margin-top: 6px;"><div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div></div>
+        <button type="button" style="width:100%; margin-top:12px;" onclick="fetchSummary()">この期間で集計する</button>
+        <div id="summaryCardContainer" style="margin-top: 12px;"><div style="text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;">集計中...</div></div>
       </div>
     </div>
 
-<!-- 💡 スタッフのLINE ID取得の案内カード -->
-    <div class="card" style="border: 1px solid #27ae60; background: #f4fcf7;">
-      <h3 style="margin-top: 0; color: #27ae60;">📱 スタッフのLINE ID取得の案内</h3>
-      <p style="font-size: 0.8rem; color: #555; margin-bottom: 8px;">スタッフに自分のLINE IDを調べる際、以下の案内文とQRコードを共有してください。</p>
-      
-      <!-- アカウント選択プルダウン -->
-      <label style="margin-top: 4px;">案内するLINEアカウントを選択:</label>
-      <select id="targetAccountSelect" onchange="updateAccountQrGuide()" style="margin-bottom: 8px; font-weight: bold; color: #2c3e50;">
-        <option value="">読み込み中...</option>
-      </select>
-
-      <label>スタッフへ送る案内文（コピーして使用）:</label>
-      <textarea id="lineGuideText" rows="4" readonly style="width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; background: #fff; resize: none;"></textarea>
-
-      <!-- QRコード表示エリア -->
-      <div style="margin-top: 10px; text-align: center;">
-        <div id="qrCodeDisplayBox" style="display: inline-block; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
-          <span style="font-size: 0.75rem; color: #777;">アカウントを選択するとQRコードが表示されます</span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 💡【アコーディオン 3】新規スタッフ登録 -->
-    <div class="accordion-card" id="acc-reg">
-      <div class="accordion-header" onclick="toggleAccordion('acc-reg')">
-        <h3>➕ 新規スタッフ登録 ＆ URL発行</h3>
-        <span>▼ 開閉</span>
-      </div>
-      <div class="accordion-content">
-        <form id="staffForm">
-          <label>スタッフ氏名</label>
-          <input type="text" id="staffName" placeholder="例: 山田 花子" required>
-          
-          <label>カレンダー表示文字 (1〜4文字)</label>
-          <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
-
-          <label>割当LINEアカウント</label>
-          <select id="assignedAccount"></select>
-          
-          <button type="button" onclick="registerStaff()">スタッフを登録して専用URLを発行</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- 💡【アコーディオン 4】登録済みスタッフ一覧 -->
-    <div class="accordion-card" id="acc-list">
-      <div class="accordion-header" onclick="toggleAccordion('acc-list')">
-        <h3>📋 登録済みスタッフ一覧</h3>
-        <span>▼ 開閉</span>
-      </div>
-      <div class="accordion-content">
-        <div style="overflow-x: auto;">
-          <table>
-            <thead><tr><th>名前</th><th>アカウント</th><th>表示文字</th><th>個別URL</th><th style="text-align: center;">ステータス</th><th>操作</th></tr></thead>
-            <tbody id="staffTableBody"><tr><td colspan="6" style="text-align: center;">読み込み中...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- 💡【アコーディオン 5】LINE連絡送信 -->
+    <!-- アコーディオン 3: LINE連絡送信 -->
     <div class="accordion-card" id="acc-line-send">
       <div class="accordion-header" onclick="toggleAccordion('acc-line-send')">
         <h3>📤 LINE連絡送信（一斉・個別）</h3>
-        <span>▼ 開閉</span>
+        <span style="font-size:0.75rem; color:var(--text-sub); font-weight:600;">▼ 開閉</span>
       </div>
       <div class="accordion-content">
         <label>送信先</label>
@@ -427,63 +391,126 @@
           <option value="individual">個別スタッフを指定</option>
         </select>
 
-        <div id="individualSelectContainer" style="display: none;">
+        <div id="individualSelectContainer" style="display: none; margin-top: 8px;">
           <label>対象スタッフ</label>
           <select id="lineTargetStaffId"></select>
         </div>
 
-        <label>メッセージ本文</label>
-        <textarea id="lineMessageText" rows="4" placeholder="スタッフへ送るメッセージを入力してください..." style="width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; resize: vertical;"></textarea>
+        <label>メッセージ本文（LINE風プレビュー）</label>
+        <div class="line-chat-box">
+          <div style="font-size: 0.7rem; color: #fff; margin-bottom: 4px; font-weight: 600; text-align: right;">💬 トーク送信プレビュー</div>
+          <div class="line-bubble">
+            <textarea id="lineMessageText" placeholder="スタッフへ送るメッセージを入力してください..."></textarea>
+          </div>
+        </div>
 
-        <button type="button" class="btn-green" style="background: #27ae60; margin-top: 10px;" onclick="sendLineMessage()">LINEメッセージを送信する</button>
+        <button type="button" style="margin-top: 12px; width: 100%; background: var(--line-green);" onclick="sendLineMessage()">💚 LINEメッセージを送信する</button>
       </div>
     </div>
 
-    <!-- 💡【アコーディオン 6】LINE連絡 送信履歴 -->
+    <!-- アコーディオン 4: LINE連絡 送信履歴 -->
     <div class="accordion-card" id="acc-line-hist">
       <div class="accordion-header" onclick="toggleAccordion('acc-line-hist')">
         <h3>📜 LINE連絡 送信履歴</h3>
-        <span>▼ 開閉</span>
+        <span style="font-size:0.75rem; color:var(--text-sub); font-weight:600;">▼ 開閉</span>
       </div>
       <div class="accordion-content">
         <div id="lineHistoryContainer" class="history-box">
-          <div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">履歴を読み込み中...</div>
+          <div style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 10px;">履歴を読み込み中...</div>
         </div>
       </div>
     </div>
 
-    <!-- 💡【追加】リマインド確認・プレビュー用モーダル -->
+    <!-- ⚙️ スタッフ管理・登録 モーダルポップアップ（タブ順入替済み） -->
+    <div id="staffManagementModal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 620px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
+          <h4 style="margin: 0;">⚙️ スタッフ管理・新規登録</h4>
+          <button type="button" class="secondary" onclick="closeStaffModal()">✕ 閉じる</button>
+        </div>
+
+        <!-- タブ切り替え（「一覧」「LINE ID案内」「新規登録」の順） -->
+        <div class="view-tabs" style="margin-bottom: 16px;">
+          <button id="modalTabList" class="view-tab-btn active" onclick="switchModalTab('list')">📋 登録済みスタッフ一覧</button>
+          <button id="modalTabGuide" class="view-tab-btn" onclick="switchModalTab('guide')">📱 LINE ID案内・QR</button>
+          <button id="modalTabReg" class="view-tab-btn" onclick="switchModalTab('reg')">➕ 新規スタッフ登録</button>
+        </div>
+
+        <!-- タブ1: 登録済みスタッフ一覧 -->
+        <div id="modalViewList">
+          <div style="overflow-x: auto; max-height: 400px;">
+            <table>
+              <thead><tr><th>名前</th><th>アカウント</th><th>表示文字</th><th>個別URL</th><th style="text-align: center;">ステータス</th><th>操作</th></tr></thead>
+              <tbody id="staffTableBody"><tr><td colspan="6" style="text-align: center;">読み込み中...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- タブ2: LINE ID取得の案内・QRコード -->
+        <div id="modalViewGuide" style="display: none;">
+          <label style="margin-top: 0;">案内するLINEアカウントを選択:</label>
+          <select id="targetAccountSelect" onchange="updateAccountQrGuide()" style="margin-bottom: 8px; font-weight: 600;"></select>
+
+          <label>スタッフへ送る案内文（コピーして使用）:</label>
+          <textarea id="lineGuideText" rows="4" readonly style="background: #f8fafc; resize: none;"></textarea>
+
+          <div style="margin-top: 12px; text-align: center;">
+            <div id="qrCodeDisplayBox" style="display: inline-block; padding: 10px; background: #fff; border: 1px solid var(--border-color); border-radius: 8px;">
+              <span style="font-size: 0.75rem; color: var(--text-sub);">アカウントを選択するとQRコードが表示されます</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- タブ3: 新規スタッフ登録（自動連動なし） -->
+        <div id="modalViewReg" style="display: none;">
+          <form id="staffForm">
+            <label>スタッフ氏名</label>
+            <input type="text" id="staffName" placeholder="例: 山田 花子" required>
+            
+            <label>カレンダー表示文字 (1〜4文字)</label>
+            <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
+
+            <label>割当LINEアカウント</label>
+            <select id="assignedAccount"></select>
+            
+            <button type="button" style="margin-top: 16px; width: 100%;" onclick="registerStaff()">スタッフを登録して専用URLを発行</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- リマインド確認用モーダル -->
     <div id="reminderModal" class="modal-overlay">
-      <div class="modal-content" style="width: 380px; text-align: left;">
-        <h4 style="margin-top: 0; color: #2c3e50;">📢 LINEリマインドの確認・送信</h4>
-        <p style="font-size: 0.8rem; color: #555; margin: 6px 0;">以下の未提出者を確認し、問題なければ送信ボタンを押してください。</p>
+      <div class="modal-content" style="width: 400px; text-align: left;">
+        <h4 style="margin-top: 0;">📢 LINEリマインドの確認・送信</h4>
+        <p style="font-size: 0.8rem; color: var(--text-sub); margin: 6px 0 12px 0;">以下の未提出者を確認し、問題なければ送信ボタンを押してください。</p>
         
         <label>送信対象スタッフ一覧:</label>
-        <div id="reminderTargetsBox" style="max-height: 100px; overflow-y: auto; border: 1px solid #ddd; padding: 6px; font-size: 0.8rem; background: #f9f9f9; border-radius: 4px; margin-bottom: 8px;">
+        <div id="reminderTargetsBox" style="max-height: 120px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; font-size: 0.8rem; background: #f8fafc; border-radius: 6px; margin-bottom: 12px;">
           読み込み中...
         </div>
 
         <label>メッセージ本文 (編集可能):</label>
-        <textarea id="reminderMessageText" rows="4" style="width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; resize: vertical;">お疲れ様です！
+        <textarea id="reminderMessageText" rows="4" style="resize: vertical;">お疲れ様です！
 過去の勤務について、まだ勤怠・交通費の申請が提出されていない日がございます。
 お手数ですが、スタッフポータルより申請のご入力をお願いいたします！</textarea>
 
-        <div class="modal-btns" style="margin-top: 12px;">
-          <button type="button" class="btn-green" style="background: #27ae60; margin-top:0;" onclick="confirmAndSendReminder()">🚀 確認してLINE一斉送信</button>
-          <button type="button" class="btn-cancel" style="background: #95a5a6; margin-top:0;" onclick="closeReminderModal()">キャンセル</button>
+        <div class="modal-btns" style="margin-top: 16px;">
+          <button type="button" style="background: var(--success-color);" onclick="confirmAndSendReminder()">🚀 確認して一斉送信</button>
+          <button type="button" class="secondary" style="width:100%; text-align:center;" onclick="closeReminderModal()">キャンセル</button>
         </div>
       </div>
     </div>
 
-<!-- 💡【追加】シフト配置選択用モーダル -->
+    <!-- シフト配置選択用モーダル -->
     <div id="shiftModal" class="modal-overlay">
-      <div class="modal-content">
+      <div class="modal-content" style="max-width: 340px; text-align: center;">
         <h4 id="modalTitle">シフト配置</h4>
-        <p id="modalDesc" style="font-size: 0.85rem; color: #666; margin: 8px 0;">配置方法を選択してください。</p>
+        <p id="modalDesc" style="font-size: 0.85rem; color: var(--text-sub); margin: 8px 0 16px 0;">配置方法を選択してください。</p>
         <div class="modal-btns">
-          <button type="button" class="btn-single" onclick="confirmPlacement('single')">この日だけ配置する</button>
-          <button type="button" class="btn-weekly" onclick="confirmPlacement('weekly')">今月中の同曜日を一括配置</button>
-          <button type="button" class="btn-cancel" onclick="closeModal()">キャンセル</button>
+          <button type="button" style="background: var(--accent-color);" onclick="confirmPlacement('single')">この日だけ配置する</button>
+          <button type="button" style="background: var(--success-color);" onclick="confirmPlacement('weekly')">今月中の同曜日を一括配置</button>
+          <button type="button" class="secondary" style="width:100%;" onclick="closeModal()">キャンセル</button>
         </div>
       </div>
     </div>
@@ -508,13 +535,36 @@
         renderFreePalette();
         loadStaffList();
         loadAccountOptions();
-        loadAccountQrOptions(); // 💡 ここにアカウント詳細＆QR読み込み関数を追加！
+        loadAccountQrOptions();
         setPeriod('first');
         fetchSummary();
         loadLineHistory();
         loadPendingStaff();
         loadShiftNotifications();
       };
+
+      function openStaffModal() { document.getElementById('staffManagementModal').style.display = 'flex'; }
+      function closeStaffModal() { document.getElementById('staffManagementModal').style.display = 'none'; }
+
+      function switchModalTab(tab) {
+        document.getElementById('modalTabList').classList.remove('active');
+        document.getElementById('modalTabGuide').classList.remove('active');
+        document.getElementById('modalTabReg').classList.remove('active');
+        document.getElementById('modalViewList').style.display = 'none';
+        document.getElementById('modalViewGuide').style.display = 'none';
+        document.getElementById('modalViewReg').style.display = 'none';
+
+        if (tab === 'list') {
+          document.getElementById('modalTabList').classList.add('active');
+          document.getElementById('modalViewList').style.display = 'block';
+        } else if (tab === 'guide') {
+          document.getElementById('modalTabGuide').classList.add('active');
+          document.getElementById('modalViewGuide').style.display = 'block';
+        } else if (tab === 'reg') {
+          document.getElementById('modalTabReg').classList.add('active');
+          document.getElementById('modalViewReg').style.display = 'block';
+        }
+      }
 
       function switchView(mode) {
         currentViewMode = mode;
@@ -537,31 +587,25 @@
         renderCurrentView();
       }
 
-var cachedAccountDetails = [];
+      var cachedAccountDetails = [];
 
-      // 🔄 アカウント詳細を読み込んでプルダウンを初期化
       function loadAccountQrOptions() {
         google.script.run.withSuccessHandler(function(accounts) {
           cachedAccountDetails = accounts || [];
           var select = document.getElementById('targetAccountSelect');
-          
           if (cachedAccountDetails.length === 0) {
             select.innerHTML = '<option value="">アカウントが登録されていません</option>';
             return;
           }
-
           var html = '';
           cachedAccountDetails.forEach(function(acc, idx) {
             html += '<option value="' + idx + '">' + escapeHtml(acc.name) + '</option>';
           });
           select.innerHTML = html;
-          
-          // 最初のアカウントを選択状態にして表示を更新
           updateAccountQrGuide();
         }).getAccountDetailsList();
       }
 
-      // 🔄 選択されたアカウントに応じて案内文とQRコードを切り替える
       function updateAccountQrGuide() {
         var select = document.getElementById('targetAccountSelect');
         var idx = select.value;
@@ -570,7 +614,6 @@ var cachedAccountDetails = [];
         var acc = cachedAccountDetails[idx];
         var addUrl = acc.addUrl || "【友だち追加URL未設定】";
         
-        // 案内文の生成
         var guideText = 
           "お疲れ様です！\n" +
           "勤怠管理システム連携のため、以下のリンクから「" + acc.name + "」を友だち追加し、トーク画面で「登録」と送信してご自身のLINE IDを取得してください。\n\n" +
@@ -578,16 +621,13 @@ var cachedAccountDetails = [];
 
         document.getElementById('lineGuideText').value = guideText;
 
-        // QRコード表示の更新（qrUrlがある場合は画像を表示、ない場合は案内を表示）
         var qrBox = document.getElementById('qrCodeDisplayBox');
         if (acc.qrUrl) {
-          qrBox.innerHTML = '<img src="' + escapeHtml(acc.qrUrl) + '" alt="QRコード" style="width: 130px; height: 130px; display: block; margin: 0 auto;">' +
-                            '<span style="font-size: 0.7rem; color: #555; display: block; margin-top: 4px;">' + escapeHtml(acc.name) + ' のQRコード</span>';
+          qrBox.innerHTML = '<img src="' + escapeHtml(acc.qrUrl) + '" alt="QRコード" style="width: 120px; height: 120px; display: block; margin: 0 auto;">' +
+                            '<span style="font-size: 0.7rem; color: var(--text-sub); display: block; margin-top: 4px;">' + escapeHtml(acc.name) + ' のQRコード</span>';
         } else {
-          qrBox.innerHTML = '<div style="padding: 15px; font-size: 0.75rem; color: #666; background: #fafafa;">' +
-                            '<strong>' + escapeHtml(acc.name) + '</strong><br>' +
-                            '※このアカウントのQRコード画像URLが未登録です<br>' +
-                            '<span style="color: #999; font-size: 0.7rem;">（LINE Developersの管理画面等からQR画像を保存して紐付けることができます）</span>' +
+          qrBox.innerHTML = '<div style="padding: 10px; font-size: 0.75rem; color: var(--text-sub); background: #f8fafc;">' +
+                            '<strong>' + escapeHtml(acc.name) + '</strong><br>※QRコード画像URLが未登録です' +
                             '</div>';
         }
       }
@@ -603,7 +643,6 @@ var cachedAccountDetails = [];
         
         var cellMinHeight = (size === 'A4') ? '115px' : '175px';
         var fontSizeNum = (size === 'A4') ? '0.8rem' : '1rem';
-        var fontSizeBadge = (size === 'A4') ? '6pt' : '6pt';
 
         var printDoc = printWin.document;
         printDoc.open();
@@ -613,19 +652,17 @@ var cachedAccountDetails = [];
         printDoc.write('body { font-family: sans-serif; margin: 0; padding: 5px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; box-sizing: border-box; }');
         printDoc.write('h2 { text-align: center; margin: 0 0 10px 0; font-size: 1.5rem; }');
         printDoc.write('.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; width: 100%; max-width: 100%; flex-grow: 1; }');
-        printDoc.write('.cal-header-cell { text-align: center; font-weight: bold; font-size: 0.95rem; padding: 8px 4px; background: #eaeded; border-radius: 4px; }');
-        printDoc.write('.cal-header-cell:nth-child(1) { color: #c0392b; }');
-        printDoc.write('.cal-header-cell:nth-child(7) { color: #2980b9; }');
-        printDoc.write('.cal-cell { min-height: ' + cellMinHeight + '; background: #fff; border: 1px solid #dcdcdc; border-radius: 4px; padding: 6px; box-sizing: border-box; position: relative; }');
-        printDoc.write('.cal-cell.other-month { background: #f9f9f9; opacity: 0.3; }');
-        printDoc.write('.cal-cell.closed-day { background: #e5e7eb !important; border: 1px dashed #9ca3af !important; }');
+        printDoc.write('.cal-header-cell { text-align: center; font-weight: bold; font-size: 0.95rem; padding: 8px 4px; background: #f1f5f9; border-radius: 4px; }');
+        printDoc.write('.cal-header-cell:nth-child(1) { color: #e11d48; }');
+        printDoc.write('.cal-header-cell:nth-child(7) { color: #2563eb; }');
+        printDoc.write('.cal-cell { min-height: ' + cellMinHeight + '; background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px; box-sizing: border-box; position: relative; }');
+        printDoc.write('.cal-cell.other-month { background: #f8fafc; opacity: 0.3; }');
+        printDoc.write('.cal-cell.closed-day { background: #f1f5f9 !important; border: 1px dashed #cbd5e1 !important; }');
         printDoc.write('.cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }');
-        printDoc.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #555; }');
-        printDoc.write('.cal-date-num.sun-or-hol { color: #c0392b; }');
-        printDoc.write('.holiday-name { font-size: 5pt !important; color: #c0392b; font-weight: bold; }');
-        printDoc.write('.closed-label { font-size: 0.6rem; color: #4b5563; font-weight: bold; background: #d1d5db; padding: 1px 4px; border-radius: 3px; }');
-        printDoc.write('.staff-circle-badge { background: #27ae60 !important; color: white !important; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 6pt !important; font-weight: bold; }');
-        printDoc.write('.free-badge { background: #e67e22 !important; color: white !important; font-size: 6pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; }');
+        printDoc.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #475569; }');
+        printDoc.write('.cal-date-num.sun-or-hol { color: #e11d48; }');
+        printDoc.write('.staff-circle-badge { background: #059669 !important; color: white !important; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 6pt !important; font-weight: bold; }');
+        printDoc.write('.free-badge { background: #d97706 !important; color: white !important; font-size: 6pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; }');
         printDoc.write('.del-x { display: none; }');
         printDoc.write('</style></head><body>');
         printDoc.write('<h2>' + titleText + '</h2>');
@@ -636,9 +673,6 @@ var cachedAccountDetails = [];
         setTimeout(function() { printWin.print(); printWin.close(); }, 500);
       }
 
-
-
-// // 💡 変更があったときにボタンを強調状態にする関数
       function markAsUnsaved() {
         var saveBtn = document.getElementById('saveButton');
         if (saveBtn) {
@@ -664,18 +698,16 @@ var cachedAccountDetails = [];
         var stickyContainer = document.getElementById('stickyFreeChipsContainer');
         var html = '';
         if (!cachedFreePalette || cachedFreePalette.length === 0) {
-          html = '<span style="font-size:6pt; color:#777;">登録された予定はありません</span>';
+          html = '<span style="font-size:6pt; color:var(--text-sub);">登録された予定はありません</span>';
         } else {
           cachedFreePalette.forEach(function(title, idx) {
-            html += '<div class="staff-chip" style="background: #e67e22;" draggable="true" ondragstart="onDragStartFree(event, \'' + escapeHtml(title) + '\')" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
+            html += '<div class="staff-chip" style="background: #d97706;" draggable="true" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
             html += '📌 ' + escapeHtml(title);
             html += ' <span onclick="event.stopPropagation(); removeFreePalette(' + idx + ')" style="font-size:6pt; margin-left:3px; opacity:0.8;">×</span>';
             html += '</div>';
           });
         }
-        if (stickyContainer) {
-          stickyContainer.innerHTML = html;
-        }
+        if (stickyContainer) stickyContainer.innerHTML = html;
       }
 
       function removeFreePalette(index) {
@@ -687,13 +719,10 @@ var cachedAccountDetails = [];
 
       function onDrop(event, dateStr) {
         event.preventDefault();
-        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) {
-          el.classList.remove('drag-over');
-        });
+        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
         var dataStr = event.dataTransfer.getData('text/plain');
         if (!dataStr) return;
         var data = JSON.parse(dataStr);
-
         if (data.type === 'free') {
           var tempId = "local_free_" + Math.random();
           cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
@@ -716,11 +745,8 @@ var cachedAccountDetails = [];
           }
         } else {
           var index = cachedClosedDays.indexOf(dateStr);
-          if (index !== -1) {
-            cachedClosedDays.splice(index, 1);
-          } else {
-            cachedClosedDays.push(dateStr);
-          }
+          if (index !== -1) { cachedClosedDays.splice(index, 1); } 
+          else { cachedClosedDays.push(dateStr); }
           renderCurrentView();
           markAsUnsaved();
         }
@@ -730,7 +756,6 @@ var cachedAccountDetails = [];
         if (!pendingPlacement) return;
         var p = pendingPlacement;
         closeModal();
-
         if (mode === 'single') {
           var tempId = "local_" + Math.random();
           if (!cachedShiftsData.some(function(s) { return s.workDate === p.dateStr && s.staffId === p.staffId; })) {
@@ -776,14 +801,11 @@ var cachedAccountDetails = [];
             if (res.success) {
               alert(res.message);
               loadCalendar();
-              
-              // 保存成功したらボタンの未保存強調を解除する
               var saveBtn = document.getElementById('saveButton');
               if (saveBtn) {
                 saveBtn.classList.remove('unsaved');
                 saveBtn.innerText = '💾 変更内容を保存する';
               }
-
             } else {
               alert('保存失敗: ' + res.message);
             }
@@ -810,15 +832,12 @@ var cachedAccountDetails = [];
         google.script.run
           .withSuccessHandler(function(holidayRes) {
             cachedHolidaysMap = holidayRes.success ? holidayRes.holidays : {};
-            
             google.script.run
               .withSuccessHandler(function(closedRes) {
                 cachedClosedDays = closedRes.success ? closedRes.closedDays : [];
-                
                 google.script.run
                   .withSuccessHandler(function(shiftRes) {
                     cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
-                    
                     google.script.run
                       .withSuccessHandler(function(freeRes) {
                         cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
@@ -834,11 +853,8 @@ var cachedAccountDetails = [];
       }
 
       function renderCurrentView() {
-        if (currentViewMode === 'grid') {
-          renderGridCalendar();
-        } else {
-          renderListCalendar();
-        }
+        if (currentViewMode === 'grid') { renderGridCalendar(); } 
+        else { renderListCalendar(); }
       }
 
       function renderGridCalendar() {
@@ -900,16 +916,12 @@ var cachedAccountDetails = [];
           html += '</div>';
 
           html += '<div class="cal-section-shift">';
-          
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
               var dispChar = sh.staffName.substring(0, 1);
               for (var s = 0; s < cachedStaffList.length; s++) {
-                if (cachedStaffList[s].staffId === sh.staffId) {
-                  dispChar = cachedStaffList[s].displayChar;
-                  break;
-                }
+                if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
               }
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
@@ -929,7 +941,6 @@ var cachedAccountDetails = [];
             });
           }
           html += '</div>';
-
           html += '</div>';
         }
 
@@ -938,7 +949,6 @@ var cachedAccountDetails = [];
         for (var n = 1; n <= remainingCells; n++) {
           html += '<div class="cal-cell other-month"><div class="cal-date-num">' + n + '</div></div>';
         }
-
         grid.innerHTML = html;
       }
 
@@ -988,20 +998,14 @@ var cachedAccountDetails = [];
 
           html += '<div class="' + rowClass + '" ondragover="onDragOver(event)" ondrop="onDrop(event, \'' + dateStr + '\')" onclick="onCellClick(\'' + dateStr + '\')">';
           html += '<div class="list-date-col' + dateClass + '">' + month + '/' + day + ' (' + dayOfWeekStr + ')' + holidayDisplay + closedDisplay + '</div>';
-          
           html += '<div class="list-badge-col">';
-
           html += '<div class="list-section-shift">';
-          
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
               var dispChar = sh.staffName.substring(0, 1);
               for (var s = 0; s < cachedStaffList.length; s++) {
-                if (cachedStaffList[s].staffId === sh.staffId) {
-                  dispChar = cachedStaffList[s].displayChar;
-                  break;
-                }
+                if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
               }
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
               html += '<span>' + escapeHtml(dispChar) + '</span>';
@@ -1010,7 +1014,6 @@ var cachedAccountDetails = [];
             });
           }
           html += '</div>';
-
           html += '<div class="list-section-free">';
           if (freeMap[dateStr]) {
             freeMap[dateStr].forEach(function(fs) {
@@ -1021,11 +1024,8 @@ var cachedAccountDetails = [];
             });
           }
           html += '</div>';
-
-          html += '</div>'; 
-          html += '</div>'; 
+          html += '</div></div>';
         }
-
         listContainer.innerHTML = html;
       }
 
@@ -1058,21 +1058,21 @@ var cachedAccountDetails = [];
         var start = document.getElementById('startDate').value;
         var end = document.getElementById('endDate').value;
         var container = document.getElementById('summaryCardContainer');
-        container.innerHTML = '<div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">集計中...</div>';
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;">集計中...</div>';
         
         google.script.run.withSuccessHandler(function(res) {
-          if (!res.success) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: red; font-size: 0.85rem;">' + res.message + '</div>'; return; }
+          if (!res.success) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger-color); font-size: 0.85rem;">' + res.message + '</div>'; return; }
           var list = res.summary;
-          if (list.length === 0) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: #777; font-size: 0.85rem;">スタッフデータがありません</div>'; return; }
+          if (list.length === 0) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;">スタッフデータがありません</div>'; return; }
           var html = '';
           list.forEach(function(item) {
             html += '<div class="staff-card" id="card-' + item.staffId + '">';
             html += '<div class="staff-header" onclick="toggleCard(\'card-' + item.staffId + '\')">';
             html += '<div class="staff-info"><h4>' + escapeHtml(item.staffName) + ' (' + escapeHtml(item.assignedAccount) + ')</h4><p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p></div>';
-            html += '<div class="staff-summary-badge"><div class="badge-main">交通費: ¥' + item.totalCost.toLocaleString() + '</div><div class="badge-sub">休憩合計: ' + item.totalBreakHoursStr + '</div><div style="font-size: 0.7rem; color: #888; margin-top:2px;">詳細 ▼</div></div></div>';
+            html += '<div class="staff-summary-badge"><div class="badge-main">交通費: ¥' + item.totalCost.toLocaleString() + '</div><div class="badge-sub">休憩合計: ' + item.totalBreakHoursStr + '</div><div style="font-size: 0.7rem; color: var(--text-sub); margin-top:2px;">詳細 ▼</div></div></div>';
             html += '<div class="staff-details">';
             if (item.records.length === 0) {
-              html += '<p style="font-size:0.8rem; color:#888; text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
+              html += '<p style="font-size:0.8rem; color:var(--text-sub); text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
             } else {
               html += '<table><thead><tr><th>勤務日</th><th>時間</th><th>休憩</th><th>交通費</th></tr></thead><tbody>';
               item.records.forEach(function(rec) {
@@ -1086,20 +1086,8 @@ var cachedAccountDetails = [];
         }).getKintaiSummary(start, end);
       }
 
-      function toggleCard(cardId) { 
-        document.getElementById(cardId).classList.toggle('open'); 
-      }
+      function toggleCard(cardId) { document.getElementById(cardId).classList.toggle('open'); }
 
-      // 💡 スタッフ氏名から最初の1文字を表示文字に自動反映する補助関数
-      function autoFillDisplayChar() {
-        var nameVal = document.getElementById('staffName').value;
-        var charInput = document.getElementById('displayChar');
-        if (nameVal && !charInput.value) {
-          charInput.value = nameVal.substring(0, 1);
-        }
-      }
-
-     // 💡 新規スタッフ登録（空欄チェック付き）
       function registerStaff() {
         var staffName = document.getElementById('staffName').value.trim();
         var displayChar = document.getElementById('displayChar').value.trim();
@@ -1153,24 +1141,16 @@ var cachedAccountDetails = [];
 
       function updateChar(staffId) {
         var inputVal = document.getElementById('char-' + staffId).value;
-        if (!inputVal) {
-          alert('表示文字を入力してください。');
-          return;
-        }
+        if (!inputVal) { alert('表示文字を入力してください。'); return; }
 
         google.script.run
           .withSuccessHandler(function(res) {
-            if (res.success) {
-              alert(res.message);
-              loadStaffList();
-            } else {
-              alert(res.message);
-            }
+            if (res.success) { alert(res.message); loadStaffList(); } 
+            else { alert(res.message); }
           })
           .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
       }
 
-      // 💡【追加】LINE連絡関連の関数群
       function toggleTargetSelect() {
         var type = document.getElementById('lineTargetType').value;
         var container = document.getElementById('individualSelectContainer');
@@ -1197,11 +1177,7 @@ var cachedAccountDetails = [];
         var targetId = (targetType === 'individual') ? document.getElementById('lineTargetStaffId').value : "";
         var messageText = document.getElementById('lineMessageText').value.trim();
 
-        if (!messageText) {
-          alert('メッセージ本文を入力してください。');
-          return;
-        }
-
+        if (!messageText) { alert('メッセージ本文を入力してください。'); return; }
         if (!confirm('LINEメッセージを送信しますか？')) return;
 
         var btn = event.target;
@@ -1218,11 +1194,7 @@ var cachedAccountDetails = [];
             btn.disabled = false;
             btn.innerText = 'LINEメッセージを送信する';
           })
-          .sendLineMessage({
-            targetType: targetType,
-            targetId: targetId,
-            messageText: messageText
-          });
+          .sendLineMessage({ targetType: targetType, targetId: targetId, messageText: messageText });
       }
 
       function loadLineHistory() {
@@ -1230,10 +1202,9 @@ var cachedAccountDetails = [];
           .withSuccessHandler(function(res) {
             var container = document.getElementById('lineHistoryContainer');
             if (!res.success || res.history.length === 0) {
-              container.innerHTML = '<div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">送信履歴はありません</div>';
+              container.innerHTML = '<div style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 10px;">送信履歴はありません</div>';
               return;
             }
-
             var html = '';
             res.history.forEach(function(item) {
               html += '<div class="history-item">';
@@ -1246,21 +1217,19 @@ var cachedAccountDetails = [];
           .getLineHistory();
       }
 
-      // 💡【追加】未提出者リストを取得して表示する関数
       function loadPendingStaff() {
         var container = document.getElementById('pendingStaffContainer');
-        container.innerHTML = '<div style="text-align: center; color: #777; font-size: 0.85rem; padding: 10px;">確認中...</div>';
+        container.innerHTML = '<div style="text-align: center; color: var(--text-sub); font-size: 0.85rem; padding: 6px;">確認中...</div>';
 
         google.script.run
           .withSuccessHandler(function(res) {
             if (!res.success || res.pendingList.length === 0) {
-              container.innerHTML = '<div style="text-align: center; color: #27ae60; font-size: 0.85rem; padding: 10px; font-weight: bold;">🎉 過去1か月間に未提出のシフトはありません！</div>';
+              container.innerHTML = '<div style="text-align: center; color: var(--success-color); font-size: 0.85rem; padding: 6px; font-weight: 600;">🎉 過去1か月間に未提出のシフトはありません！</div>';
               return;
             }
-
-            var html = '<ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: #c0392b;">';
+            var html = '<ul style="margin: 0; padding-left: 18px; font-size: 0.8rem; color: var(--danger-color);">';
             res.pendingList.forEach(function(staff) {
-              html += '<li style="margin-bottom: 4px;"><strong>' + escapeHtml(staff.staffName) + '</strong> さん（予定日: ' + staff.targetDate + '）</li>';
+              html += '<li style="margin-bottom: 2px;"><strong>' + escapeHtml(staff.staffName) + '</strong> さん（予定日: ' + staff.targetDate + '）</li>';
             });
             html += '</ul>';
             container.innerHTML = html;
@@ -1268,10 +1237,8 @@ var cachedAccountDetails = [];
           .getKintaiPendingStaff();
       }
 
-      // 💡【追加】リマインド対象を保持する変数
       var cachedPendingListForReminder = [];
 
-      // 💡【追加】リマインド確認モーダルを開く
       function openReminderPreview() {
         var box = document.getElementById('reminderTargetsBox');
         box.innerHTML = '読み込み中...';
@@ -1280,54 +1247,32 @@ var cachedAccountDetails = [];
         google.script.run
           .withSuccessHandler(function(res) {
             if (!res.success || res.pendingList.length === 0) {
-              box.innerHTML = '<span style="color: #27ae60; font-weight: bold;">現在、未提出者はいません。</span>';
+              box.innerHTML = '<span style="color: var(--success-color); font-weight: 600;">現在、未提出者はいません。</span>';
               cachedPendingListForReminder = [];
               return;
             }
-
             cachedPendingListForReminder = res.pendingList;
-            
-            // 重複のないスタッフ名をリストアップ
             var uniqueStaffNames = {};
-            res.pendingList.forEach(function(item) {
-              uniqueStaffNames[item.staffName] = true;
-            });
+            res.pendingList.forEach(function(item) { uniqueStaffNames[item.staffName] = true; });
             var namesArr = Object.keys(uniqueStaffNames);
 
             var html = '<ul style="margin: 0; padding-left: 18px;">';
-            namesArr.forEach(function(name) {
-              html += '<li><strong>' + escapeHtml(name) + '</strong> さん</li>';
-            });
+            namesArr.forEach(function(name) { html += '<li><strong>' + escapeHtml(name) + '</strong> さん</li>'; });
             html += '</ul>';
             box.innerHTML = html;
           })
           .getKintaiPendingForReminder();
       }
 
-      // 💡【追加】リマインドモーダルを閉じる
-      function closeReminderModal() {
-        document.getElementById('reminderModal').style.display = 'none';
-      }
+      function closeReminderModal() { document.getElementById('reminderModal').style.display = 'none'; }
 
-      // 💡【追加】確認してリマインドを送信する
       function confirmAndSendReminder() {
-        if (cachedPendingListForReminder.length === 0) {
-          alert('送信対象のスタッフがいません。');
-          closeReminderModal();
-          return;
-        }
-
+        if (cachedPendingListForReminder.length === 0) { alert('送信対象のスタッフがいません。'); closeReminderModal(); return; }
         var messageText = document.getElementById('reminderMessageText').value.trim();
-        if (!messageText) {
-          alert('メッセージ本文を入力してください。');
-          return;
-        }
+        if (!messageText) { alert('メッセージ本文を入力してください。'); return; }
 
-        // ユニークな staffId のリストを作成
         var uniqueStaffIds = {};
-        cachedPendingListForReminder.forEach(function(item) {
-          uniqueStaffIds[item.staffId] = true;
-        });
+        cachedPendingListForReminder.forEach(function(item) { uniqueStaffIds[item.staffId] = true; });
         var targetsArr = Object.keys(uniqueStaffIds);
 
         if (!confirm('未提出のスタッフ（' + targetsArr.length + '名）にリマインドLINEを送信しますか？')) return;
@@ -1339,42 +1284,28 @@ var cachedAccountDetails = [];
         google.script.run
           .withSuccessHandler(function(res) {
             alert(res.message);
-            if (res.success) {
-              closeReminderModal();
-              loadLineHistory(); // 送信履歴を更新
-            }
+            if (res.success) { closeReminderModal(); loadLineHistory(); }
             btn.disabled = false;
-            btn.innerText = '🚀 確認してLINE一斉送信';
+            btn.innerText = '🚀 確認して一斉送信';
           })
-          .sendKintaiReminderLine({
-            targets: targetsArr,
-            messageText: messageText
-          });
+          .sendKintaiReminderLine({ targets: targetsArr, messageText: messageText });
       }
 
-      // 💡 アコーディオンの開閉を切り替える関数
-      function toggleAccordion(cardId) {
-        document.getElementById(cardId).classList.toggle('open');
-      }
+      function toggleAccordion(cardId) { document.getElementById(cardId).classList.toggle('open'); }
 
-      // 💡 新着のシフト希望通知を読み込む関数
       function loadShiftNotifications() {
         var card = document.getElementById('shiftNotifCard');
         var container = document.getElementById('shiftNotifContainer');
 
         google.script.run
           .withSuccessHandler(function(res) {
-            if (!res.success || res.notifications.length === 0) {
-              card.style.display = 'none'; // 未読がなければカード自体を非表示
-              return;
-            }
-
-            card.style.display = 'block'; // 未読があれば表示
+            if (!res.success || res.notifications.length === 0) { card.style.display = 'none'; return; }
+            card.style.display = 'block';
             var html = '';
             res.notifications.forEach(function(item) {
-              html += '<div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 4px; margin-top: 6px; border: 1px solid #bce8f1;">';
-              html += '<span>👤 <strong>' + escapeHtml(item.staffName) + '</strong> さんから <strong>' + escapeHtml(item.yearMonth) + '度</strong> の希望シフトが提出されました <span style="font-size:0.75rem; color:#666;">(' + item.timestamp + ')</span></span>';
-              html += '<button type="button" class="secondary" style="background: #2980b9; margin-top: 0; padding: 4px 10px; font-size: 0.75rem;" onclick="markAsRead(\'' + item.notifId + '\')">確認済み</button>';
+              html += '<div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 4px; margin-top: 6px; border: 1px solid var(--border-color);">';
+              html += '<span>👤 <strong>' + escapeHtml(item.staffName) + '</strong> さんから <strong>' + escapeHtml(item.yearMonth) + '度</strong> の希望シフトが提出されました</span>';
+              html += '<button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="markAsRead(\'' + item.notifId + '\')">確認済み</button>';
               html += '</div>';
             });
             container.innerHTML = html;
@@ -1382,25 +1313,16 @@ var cachedAccountDetails = [];
           .getUnreadShiftNotifications();
       }
 
-      // 💡 通知を既読にして非表示にする関数
       function markAsRead(notifId) {
         google.script.run
-          .withSuccessHandler(function(res) {
-            if (res.success) {
-              loadShiftNotifications(); // リストを再読み込みして更新
-            } else {
-              alert(res.message);
-            }
-          })
+          .withSuccessHandler(function(res) { if (res.success) { loadShiftNotifications(); } else { alert(res.message); } })
           .markNotificationAsRead(notifId);
       }
 
-      // 📋 スタッフ一覧とパレット用チップを読み込む関数
       function loadStaffList() {
         google.script.run
           .withSuccessHandler(function(staffList) {
             cachedStaffList = staffList;
-            
             var tbody = document.getElementById('staffTableBody');
             if (staffList.length === 0) {
               tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">登録されているスタッフがいません</td></tr>';
@@ -1408,38 +1330,32 @@ var cachedAccountDetails = [];
               var html = '';
               staffList.forEach(function(staff) {
                 var isActive = (staff.status === "有効");
-                var statusBadge = isActive ? 
-                  '<span style="color: #27ae60; font-weight: bold;">在籍中</span>' : 
-                  '<span style="color: #e74c3c; font-weight: bold;">退職(非在籍)</span>';
-                
+                var statusBadge = isActive ? '<span style="color: var(--success-color); font-weight: 600;">在籍中</span>' : '<span style="color: var(--danger-color); font-weight: 600;">退職</span>';
                 var toggleBtnText = isActive ? "退職にする" : "在籍に戻す";
-                var toggleBtnColor = isActive ? "#e74c3c" : "#2ecc71";
+                var toggleBtnColor = isActive ? "#e11d48" : "#059669";
                 var nextStatus = isActive ? "退職" : "有効";
 
                 html += '<tr>';
                 html += '<td>' + escapeHtml(staff.staffName) + '</td>';
                 html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
                 html += '<td><input type="text" id="char-' + staff.staffId + '" value="' + escapeHtml(staff.displayChar) + '" style="width: 50px; text-align: center; padding: 4px;" maxlength="4"> ' +
-                        '<button class="secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="updateChar(\'' + staff.staffId + '\')">変更</button></td>';
+                        '<button class="secondary" style="padding: 2px 6px; font-size: 0.75rem;" onclick="updateChar(\'' + staff.staffId + '\')">変更</button></td>';
                 html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
                 html += '<td style="text-align: center;">' + statusBadge + '</td>';
                 html += '<td>';
-                html += '<button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';
-                html += '<button class="secondary" style="background: ' + toggleBtnColor + '; margin-left: 4px;" onclick="changeStatus(\'' + staff.staffId + '\', \'' + nextStatus + '\')">' + toggleBtnText + '</button>';
+                html += '<button class="secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';
+                html += '<button class="secondary" style="background: ' + toggleBtnColor + '; color: #fff; padding: 4px 8px; font-size: 0.75rem; margin-left: 2px;" onclick="changeStatus(\'' + staff.staffId + '\', \'' + nextStatus + '\')">' + toggleBtnText + '</button>';
                 html += '</td>';
                 html += '</tr>';
               });
               tbody.innerHTML = html;
             }
 
-            var activeStaffList = staffList.filter(function(staff) {
-              return staff.status === "有効";
-            });
-
+            var activeStaffList = staffList.filter(function(staff) { return staff.status === "有効"; });
             var stickyChipsContainer = document.getElementById('stickyStaffChipsContainer');
 
             if (activeStaffList.length === 0) {
-              stickyChipsContainer.innerHTML = '<span style="font-size:6pt; color:#777;">在籍中のスタッフがいません</span>';
+              stickyChipsContainer.innerHTML = '<span style="font-size:6pt; color:var(--text-sub);">在籍中のスタッフがいません</span>';
             } else {
               var chipsHtml = '';
               activeStaffList.forEach(function(staff) {
@@ -1449,35 +1365,25 @@ var cachedAccountDetails = [];
               });
               stickyChipsContainer.innerHTML = chipsHtml;
             }
-
             loadCalendar();
           })
           .getStaffList();
       }
 
       function onDragStart(event, staffId, staffName, displayChar) {
-        event.dataTransfer.setData('text/plain', JSON.stringify({
-          staffId: staffId,
-          staffName: staffName,
-          displayChar: displayChar
-        }));
+        event.dataTransfer.setData('text/plain', JSON.stringify({ staffId: staffId, staffName: staffName, displayChar: displayChar }));
       }
 
       function onDragOver(event) {
         event.preventDefault();
-        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) {
-          el.classList.remove('drag-over');
-        });
+        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
         var target = event.target.closest('.cal-cell') || event.target.closest('.list-row');
-        if (target && !target.classList.contains('other-month')) {
-          target.classList.add('drag-over');
-        }
+        if (target && !target.classList.contains('other-month')) { target.classList.add('drag-over'); }
       }
 
       function selectStaffForClick(elem, staffId, staffName, displayChar) {
         var chips = document.querySelectorAll('.staff-chip');
         chips.forEach(function(c) { c.classList.remove('selected-active'); });
-        
         if (selectedStaffForClick && selectedStaffForClick.staffId === staffId) {
           selectedStaffForClick = null;
           alert('選択を解除しました');
@@ -1488,7 +1394,6 @@ var cachedAccountDetails = [];
         }
       }
 
-      // 👥 スタッフの並び順に従ってシフトデータをソートする関数
       function sortShiftsByStaffOrder(shifts) {
         if (!shifts) return [];
         return shifts.sort(function(a, b) {
@@ -1500,115 +1405,15 @@ var cachedAccountDetails = [];
         });
       }
 
-      // 📋 スタッフ一覧とチップを読み込む関数
-      function loadStaffList() {
-        google.script.run
-          .withSuccessHandler(function(staffList) {
-            cachedStaffList = staffList;
-            
-            var tbody = document.getElementById('staffTableBody');
-            if (staffList.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">登録されているスタッフがいません</td></tr>';
-            } else {
-              var html = '';
-              staffList.forEach(function(staff) {
-                var isActive = (staff.status === "有効");
-                var statusBadge = isActive ? 
-                  '<span style="color: #27ae60; font-weight: bold;">在籍中</span>' : 
-                  '<span style="color: #e74c3c; font-weight: bold;">退職(非在籍)</span>';
-                
-                var toggleBtnText = isActive ? "退職にする" : "在籍に戻す";
-                var toggleBtnColor = isActive ? "#e74c3c" : "#2ecc71";
-                var nextStatus = isActive ? "退職" : "有効";
-
-                html += '<tr>';
-                html += '<td>' + escapeHtml(staff.staffName) + '</td>';
-                html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
-                html += '<td><input type="text" id="char-' + staff.staffId + '" value="' + escapeHtml(staff.displayChar) + '" style="width: 50px; text-align: center; padding: 4px;" maxlength="4"> ' +
-                        '<button class="secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="updateChar(\'' + staff.staffId + '\')">変更</button></td>';
-                html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
-                html += '<td style="text-align: center;">' + statusBadge + '</td>';
-                html += '<td>';
-                html += '<button class="secondary" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';
-                html += '<button class="secondary" style="background: ' + toggleBtnColor + '; margin-left: 4px;" onclick="changeStatus(\'' + staff.staffId + '\', \'' + nextStatus + '\')">' + toggleBtnText + '</button>';
-                html += '</td>';
-                html += '</tr>';
-              });
-              tbody.innerHTML = html;
-            }
-
-            var activeStaffList = staffList.filter(function(staff) {
-              return staff.status === "有効";
-            });
-
-            var stickyChipsContainer = document.getElementById('stickyStaffChipsContainer');
-
-            if (activeStaffList.length === 0) {
-              stickyChipsContainer.innerHTML = '<span style="font-size:6pt; color:#777;">在籍中のスタッフがいません</span>';
-            } else {
-              var chipsHtml = '';
-              activeStaffList.forEach(function(staff) {
-                chipsHtml += '<div class="staff-chip" draggable="true" ondragstart="onDragStart(event, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')" onclick="selectStaffForClick(this, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')">';
-                chipsHtml += '[' + escapeHtml(staff.displayChar) + '] ' + escapeHtml(staff.staffName);
-                chipsHtml += '</div>';
-              });
-              stickyChipsContainer.innerHTML = chipsHtml;
-            }
-
-            loadCalendar();
-          })
-          .getStaffList();
-      }
-
-      function onDragStart(event, staffId, staffName, displayChar) {
-        event.dataTransfer.setData('text/plain', JSON.stringify({
-          staffId: staffId,
-          staffName: staffName,
-          displayChar: displayChar
-        }));
-      }
-
-      function onDragOver(event) {
-        event.preventDefault();
-        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) {
-          el.classList.remove('drag-over');
-        });
-        var target = event.target.closest('.cal-cell') || event.target.closest('.list-row');
-        if (target && !target.classList.contains('other-month')) {
-          target.classList.add('drag-over');
-        }
-      }
-
-      function selectStaffForClick(elem, staffId, staffName, displayChar) {
-        var chips = document.querySelectorAll('.staff-chip');
-        chips.forEach(function(c) { c.classList.remove('selected-active'); });
-        
-        if (selectedStaffForClick && selectedStaffForClick.staffId === staffId) {
-          selectedStaffForClick = null;
-          alert('選択を解除しました');
-        } else {
-          selectedStaffForClick = { staffId: staffId, staffName: staffName, displayChar: displayChar };
-          elem.classList.add('selected-active');
-          alert(staffName + 'さんを選択しました。配置したい日付枠をタップしてください。');
-        }
-      }
-
-      // 💡 シフト配置用のモーダルを開く関数
       function openModal(dateStr, staffId, staffName, displayChar) {
         pendingPlacement = { dateStr: dateStr, staffId: staffId, staffName: staffName, displayChar: displayChar };
-        var titleEl = document.getElementById('modalTitle');
-        var descEl = document.getElementById('modalDesc');
-        var modalEl = document.getElementById('shiftModal');
-        
-        if (titleEl) titleEl.innerText = staffName + ' さんのシフト配置';
-        if (descEl) descEl.innerText = dateStr + ' の配置方法を選択してください。';
-        if (modalEl) modalEl.style.display = 'flex';
+        document.getElementById('modalTitle').innerText = staffName + ' さんのシフト配置';
+        document.getElementById('modalDesc').innerText = dateStr + ' の配置方法を選択してください。';
+        document.getElementById('shiftModal').style.display = 'flex';
       }
 
-      // 💡 モーダルを閉じる関数
       function closeModal() {
-        var modalEl = document.getElementById('shiftModal');
-        if (modalEl) modalEl.style.display = 'none';
+        document.getElementById('shiftModal').style.display = 'none';
         pendingPlacement = null;
       }
     </script>
