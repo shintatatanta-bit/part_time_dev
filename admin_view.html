@@ -354,20 +354,26 @@
       </div>
     </div>
 
-<!-- 💡【追加】スタッフ向けLINE ID確認の案内用カード -->
-    <div class="card" style="border: 1px solid #06c755; background: #f4faf6;">
-      <h3 style="margin: 0 0 6px 0; color: #06c755;">📱 スタッフのLINE ID取得の案内</h3>
-      <p style="font-size: 0.75rem; color: #555; margin: 0 0 8px 0;">
-        スタッフに自分のLINE IDを調べてもらう際、以下の案内文と友だち追加リンクをLINEやメールで共有してください。
-      </p>
+<!-- 💡 スタッフのLINE ID取得の案内カード -->
+    <div class="card" style="border: 1px solid #27ae60; background: #f4fcf7;">
+      <h3 style="margin-top: 0; color: #27ae60;">📱 スタッフのLINE ID取得の案内</h3>
+      <p style="font-size: 0.8rem; color: #555; margin-bottom: 8px;">スタッフに自分のLINE IDを調べる際、以下の案内文とQRコードを共有してください。</p>
       
-      <label>スタッフへ送る案内文（コピーして使用）:</label>
-      <textarea rows="4" readonly style="width: 100%; font-size: 0.8rem; padding: 6px; box-sizing: border-box; background: #fff; border: 1px solid #ccc; border-radius: 4px; resize: none;">お疲れ様です！
-勤怠管理システム登録のため、以下のリンク（またはQRコード）から公式LINEを友だち追加し、トーク画面で「登録」と送信してください。
-自動返信される「あなたのLINE ID」をコピーして管理者にお知らせください！
+      <!-- アカウント選択プルダウン -->
+      <label style="margin-top: 4px;">案内するLINEアカウントを選択:</label>
+      <select id="targetAccountSelect" onchange="updateAccountQrGuide()" style="margin-bottom: 8px; font-weight: bold; color: #2c3e50;">
+        <option value="">読み込み中...</option>
+      </select>
 
-▼ LINE友だち追加リンク
-(ここにあなたのLINE公式アカウントの友だち追加URLを入れてください)</textarea>
+      <label>スタッフへ送る案内文（コピーして使用）:</label>
+      <textarea id="lineGuideText" rows="4" readonly style="width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; background: #fff; resize: none;"></textarea>
+
+      <!-- QRコード表示エリア -->
+      <div style="margin-top: 10px; text-align: center;">
+        <div id="qrCodeDisplayBox" style="display: inline-block; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 4px;">
+          <span style="font-size: 0.75rem; color: #777;">アカウントを選択するとQRコードが表示されます</span>
+        </div>
+      </div>
     </div>
     
     <!-- 💡【アコーディオン 3】新規スタッフ登録 -->
@@ -502,11 +508,12 @@
         renderFreePalette();
         loadStaffList();
         loadAccountOptions();
+        loadAccountQrOptions(); // 💡 ここにアカウント詳細＆QR読み込み関数を追加！
         setPeriod('first');
         fetchSummary();
         loadLineHistory();
         loadPendingStaff();
-        loadShiftNotifications(); // 💡【追加】ページ読み込み時に新着希望申請を読み込む
+        loadShiftNotifications();
       };
 
       function switchView(mode) {
@@ -528,6 +535,61 @@
           listEl.style.display = 'flex';
         }
         renderCurrentView();
+      }
+
+var cachedAccountDetails = [];
+
+      // 🔄 アカウント詳細を読み込んでプルダウンを初期化
+      function loadAccountQrOptions() {
+        google.script.run.withSuccessHandler(function(accounts) {
+          cachedAccountDetails = accounts || [];
+          var select = document.getElementById('targetAccountSelect');
+          
+          if (cachedAccountDetails.length === 0) {
+            select.innerHTML = '<option value="">アカウントが登録されていません</option>';
+            return;
+          }
+
+          var html = '';
+          cachedAccountDetails.forEach(function(acc, idx) {
+            html += '<option value="' + idx + '">' + escapeHtml(acc.name) + '</option>';
+          });
+          select.innerHTML = html;
+          
+          // 最初のアカウントを選択状態にして表示を更新
+          updateAccountQrGuide();
+        }).getAccountDetailsList();
+      }
+
+      // 🔄 選択されたアカウントに応じて案内文とQRコードを切り替える
+      function updateAccountQrGuide() {
+        var select = document.getElementById('targetAccountSelect');
+        var idx = select.value;
+        if (idx === "" || !cachedAccountDetails[idx]) return;
+
+        var acc = cachedAccountDetails[idx];
+        var addUrl = acc.addUrl || "【友だち追加URL未設定】";
+        
+        // 案内文の生成
+        var guideText = 
+          "お疲れ様です！\n" +
+          "勤怠管理システム連携のため、以下のリンクから「" + acc.name + "」を友だち追加し、トーク画面で「登録」と送信してご自身のLINE IDを取得してください。\n\n" +
+          "▼ 友だち追加リンク\n" + addUrl;
+
+        document.getElementById('lineGuideText').value = guideText;
+
+        // QRコード表示の更新（qrUrlがある場合は画像を表示、ない場合は案内を表示）
+        var qrBox = document.getElementById('qrCodeDisplayBox');
+        if (acc.qrUrl) {
+          qrBox.innerHTML = '<img src="' + escapeHtml(acc.qrUrl) + '" alt="QRコード" style="width: 130px; height: 130px; display: block; margin: 0 auto;">' +
+                            '<span style="font-size: 0.7rem; color: #555; display: block; margin-top: 4px;">' + escapeHtml(acc.name) + ' のQRコード</span>';
+        } else {
+          qrBox.innerHTML = '<div style="padding: 15px; font-size: 0.75rem; color: #666; background: #fafafa;">' +
+                            '<strong>' + escapeHtml(acc.name) + '</strong><br>' +
+                            '※このアカウントのQRコード画像URLが未登録です<br>' +
+                            '<span style="color: #999; font-size: 0.7rem;">（LINE Developersの管理画面等からQR画像を保存して紐付けることができます）</span>' +
+                            '</div>';
+        }
       }
 
       function openPrintPreview(size) {

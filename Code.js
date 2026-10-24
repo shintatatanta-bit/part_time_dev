@@ -1690,3 +1690,37 @@ function doGet(e) {
   return adminTemplate.evaluate()
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
+
+/**
+ * LINEアカウントの詳細情報（名前、友だち追加URL、QRコード画像URLなど）を取得する関数
+ */
+function getAccountDetailsList() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("アカウントマスタ");
+    if (!sheet) {
+      // シートがない場合のデフォルト値
+      return [
+        { name: "アカウントA", addUrl: "https://lin.ee/xxxxxA", qrUrl: "" },
+        { name: "アカウントB", addUrl: "https://lin.ee/xxxxxB", qrUrl: "" }
+      ];
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    var accounts = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (row[0]) {
+        accounts.push({
+          name: row[0],                                    // A列: アカウント名
+          addUrl: row[2] || "https://lin.ee/default",      // C列などに入力されている想定（なければ仮URL）
+          qrUrl: row[3] || ""                              // D列などに入力されているQRコード画像URL
+        });
+      }
+    }
+    return accounts.length > 0 ? accounts : [{ name: "アカウントA", addUrl: "", qrUrl: "" }];
+  } catch (error) {
+    return [];
+  }
+}
