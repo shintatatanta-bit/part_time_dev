@@ -21,7 +21,7 @@ function doPost(e) {
           saveLineIdLog(lineUserId);
           
           // 2. その場でスタッフ本人に自分のLINE IDを返信する
-          var replyText = "LINE IDを確認しました！\n\nあなたのLINE ID:\n" + lineUserId + "\n\nこちらのIDをコピーして管理者にお伝えください。";
+          var replyText = "以下のIDをコピーして教えてください。\n\n" + lineUserId;
           sendLineReply(replyToken, replyText);
         }
       }
