@@ -144,23 +144,21 @@
       };
 
       function initializeLiffAndLink(staffId) {
-        // 👇 ステップ1で取得したあなたのLIFF IDに書き換えてください
         var liffId = "2012184145-HMvvN2iP"; 
 
         liff.init({ liffId: liffId })
           .then(function() {
+            // 💡 ログインしていない場合は、iframe内ではなく全画面でログインさせる
             if (!liff.isLoggedIn()) {
-              liff.login();
+              liff.login({ redirectUri: window.location.href });
               return;
             }
             
             liff.getProfile().then(function(profile) {
               var lineUserId = profile.userId;
-              console.log("取得したLINE ID:", lineUserId); // ⬅️ ここを追加
 
               google.script.run
                 .withSuccessHandler(function(res) {
-                  console.log("サーバーからの応答:", res); // ⬅️ ここを追加
                   if (res.success && res.isNewlyLinked) {
                     console.log("LINE IDが自動紐付けされました！");
                   }
