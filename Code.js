@@ -1444,7 +1444,7 @@ function markNotificationAsRead(notifId) {
 }
 
 /**
- * 💡 スタッフ自身がフォームから登録を行った際の処理（アカウント・表示文字対応）
+ * 💡 スタッフ自身がフォームから登録を行った際の処理（アカウントごとの上限10名チェック付き）
  */
 function registerStaffBySelf(data) {
   try {
@@ -1458,12 +1458,33 @@ function registerStaffBySelf(data) {
       return { success: false, message: "エラー: 氏名、表示文字、LINE IDは必須です。" };
     }
     
+    var assignedAccount = data.assignedAccount || "アカウントA"; 
+
+    // 💡【追加】指定されたアカウントに現在「有効」なスタッフが何名いるかカウントする
+    var dataRows = sheet.getDataRange().getValues();
+    var activeCount = 0;
+    
+    for (var i = 1; i < dataRows.length; i++) {
+      var rowAccount = dataRows[i][3]; // 割当アカウントの列
+      var rowStatus  = dataRows[i][4]; // ステータスの列（有効 / 退職）
+      
+      if (rowAccount === assignedAccount && rowStatus === "有効") {
+        activeCount++;
+      }
+    }
+
+    // 💡【追加】すでに10名以上登録されている場合は登録をブロックする
+    if (activeCount >= 10) {
+      return { 
+        success: false, 
+        message: "⚠️ 登録エラー\n「" + assignedAccount + "」の登録上限（最大10名）に達しているため、これ以上登録できません。別のアカウントをご利用ください。" 
+      };
+    }
+    
     var staffId = "st_" + Utilities.getUuid().substring(0, 6);
     var timestamp = new Date();
     var webAppUrl = ScriptApp.getService().getUrl();
     var staffUrl = webAppUrl + "?page=staff&staffId=" + staffId;
-    
-    var assignedAccount = data.assignedAccount || "アカウントA"; 
     
     sheet.appendRow([
       staffId,
@@ -1566,16 +1587,31 @@ function checkAndLinkStaffAccess(staffId, lineUserId) {
 }
 
 /**
- * LINEアカウントの詳細情報を取得する関数
+ * LINEアカウントの詳細情報と現在の登録人数を取得する関数
  */
 function getAccountDetailsList() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 💡 スタッフマスタから各アカウントごとの有効な登録人数をあらかじめ集計する
+    var staffSheet = ss.getSheetByName("スタッフマスタ");
+    var countsMap = {};
+    if (staffSheet) {
+      var staffData = staffSheet.getDataRange().getValues();
+      for (var s = 1; s < staffData.length; s++) {
+        var acc = staffData[s][3]; // 割当アカウント
+        var status = staffData[s][4]; // ステータス (有効/退職)
+        if (acc && status === "有効") {
+          countsMap[acc] = (countsMap[acc] || 0) + 1;
+        }
+      }
+    }
+
     var sheet = ss.getSheetByName("アカウントマスタ");
     if (!sheet) {
       return [
-        { name: "アカウントA", addUrl: "https://lin.ee/xxxxxA", qrUrl: "" },
-        { name: "アカウントB", addUrl: "https://lin.ee/xxxxxB", qrUrl: "" }
+        { name: "アカウントA", addUrl: "https://lin.ee/xxxxxA", qrUrl: "", count: countsMap["アカウントA"] || 0 },
+        { name: "アカウントB", addUrl: "https://lin.ee/xxxxxB", qrUrl: "", count: countsMap["アカウントB"] || 0 }
       ];
     }
     
@@ -1585,15 +1621,17 @@ function getAccountDetailsList() {
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       if (row[0]) {
+        var accName = row[0];
         accounts.push({
-          name: row[0],
+          name: accName,
           channelId: row[1] || "",
           addUrl: row[2] || "https://lin.ee/default",
-          qrUrl: row[3] || ""
+          qrUrl: row[3] || "",
+          count: countsMap[accName] || 0 // 💡 登録人数をセット
         });
       }
     }
-    return accounts.length > 0 ? accounts : [{ name: "アカウントA", addUrl: "", qrUrl: "" }];
+    return accounts.length > 0 ? accounts : [{ name: "アカウントA", addUrl: "", qrUrl: "", count: 0 }];
   } catch (error) {
     return [];
   }
