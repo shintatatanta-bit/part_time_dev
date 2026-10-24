@@ -16,7 +16,7 @@ function doPost(e) {
         
         if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
           saveLineIdLog(lineUserId);
-          
+
           var webAppUrl = ScriptApp.getService().getUrl();
           var registerUrl = webAppUrl + "?page=register";
 
@@ -40,7 +40,7 @@ function doPost(e) {
  * 🌐 ブラウザやURLにアクセスされたときの入口
  */
 function doGet(e) {
-  
+
   var params = e && e.parameter ? e.parameter : {};
   var page = params.page || "";
   
