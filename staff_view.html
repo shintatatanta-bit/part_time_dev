@@ -112,17 +112,34 @@
 
         liff.init({ liffId: liffId }).then(function() {
           console.log("LIFF初期化完了");
+          
+          // 💡 LINEアプリ内から開かれた場合、ログイン画面を出さずに自動でユーザーIDを取得して紐付けを試みる
+          if (liff.isInClient()) {
+            liff.getProfile().then(function(profile) {
+              var lineUserId = profile.userId;
+
+              google.script.run
+                .withSuccessHandler(function(res) {
+                  if (res.success && res.isNewlyLinked) {
+                    console.log("LINE IDが自動紐付けされました！");
+                  }
+                })
+                .checkAndLinkStaffAccess(staffId, lineUserId);
+            }).catch(function(err) {
+              console.log('プロフィール取得失敗: ', err);
+            });
+          }
         }).catch(function(err) {
           console.log('LIFF初期化失敗: ', err);
         });
       }
 
-      // スタッフがボタンを押したときに安全にLINE IDを登録する関数
+      // スタッフがボタンを押したとき（または予備として）の連携関数
       function linkMyLineId() {
         var staffId = document.getElementById('staffId').value;
         
         if (!liff.isLoggedIn()) {
-          liff.login();
+          alert('LINEにログインしていません。LINEアプリ内から開き直してください。');
           return;
         }
 
