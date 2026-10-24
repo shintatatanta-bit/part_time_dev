@@ -1,5 +1,19 @@
 function doGet(e) {
   var params = e.parameter || {};
+  
+  // 💡 LINEのLIFFから転送されてきた liff.state パラメータがある場合の救出処理
+  if (params.liff_state || params["liff.state"]) {
+    var rawState = params.liff_state || params["liff.state"];
+    // プレフィックスの ? を除去して分解
+    var cleanState = rawState.replace(/^\?/, "");
+    cleanState.split("&").forEach(function(pair) {
+      var kv = pair.split("=");
+      if (kv.length === 2) {
+        params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+      }
+    });
+  }
+
   var page = params.page || "admin";
   var staffId = params.staffId || "";
   
