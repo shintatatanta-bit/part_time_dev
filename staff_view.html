@@ -5,134 +5,107 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スタッフ用ポータル</title>
-    <!-- 💡 【重要】GASのiframe枠組みから強制的に抜け出して全画面で開かせる対策 -->
-    <script>
-      if (window.top !== window.self) {
-        window.top.location.href = window.self.location.href;
-      }
-    </script>
-    <!-- 💡 LINEのLIFF SDKを読み込み -->
+    <!-- LINEのLIFF SDKを読み込み -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
-      body { font-family: sans-serif; margin: 0; padding: 12px; background: #f4f7f6; color: #333; }
-      h2 { color: #2c3e50; font-size: 1.1rem; margin-bottom: 4px; text-align: center; }
-      .subtitle { text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 12px; }
-      .card { background: #fff; padding: 14px; border-radius: 8px; max-width: 450px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-      
-      .portal-tabs { display: flex; gap: 4px; max-width: 450px; margin: 0 auto 12px auto; background: #eaeded; padding: 3px; border-radius: 6px; }
-      .portal-tab-btn { background: transparent; color: #555; border: none; padding: 8px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold; text-align: center; }
-      .portal-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-
-      label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.85rem; color: #555; }
-      input, select { width: 100%; padding: 10px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-      button { border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; margin-top: 16px; padding: 12px; color: white; }
-      
-      .btn-green { background: #27ae60; }
-      .btn-green:hover { background: #219653; }
-      .btn-blue { background: #3498db; }
-      .btn-blue:hover { background: #2980b9; }
-
-      .month-selector { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-      .month-selector input { width: 140px; padding: 6px; font-size: 0.9rem; margin-top:0; }
-      .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 12px; }
-      .mini-header { text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded; border-radius: 3px; }
-      .mini-header:nth-child(1) { color: #c0392b; }
-      .mini-header:nth-child(7) { color: #2980b9; }
-
-      .mini-cell {
-        aspect-ratio: 1;
-        background: #fff;
-        border: 1px solid #dcdcdc;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.85rem;
-        cursor: pointer;
-        user-select: none;
-      }
-      .mini-cell.other-month { background: #f9f9f9; opacity: 0.3; pointer-events: none; }
-      .mini-cell.selected { background: #27ae60 !important; color: white !important; font-weight: bold; border-color: #219653; }
-      .selected-count { text-align: center; font-size: 0.85rem; color: #e67e22; font-weight: bold; margin-bottom: 6px; }
-
-      .mini-cell.closed-day {
-        background: #e5e7eb !important;
-        color: #9ca3af !important;
-        border: 1px dashed #9ca3af !important;
-        cursor: not-allowed;
-        pointer-events: none;
-      }
-      .closed-badge-mini {
-        font-size: 0.55rem;
-        color: #4b5563;
-        font-weight: bold;
-        display: block;
-        line-height: 1;
-        margin-top: 2px;
-      }
+      body { font-family: sans-serif; margin: 0; padding: 20px; background: #f4f7f6; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; box-sizing: border-box; }
+      .card { background: #fff; padding: 24px; border-radius: 8px; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+      h2 { color: #2c3e50; font-size: 1.2rem; margin-top: 0; }
+      p { font-size: 0.9rem; color: #666; line-height: 1.5; margin-bottom: 20px; }
+      button { background: #27ae60; color: white; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; width: 100%; padding: 14px; }
+      button:hover { background: #219653; }
+      .portal-container { display: none; }
     </style>
   </head>
   <body>
-    <h2>Staff Portal</h2>
-    <p class="subtitle">スタッフ名: <strong id="staffNameDisplay"><?= staffName ?></strong></p>
 
-    <div class="portal-tabs">
-      <button id="tabPref" class="portal-tab-btn active" onclick="switchStaffTab('pref')">📅 シフト希望提出</button>
-      <button id="tabKintai" class="portal-tab-btn" onclick="switchStaffTab('kintai')">⏰ 勤怠・交通費申請</button>
-    </div>
-    
-    <div id="viewPref" class="card">
-      <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">シフト希望の提出</h3>
-      <input type="hidden" id="staffId" value="<?= staffId ?>">
-      <input type="hidden" id="staffNameVal" value="<?= staffName ?>">
-
-      <div class="month-selector">
-        <label style="margin:0; font-size:0.85rem;">対象月:</label>
-        <input type="month" id="targetMonth" onchange="renderMiniCalendar()">
-      </div>
-
-      <p style="font-size: 0.75rem; color: #666; margin: 0 0 6px 0;">💡 出勤できる日をタップして選択してください（緑色になります）。</p>
-      <div id="selectedCount" class="selected-count">選択中の日数: 0日</div>
-
-      <div class="mini-cal-grid" id="miniCalendarGrid">
-        <div class="mini-header">日</div>
-        <div class="mini-header">月</div>
-        <div class="mini-header">火</div>
-        <div class="mini-header">水</div>
-        <div class="mini-header">木</div>
-        <div class="mini-header">金</div>
-        <div class="mini-header">土</div>
-      </div>
-
-      <button type="button" class="btn-green" onclick="submitPreferences()">シフト希望を送信する</button>
+    <!-- 💡 iframe内にいる場合の誘導画面（クリックによるユーザー操作を生むため） -->
+    <div id="redirectCard" class="card" style="display: none;">
+      <h2>👋 スタッフポータルへようこそ</h2>
+      <p>安全にシステムを起動するため、下のボタンをタップしてポータル画面を開いてください。</p>
+      <button type="button" onclick="escapeIframeAndOpen()">スタッフポータルを開く</button>
     </div>
 
-    <div id="viewKintai" class="card" style="display: none;">
-      <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">勤怠・交通費の申請</h3>
-      <form id="kintaiForm">
-        <label>勤務日</label>
-        <input type="date" id="workDate" required>
-        
-        <label>出勤時刻</label>
-        <input type="time" id="startTime" required>
-        
-        <label>退勤時刻</label>
-        <input type="time" id="endTime" required>
-        
-        <label>休憩時間 (分)</label>
-        <input type="number" id="breakTime" value="60" min="0" step="15" required>
-        
-        <label>交通費 (円)</label>
-        <input type="number" id="transportCost" value="0" min="0" required>
-        
-        <button type="button" class="btn-blue" onclick="submitKintai()">申請を送信する</button>
-      </form>
+    <!-- 本来のスタッフポータル画面 -->
+    <div id="portalContent" class="portal-container" style="width: 100%; max-width: 450px;">
+      <h2>Staff Portal</h2>
+      <p style="text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 12px;">スタッフ名: <strong id="staffNameDisplay"><?= staffName ?></strong></p>
+
+      <div class="portal-tabs" style="display: flex; gap: 4px; margin-bottom: 12px; background: #eaeded; padding: 3px; border-radius: 6px;">
+        <button id="tabPref" class="portal-tab-btn active" onclick="switchStaffTab('pref')" style="background: #fff; border: none; padding: 8px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold;">📅 シフト希望提出</button>
+        <button id="tabKintai" class="portal-tab-btn" onclick="switchStaffTab('kintai')" style="background: transparent; border: none; padding: 8px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold; color: #555;">⏰ 勤怠・交通費申請</button>
+      </div>
+      
+      <div id="viewPref" class="card" style="text-align: left; margin: 0;">
+        <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">シフト希望の提出</h3>
+        <input type="hidden" id="staffId" value="<?= staffId ?>">
+        <input type="hidden" id="staffNameVal" value="<?= staffName ?>">
+
+        <div class="month-selector" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <label style="margin:0; font-size:0.85rem;">対象月:</label>
+          <input type="month" id="targetMonth" onchange="renderMiniCalendar()" style="width: 140px; padding: 6px;">
+        </div>
+
+        <p style="font-size: 0.75rem; color: #666; margin: 0 0 6px 0;">💡 出勤できる日をタップして選択してください。</p>
+        <div id="selectedCount" style="text-align: center; font-size: 0.85rem; color: #e67e22; font-weight: bold; margin-bottom: 6px;">選択中の日数: 0日</div>
+
+        <div class="mini-cal-grid" id="miniCalendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 12px;">
+          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded; color: #c0392b;">日</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">月</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">火</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">水</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">木</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded;">金</div>
+          <div style="text-align: center; font-weight: bold; font-size: 0.75rem; padding: 4px; background: #eaeded; color: #2980b9;">土</div>
+        </div>
+
+        <button type="button" class="btn-green" onclick="submitPreferences()" style="background: #27ae60; color: white; border: none; border-radius: 4px; padding: 12px; width: 100%; font-weight: bold; cursor: pointer;">シフト希望を送信する</button>
+      </div>
+
+      <div id="viewKintai" class="card" style="display: none; text-align: left; margin: 0;">
+        <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">勤怠・交通費の申請</h3>
+        <form id="kintaiForm">
+          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">勤務日</label>
+          <input type="date" id="workDate" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
+          
+          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">出勤時刻</label>
+          <input type="time" id="startTime" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
+          
+          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">退勤時刻</label>
+          <input type="time" id="endTime" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
+          
+          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">休憩時間 (分)</label>
+          <input type="number" id="breakTime" value="60" min="0" step="15" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
+          
+          <label style="display:block; margin-top:10px; font-weight:bold; font-size:0.85rem;">交通費 (円)</label>
+          <input type="number" id="transportCost" value="0" min="0" required style="width:100%; padding:8px; margin-top:4px; box-sizing:border-box;">
+          
+          <button type="button" onclick="submitKintai()" style="background: #3498db; color: white; border: none; border-radius: 4px; padding: 12px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 16px;">申請を送信する</button>
+        </form>
+      </div>
     </div>
 
     <script>
+      window.onload = function() {
+        // もしGASのiframe内にいる場合は、誘導カードを表示する
+        if (window.top !== window.self) {
+          document.getElementById('redirectCard').style.display = 'block';
+        } else {
+          // すでにトップウィンドウ（全画面）で開けている場合
+          initPortalMain();
+        }
+      };
+
+      // ユーザーのタップをきっかけにiframeから抜け出す関数
+      function escapeIframeAndOpen() {
+        window.top.location.href = window.self.location.href;
+      }
+
       var selectedDatesMap = {};
 
-      window.onload = function() {
+      function initPortalMain() {
+        document.getElementById('portalContent').style.display = 'block';
+        
         var now = new Date();
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
@@ -146,7 +119,7 @@
         if (staffId) {
           initializeLiffAndLink(staffId);
         }
-      };
+      }
 
       function initializeLiffAndLink(staffId) {
         var liffId = "2012184145-HMvvN2iP"; 
@@ -185,13 +158,17 @@
         var viewKintai = document.getElementById('viewKintai');
 
         if (mode === 'pref') {
-          tabPref.classList.add('active');
-          tabKintai.classList.remove('active');
+          tabPref.style.background = '#fff';
+          tabPref.style.color = '#2c3e50';
+          tabKintai.style.background = 'transparent';
+          tabKintai.style.color = '#555';
           viewPref.style.display = 'block';
           viewKintai.style.display = 'none';
         } else {
-          tabKintai.classList.add('active');
-          tabPref.classList.remove('active');
+          tabKintai.style.background = '#fff';
+          tabKintai.style.color = '#2c3e50';
+          tabPref.style.background = 'transparent';
+          tabPref.style.color = '#555';
           viewKintai.style.display = 'block';
           viewPref.style.display = 'none';
         }
@@ -218,8 +195,10 @@
 
         var grid = document.getElementById('miniCalendarGrid');
         var headerHtml = '';
-        var headers = grid.querySelectorAll('.mini-header');
-        headers.forEach(function(h) { headerHtml += h.outerHTML; });
+        var headers = grid.querySelectorAll('div');
+        for(var i=0; i<7; i++) {
+          headerHtml += headers[i].outerHTML;
+        }
         var html = headerHtml;
 
         var firstDayObj = new Date(year, month - 1, 1);
@@ -231,7 +210,7 @@
 
         for (var i = 0; i < firstDayOfWeek; i++) {
           var pDay = prevLastDay - (firstDayOfWeek - 1 - i);
-          html += '<div class="mini-cell other-month"><span>' + pDay + '</span></div>';
+          html += '<div style="aspect-ratio:1; background:#f9f9f9; opacity:0.3; display:flex; align-items:center; justify-content:center; font-size:0.85rem; border:1px solid #dcdcdc; border-radius:4px;"><span>' + pDay + '</span></div>';
         }
 
         for (var day = 1; day <= totalDays; day++) {
@@ -240,15 +219,15 @@
           var dateStr = year + '-' + mStr + '-' + dStr;
           
           var isClosed = cachedClosedDays.includes(dateStr);
-          var isSelected = selectedDatesMap[dateStr] ? ' selected' : '';
+          var isSelected = selectedDatesMap[dateStr];
           
-          var cellClass = isClosed ? 'mini-cell closed-day' : ('mini-cell' + isSelected);
+          var bgStyle = isClosed ? 'background:#e5e7eb; color:#9ca3af; border:1px dashed #9ca3af;' : (isSelected ? 'background:#27ae60; color:white; font-weight:bold;' : 'background:#fff; border:1px solid #dcdcdc;');
           var clickAction = isClosed ? '' : 'onclick="toggleDate(\'' + dateStr + '\')"';
           
-          html += '<div class="' + cellClass + '" ' + clickAction + '>';
+          html += '<div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.85rem; border-radius:4px; cursor:pointer; ' + bgStyle + '" ' + clickAction + '>';
           html += '<div><span>' + day + '</span>';
           if (isClosed) {
-            html += '<span class="closed-badge-mini">休業日</span>';
+            html += '<span style="font-size:0.55rem; display:block; line-height:1;">休業日</span>';
           }
           html += '</div></div>';
         }
@@ -256,7 +235,7 @@
         var totalCellsCount = firstDayOfWeek + totalDays;
         var remainingCells = (totalCellsCount % 7 === 0) ? 0 : 7 - (totalCellsCount % 7);
         for (var n = 1; n <= remainingCells; n++) {
-          html += '<div class="mini-cell other-month"><span>' + n + '</span></div>';
+          html += '<div style="aspect-ratio:1; background:#f9f9f9; opacity:0.3; display:flex; align-items:center; justify-content:center; font-size:0.85rem; border:1px solid #dcdcdc; border-radius:4px;"><span>' + n + '</span></div>';
         }
 
         grid.innerHTML = html;
@@ -322,7 +301,6 @@
 
         if (!data.workDate || !data.startTime || !data.endTime) {
           alert('必須項目をすべて入力してください。');
-          return;
         }
 
         var btn = event.target;
