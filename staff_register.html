@@ -25,6 +25,9 @@
       <p>お疲れ様です！勤怠管理システムへの初回登録を行います。以下の項目を入力して送信してください。</p>
       
       <form id="regForm">
+        <label>LINE ID （※上のLINEチャットからコピーして貼り付けてください）</label>
+        <input type="text" id="lineUserId" placeholder="例: Uef491ace4afa9..." required>
+
         <label>スタッフ氏名（フルネーム）</label>
         <input type="text" id="staffName" placeholder="例: 山田 花子" oninput="autoFillChar()" required>
         
@@ -36,11 +39,11 @@
           <option value="">読み込み中...</option>
         </select>
         
-        <input type="hidden" id="lineUserId" value="">
-
         <div class="help-box">
-          💡 <strong>LINE連携について：</strong><br>
-          LINEアプリ内（またはLIFFブラウザ）から開くことで、ご自身のLINE IDが自動で紐づきます。
+          💡 <strong>登録手順：</strong><br>
+          1. LINEのチャットに届いたご自身のLINE IDをコピーします。<br>
+          2. 上の「LINE ID」欄に貼り付けます。<br>
+          3. 氏名と表示文字を入力して登録ボタンを押してください。
         </div>
         
         <button type="button" onclick="submitRegistration()">登録して専用URLを発行する</button>
@@ -50,18 +53,6 @@
     <script>
       window.onload = function() {
         loadAccountOptions();
-        
-        // 💡 URLのパラメータ（?lineId=...）を確実に取得して隠しフィールドにセットする
-        var urlParams = new URLSearchParams(window.location.search);
-        var lineIdFromUrl = urlParams.get('lineId');
-        
-        if (lineIdFromUrl) {
-          document.getElementById('lineUserId').value = lineIdFromUrl;
-          console.log("URLからLINE IDをセットしました: " + lineIdFromUrl);
-        } else {
-          // パラメータがない場合はLIFFからの取得を試みる
-          initLiffForRegistration();
-        }
       };
 
       // アカウントマスタからアカウント一覧を取得してプルダウンに反映
@@ -85,35 +76,19 @@
         }
       }
 
-      // LIFFを初期化してユーザーのLINE IDを自動取得
-      function initLiffForRegistration() {
-        var liffId = "2012184145-HMvvN2iP"; 
-        liff.init({ liffId: liffId }).then(function() {
-          if (liff.isInClient() || liff.isLoggedIn()) {
-            liff.getProfile().then(function(profile) {
-              document.getElementById('lineUserId').value = profile.userId;
-            }).catch(function(err) {
-              console.log('プロフィール取得失敗: ', err);
-            });
-          }
-        }).catch(function(err) {
-          console.log('LIFF初期化失敗: ', err);
-        });
-      }
-
       function submitRegistration() {
+        var lineUserId = document.getElementById('lineUserId').value.trim();
         var staffName = document.getElementById('staffName').value.trim();
         var displayChar = document.getElementById('displayChar').value.trim();
         var assignedAccount = document.getElementById('assignedAccount').value;
-        var lineUserId = document.getElementById('lineUserId').value.trim();
 
-        if (!staffName || !displayChar) {
-          alert('スタッフ氏名とカレンダー表示文字を入力してください。');
+        if (!lineUserId) {
+          alert('LINE IDが入力されていません。チャットからコピーして貼り付けてください。');
           return;
         }
 
-        if (!lineUserId) {
-          alert('LINE IDが取得できていません。URLに ?lineId=... が含まれているか確認してください。');
+        if (!staffName || !displayChar) {
+          alert('スタッフ氏名とカレンダー表示文字を入力してください。');
           return;
         }
 

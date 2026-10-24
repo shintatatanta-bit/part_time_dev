@@ -18,11 +18,11 @@ function doPost(e) {
           saveLineIdLog(lineUserId);
           
           var webAppUrl = ScriptApp.getService().getUrl();
-          // 💡 URLの末尾に送信者のLINE IDをパラメータとして埋め込む
-          var registerUrl = webAppUrl + "?page=register&lineId=" + encodeURIComponent(lineUserId);
+          var registerUrl = webAppUrl + "?page=register";
 
           var messages = [
-            { type: "text", text: "お疲れ様です！以下のリンクから初回登録（氏名・アカウント等の設定）を行ってください。\n\n▼ スタッフ初回登録ページ\n" + registerUrl }
+            { type: "text", text: "お疲れ様です！スタッフ登録を行います。\n\n① まず以下のご自身の【LINE ID】をコピーしてください👇\n\n" + lineUserId },
+            { type: "text", text: "② 次に、以下のリンクから登録フォームを開き、コピーしたLINE IDを貼り付けてください。\n\n▼ スタッフ初回登録ページ\n" + registerUrl }
           ];
           sendLineMultipleReplies(replyToken, messages);
         }
