@@ -5,13 +5,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>スタッフ用ポータル</title>
+    <!-- 💡 LINEのLIFF SDKを読み込み -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <style>
       body { font-family: sans-serif; margin: 0; padding: 12px; background: #f4f7f6; color: #333; }
       h2 { color: #2c3e50; font-size: 1.1rem; margin-bottom: 4px; text-align: center; }
       .subtitle { text-align: center; font-size: 0.85rem; color: #666; margin-bottom: 12px; }
       .card { background: #fff; padding: 14px; border-radius: 8px; max-width: 450px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
       
-      /* タブ切り替えボタン */
       .portal-tabs { display: flex; gap: 4px; max-width: 450px; margin: 0 auto 12px auto; background: #eaeded; padding: 3px; border-radius: 6px; }
       .portal-tab-btn { background: transparent; color: #555; border: none; padding: 8px; font-size: 0.85rem; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold; text-align: center; }
       .portal-tab-btn.active { background: #fff; color: #2c3e50; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
@@ -25,7 +26,6 @@
       .btn-blue { background: #3498db; }
       .btn-blue:hover { background: #2980b9; }
 
-      /* ミニカレンダー用グリッド */
       .month-selector { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
       .month-selector input { width: 140px; padding: 6px; font-size: 0.9rem; margin-top:0; }
       .mini-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 12px; }
@@ -49,7 +49,6 @@
       .mini-cell.selected { background: #27ae60 !important; color: white !important; font-weight: bold; border-color: #219653; }
       .selected-count { text-align: center; font-size: 0.85rem; color: #e67e22; font-weight: bold; margin-bottom: 6px; }
 
-      /* スタッフ用カレンダーの休業日スタイル */
       .mini-cell.closed-day {
         background: #e5e7eb !important;
         color: #9ca3af !important;
@@ -71,13 +70,11 @@
     <h2>Staff Portal</h2>
     <p class="subtitle">スタッフ名: <strong id="staffNameDisplay"><?= staffName ?></strong></p>
 
-    <!-- 切替タブ -->
     <div class="portal-tabs">
       <button id="tabPref" class="portal-tab-btn active" onclick="switchStaffTab('pref')">📅 シフト希望提出</button>
       <button id="tabKintai" class="portal-tab-btn" onclick="switchStaffTab('kintai')">⏰ 勤怠・交通費申請</button>
     </div>
     
-    <!-- ① シフト希望提出ビュー -->
     <div id="viewPref" class="card">
       <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">シフト希望の提出</h3>
       <input type="hidden" id="staffId" value="<?= staffId ?>">
@@ -104,7 +101,6 @@
       <button type="button" class="btn-green" onclick="submitPreferences()">シフト希望を送信する</button>
     </div>
 
-    <!-- ② 勤怠・交通費申請ビュー -->
     <div id="viewKintai" class="card" style="display: none;">
       <h3 style="margin-top:0; font-size:1rem; color:#2c3e50;">勤怠・交通費の申請</h3>
       <form id="kintaiForm">
@@ -140,22 +136,43 @@
         renderMiniCalendar();
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
 
+        // 💡 ページを開いたときにLIFFを初期化してLINE IDを自動紐付け
         var staffId = document.getElementById('staffId').value;
         if (staffId) {
-          // 💡 LINEの環境やLIFFからLINEユーザーIDを取得できる場合の処理
-          // （※もしLIFF IDをお持ちの場合は liff.init() 等で取得したidTokenやuserIdをここに渡します）
-          var detectedLineUserId = ""; 
-          
-          // 例として、URLパラメータやLIFFから取得できたと仮定してサーバーへ送信
-          google.script.run
-            .withSuccessHandler(function(res) {
-              if (res.success && res.isNewlyLinked) {
-                console.log("LINE IDが自動紐付けされました！");
-              }
-            })
-            .checkAndLinkStaffAccess(staffId, detectedLineUserId);
+          initializeLiffAndLink(staffId);
         }
       };
+
+      function initializeLiffAndLink(staffId) {
+        // 👇 ステップ1で取得したあなたのLIFF IDに書き換えてください
+        var liffId = "あなたのLIFF_ID"; 
+
+        liff.init({ liffId: liffId })
+          .then(function() {
+            if (!liff.isLoggedIn()) {
+              liff.login();
+              return;
+            }
+            
+            liff.getProfile().then(function(profile) {
+              var lineUserId = profile.userId;
+
+              google.script.run
+                .withSuccessHandler(function(res) {
+                  if (res.success && res.isNewlyLinked) {
+                    console.log("LINE IDが自動紐付けされました！");
+                  }
+                })
+                .checkAndLinkStaffAccess(staffId, lineUserId);
+
+            }).catch(function(err) {
+              console.log('プロフィール取得失敗: ', err);
+            });
+          })
+          .catch(function(err) {
+            console.log('LIFF初期化失敗: ', err);
+          });
+      }
 
       function switchStaffTab(mode) {
         var tabPref = document.getElementById('tabPref');
@@ -178,12 +195,10 @@
 
       var cachedClosedDays = [];
 
-      // 対象月が変わったときや読み込み時に休業日も一緒に取得してカレンダーを描画
       function renderMiniCalendar() {
         var ymVal = document.getElementById('targetMonth').value;
         if (!ymVal) return;
 
-        // まずサーバーから休業日を取得してからカレンダーを描画する
         google.script.run
           .withSuccessHandler(function(res) {
             cachedClosedDays = res.success ? res.closedDays : [];
@@ -242,15 +257,6 @@
 
         grid.innerHTML = html;
         updateCountDisplay();
-      }
-
-      function toggleDate(dateStr) {
-        if (selectedDatesMap[dateStr]) {
-          delete selectedDatesMap[dateStr];
-        } else {
-          selectedDatesMap[dateStr] = true;
-        }
-        renderMiniCalendar();
       }
 
       function toggleDate(dateStr) {
