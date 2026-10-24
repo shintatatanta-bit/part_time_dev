@@ -1,6 +1,3 @@
-/**
- * Webアプリのアクセス入口（URLパラメータに応じて画面を切り替える）
- */
 function doGet(e) {
   var params = e.parameter || {};
   var page = params.page || "admin";
@@ -8,13 +5,13 @@ function doGet(e) {
   
   var template;
   if (page === "staff") {
-    // ※もしGAS上のファイル名が 「staff_view_4」の場合はここを合わせてください
-    template = HtmlService.createTemplateFromFile("staff_view_4");
+    template = HtmlService.createTemplateFromFile("staff_view");
     template.staffId = staffId;
     template.staffName = getStaffName(staffId);
+  } else if (page === "register") {
+    template = HtmlService.createTemplateFromFile("staff_register");
   } else {
-    // ※もしGAS上のファイル名が 「admin_view_6」の場合はここを合わせてください
-    template = HtmlService.createTemplateFromFile("admin_view_6");
+    template = HtmlService.createTemplateFromFile("admin_view");
   }
   
   return template.evaluate()
