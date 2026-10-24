@@ -1,37 +1,37 @@
-function doGet(e) {
-  var params = e.parameter || {};
-  
-  // 💡 LINEのLIFFから転送されてきた liff.state パラメータがある場合の救出処理
-  if (params.liff_state || params["liff.state"]) {
-    var rawState = params.liff_state || params["liff.state"];
-    // プレフィックスの ? を除去して分解
-    var cleanState = rawState.replace(/^\?/, "");
-    cleanState.split("&").forEach(function(pair) {
-      var kv = pair.split("=");
-      if (kv.length === 2) {
-        params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+/**
+ * 💡 LINEからのイベント（メッセージ送信など）を受け取るWebhookの入口
+ */
+function doPost(e) {
+  try {
+    var json = JSON.parse(e.postData.contents);
+    var events = json.events;
+    
+    for (var i = 0; i < events.length; i++) {
+      var event = events[i];
+      
+      // ユーザーからのテキストメッセージの場合
+      if (event.type === 'message' && event.message.type === 'text') {
+        var userMessage = event.message.text.trim();
+        var lineUserId = event.source.userId;
+        var replyToken = event.replyToken;
+        
+        // 「登録」または「ID確認」と送られた場合
+        if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
+          // 1. スプレッドシートの「LINE連携ログ」に自動保存
+          saveLineIdLog(lineUserId);
+          
+          // 2. その場でスタッフ本人に自分のLINE IDを返信する
+          var replyText = "LINE IDを確認しました！\n\nあなたのLINE ID:\n" + lineUserId + "\n\nこちらのIDをコピーして管理者にお伝えください。";
+          sendLineReply(replyToken, replyText);
+        }
       }
-    });
-  }
-
-  var page = params.page || "admin";
-  var staffId = params.staffId || "";
-  
-  var template;
-  if (page === "staff") {
-    template = HtmlService.createTemplateFromFile("staff_view");
-    template.staffId = staffId;
-    template.staffName = getStaffName(staffId);
-  } else if (page === "register") {
-    template = HtmlService.createTemplateFromFile("staff_register");
-  } else {
-    template = HtmlService.createTemplateFromFile("admin_view");
+    }
+  } catch (error) {
+    Logger.log("doPostエラー: " + error.message);
   }
   
-  return template.evaluate()
-    .setTitle("アルバイト勤怠管理システム")
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
+             .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
@@ -60,7 +60,7 @@ function saveLineIdLog(lineUserId) {
 }
 
 /**
- * ユーザーへ自動返信を送る関数
+ * ユーザーへ自動でリプライ（返信）を送る関数
  */
 function sendLineReply(replyToken, messageText) {
   try {
@@ -70,6 +70,7 @@ function sendLineReply(replyToken, messageText) {
     
     var accountData = accountSheet.getDataRange().getValues();
     var accessToken = "";
+    // 2行目のアクセストークンを取得（必要に応じて切り替え可能）
     if (accountData.length > 1 && accountData[1][1]) {
       accessToken = accountData[1][1];
     }
