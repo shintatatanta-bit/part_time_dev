@@ -35,15 +35,12 @@ function doPost(e) {
   return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
              .setMimeType(ContentService.MimeType.JSON);
 }
-  
-  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
-             .setMimeType(ContentService.MimeType.JSON);
-}
 
 /**
  * 🌐 ブラウザやURLにアクセスされたときの入口
  */
 function doGet(e) {
+  
   var params = e && e.parameter ? e.parameter : {};
   var page = params.page || "";
   
