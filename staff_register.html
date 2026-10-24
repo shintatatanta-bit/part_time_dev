@@ -51,14 +51,14 @@
       window.onload = function() {
         loadAccountOptions();
         
-        // 💡 URLのパラメータ（?lineId=...）からLINE IDを直接取得してセット
+        // 💡 URLのパラメータ（?lineId=...）からLINE IDを自動取得してセット
         var urlParams = new URLSearchParams(window.location.search);
         var lineIdFromUrl = urlParams.get('lineId');
         
         if (lineIdFromUrl) {
           document.getElementById('lineUserId').value = lineIdFromUrl;
         } else {
-          // パラメータがない場合は従来のLIFF取得を試す
+          // パラメータがない場合は従来のLIFF取得を試みる
           initLiffForRegistration();
         }
       };
@@ -111,6 +111,7 @@
           return;
         }
 
+        // 万が一LINE IDが取得できていない場合の保険
         if (!lineUserId) {
           alert('LINE IDが取得できていません。LINEアプリ内（トーク画面のリンクなど）から開き直してください。');
           return;
