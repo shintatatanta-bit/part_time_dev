@@ -1,27 +1,106 @@
 /**
- * Webアプリの入口 (GETリクエスト処理)
+ * 💡 LINEからのイベントを受け取るWebhookの入口（エラーログ強化版）
  */
-function doGet(e) {
-  var params = e.parameter;
-  var page = params.page || "admin";
-  var staffId = params.staffId || "";
-  
-  var template;
-  if (page === "staff") {
-    template = HtmlService.createTemplateFromFile("staff_view");
-    template.staffId = staffId;
-    template.staffName = getStaffName(staffId);
-  } else if (page === "register") {
-    // 💡 新規スタッフ自己登録ページ
-    template = HtmlService.createTemplateFromFile("staff_register");
-  } else {
-    template = HtmlService.createTemplateFromFile("admin_view");
+function doPost(e) {
+  try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return ContentService.createTextOutput(JSON.stringify({status: "no data"}))
+                 .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var json = JSON.parse(e.postData.contents);
+    var events = json.events;
+    
+    if (!events) {
+      return ContentService.createTextOutput(JSON.stringify({status: "no events"}))
+                 .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    for (var i = 0; i < events.length; i++) {
+      var event = events[i];
+      
+      if (event.type === 'message' && event.message.type === 'text') {
+        var userMessage = event.message.text.trim();
+        var lineUserId = event.source.userId;
+        var replyToken = event.replyToken;
+        
+        if (userMessage === "登録" || userMessage === "ID確認") {
+          saveLineIdLog(lineUserId);
+          sendLineReply(replyToken, "LINE IDを確認しました！スタッフ登録にお進みください。");
+        }
+      }
+    }
+  } catch (error) {
+    // 💡 エラーが発生した内容をGASの「ログ」に記録する
+    Logger.log("doPost内でのエラー: " + error.message);
   }
   
-  return template.evaluate()
-    .setTitle("アルバイト勤怠管理システム [v1.1]")
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
+             .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * LINE IDをスプレッドシート（LINE連携ログ）に保存する関数
+ */
+function saveLineIdLog(lineUserId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("LINE連携ログ");
+    if (!sheet) {
+      sheet = ss.insertSheet("LINE連携ログ");
+      sheet.appendRow(["timestamp", "lineUserId", "status"]);
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === lineUserId) {
+        return;
+      }
+    }
+    
+    sheet.appendRow([new Date(), lineUserId, "未登録"]);
+  } catch (e) {
+    Logger.log("saveLineIdLogエラー: " + e.message);
+  }
+}
+
+/**
+ * ユーザーへ自動返信を送る関数
+ */
+function sendLineReply(replyToken, messageText) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var accountSheet = ss.getSheetByName("アカウントマスタ");
+    if (!accountSheet) return;
+    
+    var accountData = accountSheet.getDataRange().getValues();
+    var accessToken = "";
+    if (accountData.length > 1 && accountData[1][1]) {
+      accessToken = accountData[1][1];
+    }
+    
+    if (!accessToken || accessToken.includes("YOUR_")) return;
+    
+    var url = "https://api.line.me/v2/bot/message/reply";
+    var payload = {
+      replyToken: replyToken,
+      messages: [{ type: "text", text: messageText }]
+    };
+    
+    var options = {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json; charset=UTF-8",
+        "Authorization": "Bearer " + accessToken
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    UrlFetchApp.fetch(url, options);
+  } catch (e) {
+    Logger.log("sendLineReplyエラー: " + e.message);
+  }
 }
 
 /**
@@ -1452,5 +1531,123 @@ function sendWelcomeAndTestNotice(lineUserId, assignedAccount, staffName, staffU
     UrlFetchApp.fetch(url, options);
   } catch (e) {
     Logger.log("ウェルカムLINE送信失敗: " + e.message);
+  }
+}
+
+/**
+ * 💡 LINEからのイベント（メッセージ送信など）を受け取るWebhookの入口
+ */
+function doPost(e) {
+  try {
+    var json = JSON.parse(e.postData.contents);
+    var events = json.events;
+    
+    for (var i = 0; i < events.length; i++) {
+      var event = events[i];
+      
+      // ユーザーからのテキストメッセージの場合
+      if (event.type === 'message' && event.message.type === 'text') {
+        var userMessage = event.message.text.trim();
+        var lineUserId = event.source.userId;
+        var replyToken = event.replyToken;
+        
+        // 例: 「登録」という言葉が送られてきた場合
+        if (userMessage === "登録" || userMessage === "ID確認") {
+          
+          // 1. スプレッドシートの「LINE連携ログ」などに自動保存する処理
+          saveLineIdLog(lineUserId);
+          
+          // 2. ユーザーへ自動返信を送る（オプション）
+          sendLineReply(replyToken, "LINE IDを確認しました！スタッフ登録にお進みください。");
+        }
+      }
+    }
+  } catch (error) {
+    Logger.log("doPostエラー: " + error.message);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
+             .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * LINE IDをスプレッドシート（LINE連携ログ）に保存するヘルパー関数
+ */
+function saveLineIdLog(lineUserId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("LINE連携ログ");
+  if (!sheet) {
+    sheet = ss.insertSheet("LINE連携ログ");
+    sheet.appendRow(["timestamp", "lineUserId", "status"]); // ヘッダー
+  }
+  
+  // すでに同じIDが記録されていなければ追加する
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][1] === lineUserId) {
+      return; // 登録済みなら何もしない
+    }
+  }
+  
+  sheet.appendRow([new Date(), lineUserId, "未登録"]);
+}
+
+/**
+ * ユーザーへ自動でリプライ（返信）を送る関数
+ */
+function sendLineReply(replyToken, messageText) {
+  // アカウントマスタからアクセストークンを取得（最初のものを使用する例）
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var accountSheet = ss.getSheetByName("アカウントマスタ");
+  if (!accountSheet) return;
+  
+  var accountData = accountSheet.getDataRange().getValues();
+  var accessToken = accountData[1] ? accountData[1][1] : ""; // 2行目のトークン
+  
+  if (!accessToken || accessToken.includes("YOUR_")) return;
+  
+  var url = "https://api.line.me/v2/bot/message/reply";
+  var payload = {
+    replyToken: replyToken,
+    messages: [{ type: "text", text: messageText }]
+  };
+  
+  var options = {
+    method: "post",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "Authorization": "Bearer " + accessToken
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+  
+  UrlFetchApp.fetch(url, options);
+}
+
+/**
+ * 💡 スタッフが初めて専用URLを開いたときにLINE IDを自動紐付けする関数
+ * （※実際のLINEプラットフォームやLIFF、あるいはLINEブラウザ経由での初回アクセス時に紐付けを行いますが、
+ *    今回はシンプルに初回アクセスを検知してログや紐付けの土台を整える関数です）
+ */
+function checkAndLinkStaffAccess(staffId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("スタッフマスタ");
+    if (!sheet) return { success: false };
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(staffId)) {
+        var staffName = data[i][1];
+        var currentLineId = data[i][2];
+        
+        // すでにLINE IDが入っていればそのままOK
+        return { success: true, staffName: staffName, isLinked: !!currentLineId };
+      }
+    }
+    return { success: false, message: "スタッフが見つかりません" };
+  } catch (e) {
+    return { success: false, message: e.message };
   }
 }
