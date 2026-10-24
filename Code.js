@@ -1636,3 +1636,74 @@ function getAccountDetailsList() {
     return [];
   }
 }
+
+/**
+ * 💡 スタッフ自身が自分の直近の勤怠申請履歴を確認するための関数（最大20件）
+ */
+function getStaffKintaiHistory(staffId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("申請データ");
+    if (!sheet) return { success: true, history: [] };
+    
+    var data = sheet.getDataRange().getValues();
+    var history = [];
+    
+    // ヘッダーを飛ばして下から（新しい順に）走査
+    for (var i = data.length - 1; i >= 1; i--) {
+      var row = data[i];
+      var sId = row[1];
+      
+      if (String(sId) === String(staffId)) {
+        var workDate = formatTimeOrDate(row[3]);
+        var startTime = formatTime(row[4]);
+        var endTime = formatTime(row[5]);
+        var breakTime = row[6];
+        var cost = Number(row[7]) || 0;
+        var timestamp = formatTimestamp(row[8]);
+        
+        history.push({
+          workDate: workDate,
+          startTime: startTime,
+          endTime: endTime,
+          breakTime: breakTime,
+          transportCost: cost,
+          timestamp: timestamp
+        });
+        
+        if (history.length >= 20) break;
+      }
+    }
+    
+    return { success: true, history: history };
+  } catch (error) {
+    return { success: false, history: [], message: error.message };
+  }
+}
+
+function formatTimeOrDate(val) {
+  if (!val) return "";
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, "Asia/Tokyo", "yyyy/MM/dd");
+  }
+  var str = String(val);
+  if (str.indexOf("T") !== -1) {
+    var d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return Utilities.formatDate(d, "Asia/Tokyo", "yyyy/MM/dd");
+    }
+  }
+  return str.substring(0, 10);
+}
+
+function formatTimestamp(val) {
+  if (!val) return "";
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, "Asia/Tokyo", "yyyy/MM/dd HH:mm");
+  }
+  var d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    return Utilities.formatDate(d, "Asia/Tokyo", "yyyy/MM/dd HH:mm");
+  }
+  return String(val);
+}

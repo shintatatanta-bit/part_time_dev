@@ -20,7 +20,7 @@
       }
 
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 16px; background: var(--bg-main); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 90vh; box-sizing: border-box; }
-      .card { background: var(--card-bg); padding: 22px; border-radius: 10px; max-width: 440px; width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border-color); }
+      .card { background: var(--card-bg); padding: 22px; border-radius: 10px; max-width: 440px; width: 100%; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid var(--border-color); box-sizing: border-box; }
       h2 { color: var(--text-main); font-size: 1.3rem; text-align: center; margin-top: 0; margin-bottom: 6px; font-weight: 700; }
       p { font-size: 0.9rem; color: var(--text-sub); line-height: 1.5; }
       label { display: block; margin-top: 12px; font-weight: 600; font-size: 0.85rem; color: var(--text-sub); }
@@ -29,10 +29,15 @@
       button:hover { background: #047857; }
       .portal-container { width: 100%; max-width: 440px; }
       
-      /* タブメニュー */
-      .portal-tabs { display: flex; gap: 6px; margin-bottom: 18px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
-      .portal-tab-btn { background: transparent; border: none; padding: 10px 8px; font-size: 0.9rem; border-radius: 6px; cursor: pointer; flex: 1; font-weight: 600; color: var(--text-sub); display: inline-flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s; }
+      /* タブメニュー（3つのタブをきれいに配置） */
+      .portal-tabs { display: flex; gap: 4px; margin-bottom: 18px; background: #e2e8f0; padding: 4px; border-radius: 8px; }
+      .portal-tab-btn { background: transparent; border: none; padding: 8px 4px; font-size: 0.8rem; border-radius: 6px; cursor: pointer; flex: 1; font-weight: 600; color: var(--text-sub); display: inline-flex; align-items: center; justify-content: center; gap: 2px; transition: all 0.15s; white-space: nowrap; }
       .portal-tab-btn.active { background: #fff; color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+      /* 履歴用テーブル */
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.8rem; }
+      th, td { border: 1px solid var(--border-color); padding: 6px; text-align: left; }
+      th { background-color: #f1f5f9; color: var(--text-main); font-weight: 600; }
     </style>
   </head>
   <body>
@@ -44,13 +49,14 @@
         スタッフ名: <strong style="color: var(--text-main);"><?= staffName ?></strong>
       </p>
 
-      <!-- タブ切り替え -->
+      <!-- 💡 タブ切り替え（勤怠申請・シフト希望・申請履歴） -->
       <div class="portal-tabs">
-        <button id="tabKintai" class="portal-tab-btn active" onclick="switchStaffTab('kintai')">⏰ 勤怠・交通費申請</button>
-        <button id="tabPref" class="portal-tab-btn" onclick="switchStaffTab('pref')">📅 シフト希望提出</button>
+        <button id="tabKintai" class="portal-tab-btn active" onclick="switchStaffTab('kintai')">⏰ 勤怠申請</button>
+        <button id="tabPref" class="portal-tab-btn" onclick="switchStaffTab('pref')">📅 シフト希望</button>
+        <button id="tabHistory" class="portal-tab-btn" onclick="switchStaffTab('history')">📋 申請履歴</button>
       </div>
       
-      <!-- 勤怠・交通費申請 -->
+      <!-- 💡 勤怠・交通費申請（デフォルト） -->
       <div id="viewKintai" class="card" style="text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠・交通費の申請</h3>
         <form id="kintaiForm">
@@ -63,7 +69,6 @@
           <label>退勤時刻</label>
           <input type="time" id="endTime" required>
           
-          <!-- 💡 休憩時間（プルダウン: 0, 15, 30分） -->
           <label>休憩時間 (分)</label>
           <select id="breakTime" required>
             <option value="0">0分</option>
@@ -71,7 +76,6 @@
             <option value="30" selected>30分</option>
           </select>
           
-          <!-- 💡 交通費（半角数字のみ入力可能） -->
           <label>交通費 (円)</label>
           <input type="number" id="transportCost" value="0" min="0" step="1" pattern="^[0-9]+$" placeholder="例: 500" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
           
@@ -79,7 +83,7 @@
         </form>
       </div>
 
-      <!-- シフト希望の提出 -->
+      <!-- 💡 シフト希望の提出 -->
       <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
@@ -105,6 +109,26 @@
 
         <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
       </div>
+
+      <!-- 💡 自分の申請履歴（過去20件） -->
+      <div id="viewHistory" class="card" style="display: none; text-align: left; margin: 0;">
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">過去の申請履歴 (直近20件)</h3>
+        <div style="overflow-x: auto; max-height: 380px;">
+          <table>
+            <thead>
+              <tr>
+                <th>勤務日</th>
+                <th>時間</th>
+                <th>休憩</th>
+                <th>交通費</th>
+              </tr>
+            </thead>
+            <tbody id="staffHistoryTableBody">
+              <tr><td colspan="4" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -120,29 +144,73 @@
         renderMiniCalendar();
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
 
-        // 退勤時刻を開いた時間に自動セット
         var hours = String(now.getHours()).padStart(2, '0');
         var minutes = String(now.getMinutes()).padStart(2, '0');
         document.getElementById('endTime').value = hours + ':' + minutes;
+
+        // 💡 履歴データの読み込み
+        loadStaffHistory();
       };
 
       function switchStaffTab(mode) {
-        var tabPref = document.getElementById('tabPref');
         var tabKintai = document.getElementById('tabKintai');
-        var viewPref = document.getElementById('viewPref');
+        var tabPref = document.getElementById('tabPref');
+        var tabHistory = document.getElementById('tabHistory');
+        
         var viewKintai = document.getElementById('viewKintai');
+        var viewPref = document.getElementById('viewPref');
+        var viewHistory = document.getElementById('viewHistory');
+
+        tabKintai.classList.remove('active');
+        tabPref.classList.remove('active');
+        tabHistory.classList.remove('active');
+        viewKintai.style.display = 'none';
+        viewPref.style.display = 'none';
+        viewHistory.style.display = 'none';
 
         if (mode === 'kintai') {
           tabKintai.classList.add('active');
-          tabPref.classList.remove('active');
           viewKintai.style.display = 'block';
-          viewPref.style.display = 'none';
-        } else {
+        } else if (mode === 'pref') {
           tabPref.classList.add('active');
-          tabKintai.classList.remove('active');
           viewPref.style.display = 'block';
-          viewKintai.style.display = 'none';
+        } else if (mode === 'history') {
+          tabHistory.classList.add('active');
+          viewHistory.style.display = 'block';
+          loadHistoryTable(); // タブを開いたときに再読み込み
         }
+      }
+
+      function loadStaffHistory() {
+        var staffId = document.getElementById('staffId').value;
+        if (!staffId) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            var tbody = document.getElementById('staffHistoryTableBody');
+            if (!res.success || res.history.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-sub);">申請履歴はありません</td></tr>';
+              return;
+            }
+
+            var html = '';
+            res.history.forEach(function(item) {
+              html += '<tr>';
+              html += '<td>' + item.workDate + '</td>';
+              html += '<td>' + item.startTime + '〜<br>' + item.endTime + '</td>';
+              html += '<td>' + item.breakTime + '分</td>';
+              html += '<td>¥' + item.transportCost.toLocaleString() + '</td>';
+              html += '</tr>';
+            });
+            tbody.innerHTML = html;
+          })
+          .getStaffKintaiHistory(staffId);
+      }
+
+      function loadHistoryTable() {
+        var tbody = document.getElementById('staffHistoryTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
+        loadStaffHistory();
       }
 
       var cachedClosedDays = [];
@@ -295,6 +363,9 @@
               var hours = String(now.getHours()).padStart(2, '0');
               var minutes = String(now.getMinutes()).padStart(2, '0');
               document.getElementById('endTime').value = hours + ':' + minutes;
+
+              // 💡 申請が成功したら履歴テーブルも自動で更新する
+              loadStaffHistory();
             }
             btn.disabled = false;
             btn.innerText = '申請を送信する';
