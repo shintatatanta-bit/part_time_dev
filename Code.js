@@ -1668,3 +1668,27 @@ function checkAndLinkStaffAccess(staffId, lineUserId) {
     return { success: false, message: e.message };
   }
 }
+
+/**
+ * 🌐 ブラウザやLIFFからURLにアクセスされたときの入口
+ */
+function doGet(e) {
+  var params = e && e.parameter ? e.parameter : {};
+  var page = params.page || "";
+  
+  // page=staff の場合はスタッフ用ポータルを表示
+  if (page === "staff") {
+    var template = HtmlService.createTemplateFromFile("staff_view_3"); // またはお使いのスタッフ用HTML名
+    template.staffId = params.staffId || "";
+    template.staffName = getStaffName(params.staffId);
+    return template.evaluate()
+      .setXOptionsMode(HtmlService.XOptionsMode.XFRAME_OPTIONS_ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+  
+  // 指定がない場合は管理者ダッシュボードを表示
+  var adminTemplate = HtmlService.createTemplateFromFile("admin_view_2"); // お使いの管理者用HTML名
+  return adminTemplate.evaluate()
+    .setXOptionsMode(HtmlService.XOptionsMode.XFRAME_OPTIONS_ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
