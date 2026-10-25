@@ -716,25 +716,36 @@
       function onDrop(event, dateStr) {
         event.preventDefault();
         document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
+        
         var dataStr = event.dataTransfer.getData('text/plain');
-        if (!dataStr) return;
+        console.log("🔍 [検証] onDrop開始 - 取得したデータ:", dataStr);
+        
+        if (!dataStr) {
+          console.log("❌ [検証] データが空です");
+          return;
+        }
+        
         try {
           var data = JSON.parse(dataStr);
+          console.log("🔍 [検証] パース成功:", data);
+          
           if (data.type === 'free') {
+            console.log("📌 [検証] freeタイプとして処理します");
             var tempId = "local_free_" + Math.random();
             cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
             renderCurrentView();
             markAsUnsaved();
           } else if (data.type === 'staff') {
-            // 💡 アラートを消し、直接モーダルを開く関数を呼び出す
+            console.log("👤 [検証] staffタイプを検出。openModalを呼び出します。 staffId:", data.staffId);
             openModal(dateStr, data.staffId, data.staffName, data.displayChar);
+          } else {
+            console.log("⚠️ [検証] どの条件にも一致しませんでした type:", data.type);
           }
         } catch (e) {
-          console.log("ドロップデータ解析エラー: " + e.message);
+          console.error("❌ [検証] ドロップデータ解析エラー:", e.message);
         }
       }
 
-      // 3. カレンダーセルをクリックしたときの処理
       function onCellClick(dateStr) {
         if (selectedStaffForClick) {
           if (selectedStaffForClick.type === 'free') {
@@ -745,7 +756,7 @@
             selectedStaffForClick = null;
             document.querySelectorAll('.staff-chip').forEach(function(c) { c.classList.remove('selected-active'); });
           } else if (selectedStaffForClick.type === 'staff') {
-            // 💡 スタッフが選択されている状態でカレンダー枠がクリックされた場合
+            // 💡 選択されたスタッフ情報を元にモーダルを開く
             openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
             selectedStaffForClick = null;
             document.querySelectorAll('.staff-chip').forEach(function(c) { c.classList.remove('selected-active'); });
@@ -1390,10 +1401,29 @@
       }
 
       function openModal(dateStr, staffId, staffName, displayChar) {
+        console.log("📂 [検証] openModal実行開始！ 引数:", { dateStr, staffId, staffName, displayChar });
+        
         pendingPlacement = { dateStr: dateStr, staffId: staffId, staffName: staffName, displayChar: displayChar };
-        document.getElementById('modalTitle').innerText = staffName + ' さんのシフト配置';
-        document.getElementById('modalDesc').innerText = dateStr + ' の配置方法を選択してください。';
-        document.getElementById('shiftModal').style.display = 'flex';
+        
+        var titleEl = document.getElementById('modalTitle');
+        var descEl = document.getElementById('modalDesc');
+        var modalEl = document.getElementById('shiftModal');
+        
+        console.log("🔍 [検証] モーダル関連のHTML要素確認:", {
+          titleEl: titleEl ? "存在OK" : "見つからない",
+          descEl: descEl ? "存在OK" : "見つからない",
+          modalEl: modalEl ? "存在OK" : "見つからない"
+        });
+
+        if (titleEl) titleEl.innerText = staffName + ' さんのシフト配置';
+        if (descEl) descEl.innerText = dateStr + ' の配置方法を選択してください。';
+        
+        if (modalEl) {
+          modalEl.style.display = 'flex';
+          console.log("✅ [検証] shiftModal の display を 'flex' に変更しました。画面が開くはずです。");
+        } else {
+          console.error("❌ [検証] shiftModal 要素が存在しないためモーダルを開けません！");
+        }
       }
 
       function closeModal() {
