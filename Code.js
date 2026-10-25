@@ -749,12 +749,13 @@ function saveAllSchedules(data) {
     var shiftSheet = ss.getSheetByName("シフト予定");
     if (!shiftSheet) {
       shiftSheet = ss.insertSheet("シフト予定");
-      shiftSheet.appendRow(["shiftId", "workDate", "staffId", "staffName"]);
+      shiftSheet.appendRow(["shiftId", "workDate", "staffId", "staffName", "dailyMemo"]);
     }
     
     var shiftData = shiftSheet.getDataRange().getValues();
-    var newShiftRows = [shiftData[0]];
+    var newShiftRows = [shiftData[0]]; // ヘッダー行を維持
     
+    // 選択された年月以外の既存シフトを保持する
     for (var i = 1; i < shiftData.length; i++) {
       var rDate = new Date(shiftData[i][1]);
       if (isNaN(rDate.getTime())) continue;
@@ -764,9 +765,10 @@ function saveAllSchedules(data) {
       }
     }
     
+    // 画面側から送られてきた新しいシフトデータを追加（5列：id, workDate, staffId, staffName, dailyMemo）
     (data.shifts || []).forEach(function(sh) {
-      var sId = "shift_" + Utilities.getUuid().substring(0, 8);
-      newShiftRows.push([sId, sh.workDate, sh.staffId, sh.staffName]);
+      var sId = sh.shiftId && sh.shiftId.indexOf("local_") === -1 ? sh.shiftId : "shift_" + Utilities.getUuid().substring(0, 8);
+      newShiftRows.push([sId, sh.workDate, sh.staffId, sh.staffName, sh.dailyMemo || ""]);
     });
     
     shiftSheet.clearContents();
