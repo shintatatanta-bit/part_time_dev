@@ -720,16 +720,13 @@
         if (!dataStr) return;
         try {
           var data = JSON.parse(dataStr);
-          console.log("【テスト】ドロップされたデータのtype:", data.type); // ← ここで何が表示されるか確認
-          
           if (data.type === 'free') {
             var tempId = "local_free_" + Math.random();
             cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
             renderCurrentView();
             markAsUnsaved();
           } else if (data.type === 'staff') {
-            // 💡 確実にここを通るかテストするためアラートを挟む
-            alert("スタッフがドロップされました！ ID: " + data.staffId);
+            // 💡 アラートを消し、直接モーダルを開く関数を呼び出す
             openModal(dateStr, data.staffId, data.staffName, data.displayChar);
           }
         } catch (e) {
