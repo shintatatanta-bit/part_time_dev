@@ -2362,3 +2362,48 @@ function confirmStaffClosingStatus(data) {
     return { success: false, message: "確定エラー: " + error.message };
   }
 }
+
+/**
+ * 💡 指定したスタッフの対象月における既存のシフト希望（申請済み日）のリストを取得する関数
+ */
+function getStaffSubmittedShiftDates(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("シフト予定");
+    if (!sheet) return { success: true, submittedDates: [] };
+    
+    var shiftData = sheet.getDataRange().getValues();
+    var staffId = String(data.staffId || "").trim();
+    var targetYearMonth = String(data.yearMonth || "").trim(); // 例: "2026-10"
+    var submittedDates = [];
+    
+    for (var i = 1; i < shiftData.length; i++) {
+      var rawDate = shiftData[i][1];
+      var rowStaffId = String(shiftData[i][2] || "").trim();
+      
+      if (!rawDate || rowStaffId !== staffId) continue;
+      
+      var dateStr = "";
+      if (rawDate instanceof Date) {
+        dateStr = Utilities.formatDate(rawDate, "Asia/Tokyo", "yyyy-MM-dd");
+      } else {
+        var d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          dateStr = Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd");
+        } else {
+          dateStr = String(rawDate).substring(0, 10);
+        }
+      }
+      
+      if (dateStr.indexOf(targetYearMonth) === 0) {
+        if (submittedDates.indexOf(dateStr) === -1) {
+          submittedDates.push(dateStr);
+        }
+      }
+    }
+    
+    return { success: true, submittedDates: submittedDates };
+  } catch (error) {
+    return { success: false, submittedDates: [], message: error.message };
+  }
+}
