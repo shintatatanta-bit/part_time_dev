@@ -397,9 +397,9 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           <div class="flex-col"><label>終了日</label><input type="date" id="endDate" onchange="fetchSummary()"></div>
         </div>
 
-        <button type="button" style="width:100%; margin-top:12px;" onclick="fetchSummary()">この期間で集計する</button>
+        <!-- 💡 ボタンを削除し、直感的に日付や期を切り替えるだけで自動集計されるようにします -->
 
-        <!-- 💡 指定期間の全体合計表示エリア -->
+        <!-- 指定期間の全体合計表示エリア -->
         <div id="grandTotalContainer" style="margin-top: 12px; display: none; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #1e40af;">
           <strong>📊 指定期間の全体合計：</strong>
           <span id="grandTotalText">労働合計: 0時間0分 / 交通費合計: ¥0</span>
