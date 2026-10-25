@@ -725,8 +725,8 @@
             cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
             renderCurrentView();
             markAsUnsaved();
-          } else if (data.type === 'staff' || data.staffId) {
-            // 💡 スタッフチップの場合は配置用のモーダルを開く
+          } else if (data.type === 'staff') {
+            // 💡 正しく data.staffId ではなく data から各プロパティを取り出してモーダルを開く
             openModal(dateStr, data.staffId, data.staffName, data.displayChar);
           }
         } catch (e) {
@@ -744,7 +744,7 @@
             markAsUnsaved();
             selectedStaffForClick = null;
             document.querySelectorAll('.staff-chip').forEach(function(c) { c.classList.remove('selected-active'); });
-          } else if (selectedStaffForClick.type === 'staff' || selectedStaffForClick.staffId) {
+          } else if (selectedStaffForClick.type === 'staff') {
             // 💡 スタッフが選択されている状態でカレンダー枠がクリックされた場合
             openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
             selectedStaffForClick = null;
