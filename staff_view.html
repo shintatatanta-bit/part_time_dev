@@ -348,9 +348,13 @@
 
         document.getElementById('formTitle').innerText = '勤怠・交通費の修正';
         document.getElementById('editModeBanner').style.display = 'flex';
-        document.getElementById('submitBtn').innerText = '修正を保存する';
-        document.getElementById('submitBtn').style.background = 'var(--warning-color)';
+        
+        // 💡 IDを正しい「kintaiSubmitBtn」に修正
+        var submitBtn = document.getElementById('kintaiSubmitBtn');
+        submitBtn.innerText = '修正を保存する';
+        submitBtn.style.background = 'var(--warning-color)';
 
+        validateKintaiForm();
         switchStaffTab('kintai');
       }
 
@@ -405,9 +409,9 @@
           return;
         }
 
-        var btn = event.target;
-        btn.disabled = true;
-        btn.innerText = '送信中...';
+        var submitBtn = document.getElementById('kintaiSubmitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = '送信中...';
 
         var actionFunction = requestId ? 'updateKintaiData' : 'saveKintaiData';
 
@@ -415,13 +419,23 @@
           .withSuccessHandler(function(res) {
             alert(res.message);
             if (res.success) {
-              // 💡 画面をリロードせず、フォームを初期化して未申請アラートや履歴を再読み込みする
+              // 💡 ページ全体の再読み込み（reload）は行わず、画面内のデータだけを最新状態に更新する
               cancelEditMode();
               loadStaffHistory();
-              loadStaffPendingAlert();
+              if (typeof loadStaffPendingAlert === 'function') {
+                loadStaffPendingAlert();
+              }
+              // 画面の一番上へスムーズにスクロール
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+              submitBtn.disabled = false;
+              submitBtn.innerText = requestId ? '修正を保存する' : '申請を送信する';
             }
-            btn.disabled = false;
-            btn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+          })
+          .withFailureHandler(function(err) {
+            alert('通信エラーが発生しました: ' + err.message);
+            submitBtn.disabled = false;
+            submitBtn.innerText = requestId ? '修正を保存する' : '申請を送信する';
           })
           [actionFunction](data);
       }
