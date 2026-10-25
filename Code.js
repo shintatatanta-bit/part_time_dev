@@ -2236,7 +2236,6 @@ function getStaffClosingStatus(data) {
     
     var periodKey = yearMonth + "_" + half;
     
-    // 期間の開始日・終了日を決定
     var parts = yearMonth.split('-');
     var year = Number(parts[0]);
     var month = Number(parts[1]);
@@ -2252,11 +2251,11 @@ function getStaffClosingStatus(data) {
       endDateStr = yearMonth + "-" + String(lastDayObj.getDate()).padStart(2, '0');
     }
     
-    // 1. 期間内のスタッフ自身の申請データを集計
     var dataSheet = ss.getSheetByName("申請データ");
     var kintaiDays = 0;
     var totalMinutes = 0;
     var totalCost = 0;
+    var records = []; // 💡 明細を格納する配列
     
     function parseDate(raw) {
       if (!raw) return "";
@@ -2264,9 +2263,6 @@ function getStaffClosingStatus(data) {
       var d = new Date(raw);
       return !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : String(raw).substring(0, 10);
     }
-    
-    / Code.js 内の getStaffClosingStatus 関数の中盤〜終盤を以下のように調整
-    var records = []; // 💡 明細を格納する配列
     
     if (dataSheet) {
       var kData = dataSheet.getDataRange().getValues();
@@ -2291,7 +2287,6 @@ function getStaffClosingStatus(data) {
             if (workMins > 0) totalMinutes += workMins;
           }
           
-          // 💡 期間内の各申請明細を保持
           records.push({
             workDate: kDateStr,
             startTime: startTime,
@@ -2303,10 +2298,8 @@ function getStaffClosingStatus(data) {
       }
     }
     
-    // 日付順にソート
     records.sort(function(a, b) { return a.workDate > b.workDate ? 1 : -1; });
     
-    // 2. 「締め・確認管理」シートからステータスを確認
     var closingSheet = ss.getSheetByName("締め・確認管理");
     if (!closingSheet) {
       closingSheet = ss.insertSheet("締め・確認管理");
@@ -2333,7 +2326,7 @@ function getStaffClosingStatus(data) {
       totalWorkHoursStr: totH + "時間" + totM + "分",
       totalCost: totalCost,
       status: status,
-      records: records // 💡 明細リストを返す
+      records: records
     };
   } catch (error) {
     return { success: false, message: error.message };

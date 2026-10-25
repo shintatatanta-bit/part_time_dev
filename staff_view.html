@@ -736,7 +736,7 @@
             html += '<div style="margin-bottom: 8px;"><strong>⏱️ 労働時間合計:</strong> ' + res.totalWorkHoursStr + '</div>';
             html += '<div style="margin-bottom: 12px;"><strong>🚃 交通費合計:</strong> ¥' + res.totalCost.toLocaleString() + '</div>';
             
-            // 💡 【追加】対象期間の申請明細テーブル
+            // 💡 対象期間の申請明細テーブル
             html += '<div style="margin: 12px 0 8px 0; font-weight: bold; font-size: 0.8rem; border-top: 1px solid var(--border-color); padding-top: 8px;">📋 この期間の申請明細</div>';
             if (res.records && res.records.length > 0) {
               html += '<div style="max-height: 140px; overflow-y: auto; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff;">';
