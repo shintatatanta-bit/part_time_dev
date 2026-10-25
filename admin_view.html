@@ -395,11 +395,12 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         <div class="flex-row" style="align-items: flex-end; gap: 10px; margin-bottom: 12px;">
           <div class="flex-col">
             <label>対象月</label>
-            <input type="month" id="closingMonth" onchange="loadClosingStatus()" style="margin-top:4px;">
+            <input type="month" id="closingMonth" value="" onchange="loadClosingStatus()" style="margin-top:4px;">
           </div>
           <div class="flex-col">
             <label>対象期間（半期）</label>
             <select id="closingHalf" onchange="loadClosingStatus()" style="margin-top:4px;">
+              <option value="" selected disabled>-- 選択してください --</option>
               <option value="first">前半 (1日 〜 15日)</option>
               <option value="second">後半 (16日 〜 末日)</option>
             </select>
@@ -605,30 +606,20 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
         
-        // カレンダーの月をセット
+        // カレンダーの月をセット（これはカレンダー用なので残します）
         document.getElementById('calendarMonth').value = y + '-' + m;
-        
-        // 💡 締め管理の対象月にも今月を自動セットする
-        var closingMonthEl = document.getElementById('closingMonth');
-        if (closingMonthEl) {
-          closingMonthEl.value = y + '-' + m;
-        }
 
         renderFreePalette();
         loadStaffList();
         loadAccountOptions();
         loadAccountQrOptions();
         
-        // 💡 初期表示時は「今日が属する半期（当期）」を自動セットする
-        setCurrentPeriodToToday();
-        
         fetchSummary();
         loadLineHistory();
         loadPendingStaff();
         loadShiftNotifications();
-
-        // 💡 ページ読み込み完了時に自動で締め状況を読み込む！
-        loadClosingStatus();
+        
+        // ※ 締め管理の対象月・期間は、初期値を空欄にしてユーザーに手動選択させます
       };
 
       // 💡 今日が1〜15日なら前半、16日〜末日なら後半を自動セット
@@ -1702,10 +1693,16 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
       function loadClosingStatus() {
         var ym = document.getElementById('closingMonth').value;
         var half = document.getElementById('closingHalf').value;
-        if (!ym) { alert('対象月を選択してください。'); return; }
-
         var tbody = document.getElementById('closingTableBody');
         var summaryText = document.getElementById('closingSummaryText');
+
+        // 💡 どちらか一方が未選択の場合は、選択を促すメッセージを出して中断する
+        if (!ym || !half) {
+          summaryText.innerText = '対象月と対象期間を選択してください';
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">上のプルダウンから「対象月」と「対象期間（半期）」を選択してください。</td></tr>';
+          return;
+        }
+
         tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
 
         google.script.run
