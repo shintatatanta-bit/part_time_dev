@@ -716,18 +716,20 @@
       function onDrop(event, dateStr) {
         event.preventDefault();
         document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
+        
+        // 💡 ここで text/plain 形式のデータを取得してコンソールに表示する
         var dataStr = event.dataTransfer.getData('text/plain');
+        console.log("【確認】データトランスファーの中身:", dataStr);
+
         if (!dataStr) return;
         try {
           var data = JSON.parse(dataStr);
+          console.log("【確認】パース後のJSONオブジェクト:", data);
+          
           if (data.type === 'free') {
-            var tempId = "local_free_" + Math.random();
-            cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
-            renderCurrentView();
-            markAsUnsaved();
+            // ...
           } else if (data.type === 'staff') {
-            // 💡 正しく data.staffId ではなく data から各プロパティを取り出してモーダルを開く
-            openModal(dateStr, data.staffId, data.staffName, data.displayChar);
+            // ...
           }
         } catch (e) {
           console.log("ドロップデータ解析エラー: " + e.message);
