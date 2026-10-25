@@ -1139,7 +1139,13 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           list.forEach(function(item) {
             html += '<div class="staff-card" id="card-' + item.staffId + '">';
             html += '<div class="staff-header" onclick="toggleCard(\'card-' + item.staffId + '\')">';
-            html += '<div class="staff-info"><h4>' + escapeHtml(item.staffName) + ' (' + escapeHtml(item.assignedAccount) + ')</h4><p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p></div>';
+            
+            // 💡 スタッフ名の横に未提出アラート用の差し込み枠（id="staff-alert-..."）を用意
+            html += '<div class="staff-info">';
+            html += '<h4>' + escapeHtml(item.staffName) + ' (' + escapeHtml(item.assignedAccount) + ') <span id="staff-alert-' + item.staffId + '"></span></h4>';
+            html += '<p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p>';
+            html += '</div>';
+            
             html += '<div class="staff-summary-badge"><div class="badge-main">交通費: ¥' + item.totalCost.toLocaleString() + '</div><div class="badge-sub">休憩合計: ' + item.totalBreakHoursStr + '</div><div style="font-size: 0.7rem; color: var(--text-sub); margin-top:2px;">詳細 ▼</div></div></div>';
             html += '<div class="staff-details">';
             if (item.records.length === 0) {
@@ -1152,9 +1158,24 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
               html += '</tbody></table>';
             }
             html += '</div></div>';
+            
+            // 💡 各スタッフの未提出日を非同期でチェックしてバッジを配置
+            checkStaffAlertBadge(item.staffId);
           });
           container.innerHTML = html;
         }).getKintaiSummary(start, end);
+      }
+
+      function checkStaffAlertBadge(staffId) {
+        google.script.run.withSuccessHandler(function(res) {
+          if (res.success && res.pendingDates && res.pendingDates.length > 0) {
+            var badgeEl = document.getElementById('staff-alert-' + staffId);
+            if (badgeEl) {
+              var datesStr = res.pendingDates.join(", ");
+              badgeEl.innerHTML = '<span style="background: #fee2e2; color: #991b1b; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-left: 6px;">⚠️ 未提出 (' + datesStr + ')</span>';
+            }
+          }
+        }).getStaffPendingDates(staffId);
       }
 
       function toggleCard(cardId) { document.getElementById(cardId).classList.toggle('open'); }

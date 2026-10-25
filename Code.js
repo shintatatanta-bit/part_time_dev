@@ -1882,3 +1882,63 @@ function getAccountNameByDestination(destination) {
     return "アカウントA";
   }
 }
+
+/**
+ * 💡 指定したスタッフの過去1か月間における「シフト予定があるのに未提出の日」のリストを取得する関数
+ */
+function getStaffPendingDates(staffId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    var today = new Date();
+    var startDate = new Date();
+    startDate.setDate(today.getDate() - 30);
+    
+    var todayStr = Utilities.formatDate(today, "Asia/Tokyo", "yyyy-MM-dd");
+    var startStr = Utilities.formatDate(startDate, "Asia/Tokyo", "yyyy-MM-dd");
+
+    var shiftSheet = ss.getSheetByName("シフト予定");
+    if (!shiftSheet) return { success: true, pendingDates: [] };
+    var shiftData = shiftSheet.getDataRange().getValues();
+    
+    var scheduledDates = [];
+    for (var i = 1; i < shiftData.length; i++) {
+      var row = shiftData[i];
+      var wDate = row[1];
+      var sId = row[2];
+      if (!wDate || String(sId) !== String(staffId)) continue;
+      
+      var d = new Date(wDate);
+      if (isNaN(d.getTime())) continue;
+      var dStr = Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd");
+      
+      if (dStr >= startStr && dStr <= todayStr) {
+        scheduledDates.push(dStr);
+      }
+    }
+
+    var dataSheet = ss.getSheetByName("申請データ");
+    if (dataSheet) {
+      var kintaiData = dataSheet.getDataRange().getValues();
+      for (var j = 1; j < kintaiData.length; j++) {
+        var kRow = kintaiData[j];
+        var kStaffId = kRow[1];
+        var kDate = kRow[3];
+        if (String(kStaffId) !== String(staffId) || !kDate) continue;
+        
+        var kd = new Date(kDate);
+        if (isNaN(kd.getTime())) continue;
+        var kdStr = Utilities.formatDate(kd, "Asia/Tokyo", "yyyy-MM-dd");
+        
+        var index = scheduledDates.indexOf(kdStr);
+        if (index !== -1) {
+          scheduledDates.splice(index, 1); // 申請済みなら除外
+        }
+      }
+    }
+
+    return { success: true, pendingDates: scheduledDates };
+  } catch (error) {
+    return { success: false, pendingDates: [], message: error.message };
+  }
+}
