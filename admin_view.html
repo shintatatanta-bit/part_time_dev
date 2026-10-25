@@ -384,15 +384,27 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         <span style="font-size:0.75rem; color:var(--text-sub); font-weight:600;">▼ 開閉</span>
       </div>
       <div class="accordion-content">
+        <!-- 💡 前期・翌期切り替えボタン ＆ 前半後半ボタン -->
+        <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+          <button type="button" class="secondary" style="flex:1;" onclick="shiftPeriod(-1)">◀ 前期へ</button>
+          <button type="button" class="secondary" style="flex:1;" onclick="setPeriod('first')">今月 前半 (1〜15日)</button>
+          <button type="button" class="secondary" style="flex:1;" onclick="setPeriod('second')">今月 後半 (16〜末日)</button>
+          <button type="button" class="secondary" style="flex:1;" onclick="shiftPeriod(1)">翌期へ ▶</button>
+        </div>
+
         <div class="flex-row">
-          <div class="flex-col"><label>開始日</label><input type="date" id="startDate"></div>
-          <div class="flex-col"><label>終了日</label><input type="date" id="endDate"></div>
+          <div class="flex-col"><label>開始日</label><input type="date" id="startDate" onchange="fetchSummary()"></div>
+          <div class="flex-col"><label>終了日</label><input type="date" id="endDate" onchange="fetchSummary()"></div>
         </div>
-        <div class="quick-btns">
-          <button type="button" onclick="setPeriod('first')">📅 今月 前半 (1日〜15日)</button>
-          <button type="button" onclick="setPeriod('second')">📅 今月 後半 (16日〜末日)</button>
-        </div>
+
         <button type="button" style="width:100%; margin-top:12px;" onclick="fetchSummary()">この期間で集計する</button>
+
+        <!-- 💡 指定期間の全体合計表示エリア -->
+        <div id="grandTotalContainer" style="margin-top: 12px; display: none; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 8px; font-size: 0.85rem; color: #1e40af;">
+          <strong>📊 指定期間の全体合計：</strong>
+          <span id="grandTotalText">労働合計: 0時間0分 / 交通費合計: ¥0</span>
+        </div>
+
         <div id="summaryCardContainer" style="margin-top: 12px;"><div style="text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;">集計中...</div></div>
       </div>
     </div>
@@ -543,12 +555,32 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         loadStaffList();
         loadAccountOptions();
         loadAccountQrOptions();
-        setPeriod('first');
+        
+        // 💡 初期表示時は「今日が属する半期（当期）」を自動セットする
+        setCurrentPeriodToToday();
+        
         fetchSummary();
         loadLineHistory();
         loadPendingStaff();
         loadShiftNotifications();
       };
+
+      // 💡 今日が1〜15日なら前半、16日〜末日なら後半を自動セット
+      function setCurrentPeriodToToday() {
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, '0');
+        var d = now.getDate();
+        if (d <= 15) {
+          document.getElementById('startDate').value = y + '-' + m + '-01';
+          document.getElementById('endDate').value = y + '-' + m + '-15';
+        } else {
+          var lastDayObj = new Date(y, Number(m), 0);
+          var lastDayStr = y + '-' + m + '-' + String(lastDayObj.getDate()).padStart(2, '0');
+          document.getElementById('startDate').value = y + '-' + m + '-16';
+          document.getElementById('endDate').value = lastDayStr;
+        }
+      }
 
       function openStaffModal() { document.getElementById('staffManagementModal').style.display = 'flex'; }
       function closeStaffModal() { document.getElementById('staffManagementModal').style.display = 'none'; }
@@ -1107,10 +1139,52 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           document.getElementById('startDate').value = year + '-' + month + '-01';
           document.getElementById('endDate').value = year + '-' + month + '-15';
         } else if (type === 'second') {
-          var lastDayObj = new Date(year, month + 1, 0);
+          var lastDayObj = new Date(year, Number(month), 0);
           var lastDay = year + '-' + month + '-' + String(lastDayObj.getDate()).padStart(2, '0');
           document.getElementById('startDate').value = year + '-' + month + '-16';
           document.getElementById('endDate').value = lastDay;
+        }
+        fetchSummary();
+      }
+
+      // 💡 前期 (-1) や 翌期 (+1) へ切り替える関数
+      function shiftPeriod(direction) {
+        var startInput = document.getElementById('startDate');
+        var endInput = document.getElementById('endDate');
+        if (!startInput.value || !endInput.value) { setCurrentPeriodToToday(); }
+
+        var startD = new Date(startInput.value);
+        var day = startD.getDate();
+        var year = startD.getFullYear();
+        var month = startD.getMonth(); // 0始まり
+
+        if (day === 1) {
+          // 現在「前半(1〜15)」にいる場合
+          if (direction === -1) {
+            // 前月の後半(16〜末日)へ
+            var prevMonthLastDay = new Date(year, month, 0);
+            startInput.value = prevMonthLastDay.getFullYear() + '-' + String(prevMonthLastDay.getMonth() + 1).padStart(2, '0') + '-16';
+            endInput.value = prevMonthLastDay.getFullYear() + '-' + String(prevMonthLastDay.getMonth() + 1).padStart(2, '0') + '-' + prevMonthLastDay.getDate();
+          } else {
+            // 同月の後半(16〜末日)へ
+            startInput.value = year + '-' + String(month + 1).padStart(2, '0') + '-16';
+            var currentMonthLastDay = new Date(year, month + 1, 0);
+            endInput.value = year + '-' + String(month + 1).padStart(2, '0') + '-' + currentMonthLastDay.getDate();
+          }
+        } else {
+          // 現在「後半(16〜末日)」にいる場合
+          if (direction === -1) {
+            // 同月の前半(1〜15)へ
+            startInput.value = year + '-' + String(month + 1).padStart(2, '0') + '-01';
+            endInput.value = year + '-' + String(month + 1).padStart(2, '0') + '-15';
+          } else {
+            // 翌月の前半(1〜15)へ
+            var nextMonth = new Date(year, month + 1, 1);
+            var ny = nextMonth.getFullYear();
+            var nm = String(nextMonth.getMonth() + 1).padStart(2, '0');
+            startInput.value = ny + '-' + nm + '-01';
+            endInput.value = ny + '-' + nm + '-15';
+          }
         }
         fetchSummary();
       }
@@ -1129,10 +1203,20 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var start = document.getElementById('startDate').value;
         var end = document.getElementById('endDate').value;
         var container = document.getElementById('summaryCardContainer');
+        var totalBox = document.getElementById('grandTotalContainer');
         container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;">集計中...</div>';
+        totalBox.style.display = 'none';
         
         google.script.run.withSuccessHandler(function(res) {
           if (!res.success) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger-color); font-size: 0.85rem;">' + res.message + '</div>'; return; }
+          
+          // 💡 全体合計の表示を更新
+          if (res.grandTotal) {
+            document.getElementById('grandTotalText').innerText = 
+              '労働合計: ' + res.grandTotal.totalWorkHoursStr + ' ／ 交通費合計: ¥' + res.grandTotal.totalCost.toLocaleString();
+            totalBox.style.display = 'block';
+          }
+
           var list = res.summary;
           if (list.length === 0) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;">スタッフデータがありません</div>'; return; }
           var html = '';
@@ -1140,7 +1224,6 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             html += '<div class="staff-card" id="card-' + item.staffId + '">';
             html += '<div class="staff-header" onclick="toggleCard(\'card-' + item.staffId + '\')">';
             
-            // 💡 スタッフ名の横に未提出アラート用の差し込み枠（id="staff-alert-..."）を用意
             html += '<div class="staff-info">';
             html += '<h4>' + escapeHtml(item.staffName) + ' (' + escapeHtml(item.assignedAccount) + ') <span id="staff-alert-' + item.staffId + '"></span></h4>';
             html += '<p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p>';
@@ -1159,7 +1242,6 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             }
             html += '</div></div>';
             
-            // 💡 各スタッフの未提出日を非同期でチェックしてバッジを配置
             checkStaffAlertBadge(item.staffId);
           });
           container.innerHTML = html;

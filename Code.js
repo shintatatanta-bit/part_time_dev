@@ -457,7 +457,7 @@ function deleteStaffById(staffId) {
 }
 
 /**
- * 指定された期間の勤怠データを集計する関数
+ * 指定された期間の勤怠データを集計する関数（全体の合計値つき）
  */
 function getKintaiSummary(startDate, endDate) {
   try {
@@ -494,6 +494,10 @@ function getKintaiSummary(startDate, endDate) {
     
     var weekDays = ["日", "月", "火", "水", "木", "金", "土"];
     
+    // 💡 全体の合計用変数
+    var grandTotalWorkMinutes = 0;
+    var grandTotalCost = 0;
+    
     for (var j = 1; j < kintaiData.length; j++) {
       var row = kintaiData[j];
       var reqId = row[0];
@@ -515,6 +519,8 @@ function getKintaiSummary(startDate, endDate) {
           staffMap[sId].totalCost += cost;
           staffMap[sId].totalBreakMinutes += breakMins;
           
+          grandTotalCost += cost; // 全体交通費に加算
+          
           var formattedStart = formatTime(startTime);
           var formattedEnd = formatTime(endTime);
           var workMins = 0;
@@ -527,6 +533,7 @@ function getKintaiSummary(startDate, endDate) {
             workMins = (endM - startM) - breakMins;
             if (workMins > 0) {
               staffMap[sId].totalWorkMinutes += workMins;
+              grandTotalWorkMinutes += workMins; // 全体労働時間に加算（終了時刻ー開始時刻ー休憩時間）
             }
           }
           
@@ -564,7 +571,19 @@ function getKintaiSummary(startDate, endDate) {
       summaryList.push(item);
     }
     
-    return { success: true, summary: summaryList };
+    // 全体の総労働時間の文字列表記作成
+    var gTotH = Math.floor(grandTotalWorkMinutes / 60);
+    var gTotM = grandTotalWorkMinutes % 60;
+    var grandTotalWorkHoursStr = gTotH + "時間" + gTotM + "分";
+    
+    return { 
+      success: true, 
+      summary: summaryList,
+      grandTotal: {
+        totalWorkHoursStr: grandTotalWorkHoursStr,
+        totalCost: grandTotalCost
+      }
+    };
   } catch (error) {
     return { success: false, message: "集計エラー: " + error.message };
   }
@@ -1276,7 +1295,7 @@ function getKintaiPendingStaff() {
     pendingList.sort(function(a, b) {
       return new Date(a.targetDate) - new Date(b.targetDate);
     });
-    
+
     return { success: true, pendingList: pendingList };
   } catch (error) {
     return { success: false, message: "未提出者取得エラー: " + error.message, pendingList: [] };
