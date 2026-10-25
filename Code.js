@@ -1,6 +1,9 @@
 /**
  * 💡 LINEからのイベント（メッセージ送信など）を受け取るWebhookの入口（マルチアカウント完全対応版）
  */
+/**
+ * 💡 LINEからのイベント（メッセージ送信など）を受け取るWebhookの入口（マルチアカウント完全対応版）
+ */
 function doPost(e) {
   try {
     var contents = JSON.parse(e.postData.contents);
@@ -18,28 +21,21 @@ function doPost(e) {
         var lineUserId = event.source.userId;
         var replyToken = event.replyToken;
         
-          if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
+        if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
           saveLineIdLog(lineUserId);
           
-          // ▼▼ 追加・変更 ▼▼
+          // ▼ アカウント名を特定してURLに付与する ▼
           var accountName = getAccountNameByDestination(destination);
           var webAppUrl = ScriptApp.getService().getUrl();
-          // URLの末尾にアカウント名をパラメータとしてくっつける
           var registerUrl = webAppUrl + "?page=register&account=" + encodeURIComponent(accountName);
-          // ▲▲ 追加・変更 ▲▲
-
-          var messages = [
-
-            var webAppUrl = ScriptApp.getService().getUrl();
-          var registerUrl = webAppUrl + "?page=register";
-
+          
           var messages = [
             { type: "text", text: "お疲れ様です！スタッフ登録を行います。\n\n① まず以下のご自身の【LINE ID】をコピーしてください👇" },
             { type: "text", text: lineUserId },
             { type: "text", text: "② 次に、以下のリンクから登録フォームを開き、コピーしたLINE IDを貼り付けてください。\n\n▼ スタッフ初回登録ページ\n" + registerUrl }
           ];
           
-          // 💡 特定したアクセストークンを使って返信する（万が一特定できなかった場合の順次試行フォールバック付き）
+          // 💡 特定したアクセストークンを使って返信する
           sendLineMultipleRepliesWithToken(replyToken, messages, accessToken);
         }
       }
