@@ -786,6 +786,29 @@
         }
       }
 
+// 💡 指定された日付と同じ曜日となる、その月の日付リストをすべて取得する関数
+      function getSameDayOfWeekInMonth(dateStr) {
+        var parts = dateStr.split('-');
+        var year = Number(parts[0]);
+        var month = Number(parts[1]);
+        var targetDateObj = new Date(dateStr);
+        var targetDayOfWeek = targetDateObj.getDay(); // 0(日曜)〜6(土曜)
+        
+        var datesArray = [];
+        var lastDayObj = new Date(year, month, 0);
+        var totalDays = lastDayObj.getDate();
+
+        for (var day = 1; day <= totalDays; day++) {
+          var dObj = new Date(year, month - 1, day);
+          if (dObj.getDay() === targetDayOfWeek) {
+            var mStr = String(month).padStart(2, '0');
+            var dStr = String(day).padStart(2, '0');
+            datesArray.push(year + '-' + mStr + '-' + dStr);
+          }
+        }
+        return datesArray;
+      }
+
       function confirmPlacement(mode) {
         if (!pendingPlacement) return;
         var p = pendingPlacement;
