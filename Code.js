@@ -1450,13 +1450,13 @@ function sendKintaiReminderLine(data) {
 function getUnreadShiftNotifications() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    if (!ss) return { success: true, notifications: [] };
+    if (!ss) return { success: true, notifications: [], latestTimestamp: "" };
     
     var sheet = ss.getSheetByName("希望通知ログ");
-    if (!sheet) return { success: true, notifications: [] };
+    if (!sheet) return { success: true, notifications: [], latestTimestamp: "" };
 
     var data = sheet.getDataRange().getValues();
-    if (!data || data.length <= 1) return { success: true, notifications: [] };
+    if (!data || data.length <= 1) return { success: true, notifications: [], latestTimestamp: "" };
 
     var notifications = [];
 
@@ -1492,22 +1492,28 @@ function getUnreadShiftNotifications() {
           staffName: staffName || "スタッフ",
           yearMonth: formattedYm || "未指定",
           timestamp: timeStr,
-          rawTime: timeObj instanceof Date ? timeObj.getTime() : 0 // ソート用
+          rawTime: timeObj instanceof Date ? timeObj.getTime() : 0
         });
       }
     }
 
-    // 💡 タイムスタンプの新しい順（降順）にソート
+    // 新しい順（降順）にソート
     notifications.sort(function(a, b) {
       return b.rawTime - a.rawTime;
     });
 
-    // 💡 最大20件までに制限する
+    // 💡 最も新しい通知のタイムスタンプを取得しておく
+    var latestTimestamp = notifications.length > 0 ? notifications[0].timestamp : "";
+
     notifications = notifications.slice(0, 20);
 
-    return { success: true, notifications: notifications };
+    return { 
+      success: true, 
+      notifications: notifications, 
+      latestTimestamp: latestTimestamp // 👈 追加
+    };
   } catch (error) {
-    return { success: true, notifications: [], message: error.message };
+    return { success: true, notifications: [], latestTimestamp: "", message: error.message };
   }
 }
 
