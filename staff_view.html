@@ -407,7 +407,7 @@
 
         var btn = event.target;
         btn.disabled = true;
-        btn.innerText = '保存中...';
+        btn.innerText = '送信中...';
 
         var actionFunction = requestId ? 'updateKintaiData' : 'saveKintaiData';
 
@@ -415,11 +415,12 @@
           .withSuccessHandler(function(res) {
             alert(res.message);
             if (res.success) {
-              cancelEditMode();
-              loadStaffHistory();
+              // 💡 申請が成功したらページを自動リロード
+              window.location.reload();
+            } else {
+              btn.disabled = false;
+              btn.innerText = requestId ? '修正を保存する' : '申請を送信する';
             }
-            btn.disabled = false;
-            btn.innerText = requestId ? '修正を保存する' : '申請を送信する';
           })
           [actionFunction](data);
       }
