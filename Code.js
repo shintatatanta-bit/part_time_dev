@@ -2020,7 +2020,7 @@ function getStaffSubmittedShiftDates(data) {
 }
 
 /**
- * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数（完全修正版）
+ * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数（完全一致保証版）
  */
 function getClosingStatus(data) {
   try {
@@ -2043,24 +2043,6 @@ function getClosingStatus(data) {
       endDateStr = yearMonth + "-" + String(lastDayObj.getDate()).padStart(2, '0');
     }
 
-    // 1. スタッフマスタから有効なスタッフ一覧を取得
-    var staffSheet = ss.getSheetByName("スタッフマスタ");
-    if (!staffSheet) return { success: false, message: "スタッフマスタが見つかりません" };
-    var staffData = staffSheet.getDataRange().getValues();
-    
-    var staffList = [];
-    for (var i = 1; i < staffData.length; i++) {
-      var sId = String(staffData[i][0] || "").trim();
-      var sName = String(staffData[i][1] || "").trim();
-      var sStatus = String(staffData[i][4] || "").trim();
-      if (sId && sStatus === "有効") {
-        staffList.push({
-          staffId: sId,
-          staffName: sName
-        });
-      }
-    }
-    
     // 日付を安全に "YYYY-MM-DD" 文字列に変換するヘルパー
     function parseDateToString(raw) {
       if (!raw) return "";
@@ -2078,14 +2060,34 @@ function getClosingStatus(data) {
       return str;
     }
 
+    // 1. スタッフマスタから有効なスタッフ一覧を取得
+    var staffSheet = ss.getSheetByName("スタッフマスタ");
+    if (!staffSheet) return { success: false, message: "スタッフマスタが見つかりません" };
+    var staffData = staffSheet.getDataRange().getValues();
+    
+    var staffList = [];
+    // 💡 ID比較時のズレをなくすため、小文字化＋空白除去したIDをキーにする
+    for (var i = 1; i < staffData.length; i++) {
+      var sId = String(staffData[i][0] || "").trim().toLowerCase();
+      var sName = String(staffData[i][1] || "").trim();
+      var sStatus = String(staffData[i][4] || "").trim();
+      if (sId && sStatus === "有効") {
+        staffList.push({
+          staffId: sId,
+          originalId: String(staffData[i][0] || "").trim(), // 表示用
+          staffName: sName
+        });
+      }
+    }
+    
     // 2. 「シフト予定」シートから期間内の予定日数をカウント
     var shiftSheet = ss.getSheetByName("シフト予定");
     var shiftMap = {}; 
     if (shiftSheet) {
       var shiftData = shiftSheet.getDataRange().getValues();
       for (var s = 1; s < shiftData.length; s++) {
-        var rawDate = shiftData[s][1];
-        var sId = String(shiftData[s][2] || "").trim();
+        var rawDate = shiftData[s][1]; // B列：勤務日
+        var sId = String(shiftData[s][2] || "").trim().toLowerCase(); // C列：スタッフID
         if (!rawDate || !sId) continue;
         
         var sDateStr = parseDateToString(rawDate);
@@ -2104,8 +2106,8 @@ function getClosingStatus(data) {
     if (dataSheet) {
       var kData = dataSheet.getDataRange().getValues();
       for (var k = 1; k < kData.length; k++) {
-        var rawKDate = kData[k][3]; // D列が勤務日
-        var kId = String(kData[k][1] || "").trim(); // B列がスタッフID
+        var rawKDate = kData[k][3]; // D列：勤務日
+        var kId = String(kData[k][1] || "").trim().toLowerCase(); // B列：スタッフID
         if (!rawKDate || !kId) continue;
         
         var kDateStr = parseDateToString(rawKDate);
@@ -2118,7 +2120,7 @@ function getClosingStatus(data) {
       }
     }
     
-    // 4. 「締め・確認管理」シートからステータスを読み込む（シート名タブに合わせる）
+    // 4. 「締め・確認管理」シートからステータスを読み込む
     var closingSheet = ss.getSheetByName("締め・確認管理");
     if (!closingSheet) {
       closingSheet = ss.insertSheet("締め・確認管理");
@@ -2129,10 +2131,10 @@ function getClosingStatus(data) {
     var cData = closingSheet.getDataRange().getValues();
     var periodKey = yearMonth + "_" + half;
     for (var c = 1; c < cData.length; c++) {
-      var cStaffId = String(cData[c][0] || "").trim();
-      var cPeriod = String(cData[c][1] || "").trim();
+      var cStaffId = String(cData[c][0] || "").trim().toLowerCase(); // A列
+      var cPeriod = String(cData[c][1] || "").trim(); // B列
       if (cPeriod === periodKey) {
-        statusMap[cStaffId] = String(cData[c][2] || "").trim();
+        statusMap[cStaffId] = String(cData[c][2] || "").trim(); // C列
       }
     }
     
@@ -2140,6 +2142,7 @@ function getClosingStatus(data) {
     var allConfirmed = true;
     
     staffList.forEach(function(staff) {
+      // 💡 小文字化したIDで突合する
       var scheduledDays = shiftMap[staff.staffId] ? shiftMap[staff.staffId].length : 0;
       var kintaiDays = kintaiMap[staff.staffId] ? kintaiMap[staff.staffId].length : 0;
       var status = statusMap[staff.staffId] || "確認待ち";
@@ -2149,7 +2152,7 @@ function getClosingStatus(data) {
       }
       
       resultList.push({
-        staffId: staff.staffId,
+        staffId: staff.originalId, // 返すときは元のID
         staffName: staff.staffName,
         scheduledDays: scheduledDays,
         kintaiDays: kintaiDays,
