@@ -2424,3 +2424,107 @@ function getStaffSubmittedShiftDates(data) {
     return { success: false, submittedDates: [], message: error.message };
   }
 }
+
+/**
+ * 💡 指定された年月のシフト情報をSlack共有用テキストに変換して返す関数
+ */
+function getSlackShiftText(yearMonth) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!yearMonth) return { success: false, message: "対象月が指定されていません" };
+    
+    var parts = yearMonth.split('-');
+    var year = Number(parts[0]);
+    var month = Number(parts[1]);
+    
+    // タイトル行（例: "10月シフト" または "2026年10月シフト"）
+    var slackText = month + "月シフト\n";
+    
+    var weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+    var lastDay = new Date(year, month, 0).getDate();
+    
+    // 1. シフト予定データを取得
+    var shiftSheet = ss.getSheetByName("シフト予定");
+    var shiftMap = {};
+    if (shiftSheet) {
+      var shiftData = shiftSheet.getDataRange().getValues();
+      for (var i = 1; i < shiftData.length; i++) {
+        var workDate = shiftData[i][1];
+        var staffName = String(shiftData[i][3] || "").trim();
+        var dailyMemo = String(shiftData[i][4] || "").trim(); // 例: "pm" など
+        
+        if (!workDate || !staffName) continue;
+        var d = new Date(workDate);
+        if (isNaN(d.getTime())) continue;
+        
+        var y = d.getFullYear();
+        var m = ('0' + (d.getMonth() + 1)).slice(-2);
+        var day = ('0' + d.getDate()).slice(-2);
+        var dateStr = y + '-' + m + '-' + day;
+        
+        if (dateStr.indexOf(yearMonth) === 0) {
+          if (!shiftMap[dateStr]) shiftMap[dateStr] = [];
+          var displayName = staffName + dailyMemo; // 例: "山田pm"
+          shiftMap[dateStr].push(displayName);
+        }
+      }
+    }
+    
+    // 2. フリー予定（お休み等のイレギュラー予定）を取得
+    var freeSheet = ss.getSheetByName("フリー予定");
+    var freeMap = {};
+    if (freeSheet) {
+      var freeData = freeSheet.getDataRange().getValues();
+      for (var j = 1; j < freeData.length; j++) {
+        var fDate = freeData[j][1];
+        var fTitle = String(freeData[j][2] || "").trim();
+        if (!fDate || !fTitle) continue;
+        
+        var fd = new Date(fDate);
+        if (isNaN(fd.getTime())) continue;
+        var fy = fd.getFullYear();
+        var fm = ('0' + (fd.getMonth() + 1)).slice(-2);
+        var fday = ('0' + fd.getDate()).slice(-2);
+        var fDateStr = fy + '-' + fm + '-' + fday;
+        
+        if (fDateStr.indexOf(yearMonth) === 0) {
+          if (!freeMap[fDateStr]) freeMap[fDateStr] = [];
+          freeMap[fDateStr].push(fTitle); // 例: "キッチンお休みいただきます。"
+        }
+      }
+    }
+    
+    // 3. 1日から末日までループしてテキストを構築
+    var hasContent = false;
+    for (var day = 1; day <= lastDay; day++) {
+      var mStr = String(month).padStart(2, '0');
+      var dStr = String(day).padStart(2, '0');
+      var dateStr = year + '-' + mStr + '-' + dStr;
+      
+      var dObj = new Date(year, month - 1, day);
+      var wStr = weekDays[dObj.getDay()];
+      
+      var lineItems = [];
+      
+      // シフトスタッフがあれば追加
+      if (shiftMap[dateStr] && shiftMap[dateStr].length > 0) {
+        lineItems = lineItems.concat(shiftMap[dateStr]);
+      }
+      
+      // フリー予定（お休み等）があれば追加
+      if (freeMap[dateStr] && freeMap[dateStr].length > 0) {
+        lineItems = lineItems.concat(freeMap[dateStr]);
+      }
+      
+      // どちらか存在する場合のみ行を出力
+      if (lineItems.length > 0) {
+        slackText += day + "(" + wStr + ")" + lineItems.join("、") + "\n";
+        hasContent = true;
+      }
+    }
+    
+    return { success: true, text: slackText.trim() };
+  } catch (error) {
+    return { success: false, message: "Slackテキスト生成エラー: " + error.message };
+  }
+}

@@ -394,6 +394,12 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           <div class="calendar-controls-right">
             <button class="secondary" onclick="openPrintPreview('A3')">🖨️ A3横 印刷</button>
             <button class="secondary" onclick="openPrintPreview('A4')">🖨️ A4横 印刷</button>
+            <div class="calendar-controls-right">
+            <!-- 💡 Slack用テキストコピーボタンを追加 -->
+            <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="copySlackShiftText()">📋 Slack用シフトコピー</button>
+            <button class="secondary" onclick="openPrintPreview('A3')">🖨️ A3横 印刷</button>
+            <button class="secondary" onclick="openPrintPreview('A4')">🖨️ A4横 印刷</button>
+          </div>
           </div>
         </div>
 
@@ -1849,6 +1855,33 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             }
           })
           .sendClosingReminderLine({ staffIds: [], yearMonth: ym, half: half, targetMode: 'unconfirmed' });
+      }
+
+      function copySlackShiftText() {
+        var ym = document.getElementById('calendarMonth').value;
+        if (!ym) {
+          alert('対象月を選択してください。');
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success && res.text) {
+              // クリップボードにコピー
+              navigator.clipboard.writeText(res.text).then(function() {
+                alert('【Slack用シフトテキストをコピーしました！】\nそのままSlackのメッセージ欄に貼り付け(Ctrl+V)できます。\n\n--- プレビュー ---\n' + res.text);
+              }).catch(function(err) {
+                // 万が一クリップボードAPIが使えない場合のフォールバック
+                prompt("以下のテキストを手動でコピーしてください:", res.text);
+              });
+            } else {
+              alert('テキスト生成失敗: ' + (res.message || 'データがありません'));
+            }
+          })
+          .withFailureHandler(function(err) {
+            alert('通信エラー: ' + err.message);
+          })
+          .getSlackShiftText(ym);
       }
     </script>
   </body>
