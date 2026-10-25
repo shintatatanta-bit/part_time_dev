@@ -683,13 +683,27 @@
           html = '<span style="font-size:6pt; color:var(--text-sub);">登録された予定はありません</span>';
         } else {
           cachedFreePalette.forEach(function(title, idx) {
-            html += '<div class="staff-chip" style="background: #d97706;" draggable="true" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
+            // 💡 draggable と ondragstart、onclick を正しく付与
+            html += '<div class="staff-chip" style="background: #d97706;" draggable="true" ondragstart="onFreeDragStart(event, \'' + escapeHtml(title) + '\')" onclick="selectFreeForClick(this, \'' + escapeHtml(title) + '\')">';
             html += '📌 ' + escapeHtml(title);
             html += ' <span onclick="event.stopPropagation(); removeFreePalette(' + idx + ')" style="font-size:6pt; margin-left:3px; opacity:0.8;">×</span>';
             html += '</div>';
           });
         }
         if (stickyContainer) stickyContainer.innerHTML = html;
+      }
+
+      function selectFreeForClick(elem, title) {
+        var chips = document.querySelectorAll('.staff-chip');
+        chips.forEach(function(c) { c.classList.remove('selected-active'); });
+        if (selectedStaffForClick && selectedStaffForClick.type === 'free' && selectedStaffForClick.title === title) {
+          selectedStaffForClick = null;
+          alert('選択を解除しました');
+        } else {
+          selectedStaffForClick = { type: 'free', title: title };
+          elem.classList.add('selected-active');
+          alert('予定「' + title + '」を選択しました。配置したい日付枠をタップしてください。');
+        }
       }
 
       function removeFreePalette(index) {
@@ -704,17 +718,22 @@
         document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
         var dataStr = event.dataTransfer.getData('text/plain');
         if (!dataStr) return;
-        var data = JSON.parse(dataStr);
-        if (data.type === 'free') {
-          var tempId = "local_free_" + Math.random();
-          cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
-          renderCurrentView();
-          markAsUnsaved();
-        } else {
-          openModal(dateStr, data.staffId, data.staffName, data.displayChar);
+        try {
+          var data = JSON.parse(dataStr);
+          if (data.type === 'free') {
+            var tempId = "local_free_" + Math.random();
+            cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
+            renderCurrentView();
+            markAsUnsaved();
+          } else if (data.staffId) {
+            openModal(dateStr, data.staffId, data.staffName, data.displayChar);
+          }
+        } catch (e) {
+          console.log("ドロップデータ解析エラー: " + e.message);
         }
       }
 
+      // 3. カレンダーセルをクリックしたときの処理
       function onCellClick(dateStr) {
         if (selectedStaffForClick) {
           if (selectedStaffForClick.type === 'free') {
@@ -722,8 +741,14 @@
             cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: selectedStaffForClick.title });
             renderCurrentView();
             markAsUnsaved();
-          } else {
+            // 選択状態をリセット
+            selectedStaffForClick = null;
+            document.querySelectorAll('.staff-chip').forEach(function(c) { c.classList.remove('selected-active'); });
+          } else if (selectedStaffForClick.staffId) {
             openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
+            // モーダルが開いたあと選択状態をリセット
+            selectedStaffForClick = null;
+            document.querySelectorAll('.staff-chip').forEach(function(c) { c.classList.remove('selected-active'); });
           }
         } else {
           var index = cachedClosedDays.indexOf(dateStr);
@@ -1323,11 +1348,15 @@
       }
 
       function onDragStart(event, staffId, staffName, displayChar) {
-        event.dataTransfer.setData('text/plain', JSON.stringify({ staffId: staffId, staffName: staffName, displayChar: displayChar }));
+        event.dataTransfer.setData('text/plain', JSON.stringify({ type: 'staff', staffId: staffId, staffName: staffName, displayChar: displayChar }));
+      }
+
+      function onFreeDragStart(event, title) {
+        event.dataTransfer.setData('text/plain', JSON.stringify({ type: 'free', title: title }));
       }
 
       function onDragOver(event) {
-        event.preventDefault();
+        event.preventDefault(); // 💡 これが抜けるとドロップできません
         document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
         var target = event.target.closest('.cal-cell') || event.target.closest('.list-row');
         if (target && !target.classList.contains('other-month')) { target.classList.add('drag-over'); }
@@ -1340,7 +1369,7 @@
           selectedStaffForClick = null;
           alert('選択を解除しました');
         } else {
-          selectedStaffForClick = { staffId: staffId, staffName: staffName, displayChar: displayChar };
+          selectedStaffForClick = { type: 'staff', staffId: staffId, staffName: staffName, displayChar: displayChar };
           elem.classList.add('selected-active');
           alert(staffName + 'さんを選択しました。配置したい日付枠をタップしてください。');
         }
