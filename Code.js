@@ -1625,7 +1625,7 @@ function sendWelcomeAndTestNotice(lineUserId, assignedAccount, staffName, staffU
   var messageText = 
     "🎉 " + staffName + "さん、スタッフ登録が完了しました！\n\n" +
     "これより勤怠管理システムをご利用いただけます。\n" +
-    "以下の【スタッフ専用ポータルURL】をタップして、無事に画面が開くか（申請テスト）をご確認ください。\n\n" +
+    "今後の勤怠申請やシフト申請は、以下の【スタッフ専用ポータルURL】からお願いします。\n\n" +
     "🔗 スタッフ専用ポータルURL:\n" + staffUrl + "\n\n" +
     "お疲れ様でした！";
   
