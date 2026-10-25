@@ -1336,7 +1336,10 @@
             } else {
               var chipsHtml = '';
               activeStaffList.forEach(function(staff) {
-                chipsHtml += '<div class="staff-chip" draggable="true" ondragstart="onDragStart(event, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')" onclick="selectStaffForClick(this, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')">';
+                // 💡 【修正点】スタッフチップに draggable, ondragstart, onclick を確実に付与
+                chipsHtml += '<div class="staff-chip" draggable="true" ' +
+                             'ondragstart="onDragStart(event, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')" ' +
+                             'onclick="selectStaffForClick(this, \'' + staff.staffId + '\', \'' + escapeHtml(staff.staffName) + '\', \'' + escapeHtml(staff.displayChar) + '\')">';
                 chipsHtml += '[' + escapeHtml(staff.displayChar) + '] ' + escapeHtml(staff.staffName);
                 chipsHtml += '</div>';
               });
