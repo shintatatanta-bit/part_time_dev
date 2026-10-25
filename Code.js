@@ -95,46 +95,14 @@ function saveLineIdLog(lineUserId) {
 }
 
 /**
- * ユーザーへ自動でリプライ（返信）を送る関数
+ * ユーザーへ自動でリプライ（返信）を送る関数（マルチアカウント対応版）
  */
 function sendLineReply(replyToken, messageText) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var accountSheet = ss.getSheetByName("アカウントマスタ");
-    if (!accountSheet) return;
-    
-    var accountData = accountSheet.getDataRange().getValues();
-    var accessToken = "";
-    if (accountData.length > 1 && accountData[1][1]) {
-      accessToken = accountData[1][1];
-    }
-    
-    if (!accessToken || accessToken.includes("YOUR_")) return;
-    
-    var url = "https://api.line.me/v2/bot/message/reply";
-    var payload = {
-      replyToken: replyToken,
-      messages: [{ type: "text", text: messageText }]
-    };
-    
-    var options = {
-      method: "post",
-      headers: {
-        "Content-Type": "application/json; charset=UTF-8",
-        "Authorization": "Bearer " + accessToken
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-    
-    UrlFetchApp.fetch(url, options);
-  } catch (e) {
-    Logger.log("sendLineReplyエラー: " + e.message);
-  }
+  sendLineMultipleReplies(replyToken, [{ type: "text", text: messageText }]);
 }
 
 /**
- * 複数（配列）のメッセージをまとめて返信する関数
+ * 複数（配列）のメッセージをまとめて返信する関数（マルチアカウント対応版）
  */
 function sendLineMultipleReplies(replyToken, messagesArray) {
   try {
@@ -143,30 +111,35 @@ function sendLineMultipleReplies(replyToken, messagesArray) {
     if (!accountSheet) return;
     
     var accountData = accountSheet.getDataRange().getValues();
-    var accessToken = "";
-    if (accountData.length > 1 && accountData[1][1]) {
-      accessToken = accountData[1][1];
+    
+    // 💡 登録されているすべてのアクセストークンを上から順に試し、正しく返信できる（ステータス200が返る）トークンを使って送信する
+    for (var i = 1; i < accountData.length; i++) {
+      var accessToken = accountData[i][1];
+      if (!accessToken || accessToken.includes("YOUR_")) continue;
+      
+      var url = "https://api.line.me/v2/bot/message/reply";
+      var payload = {
+        replyToken: replyToken,
+        messages: messagesArray
+      };
+      
+      var options = {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "Authorization": "Bearer " + accessToken
+        },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+      
+      var res = UrlFetchApp.fetch(url, options);
+      
+      // 正しく送信（返信）できたらループを終了する
+      if (res.getResponseCode() === 200) {
+        break;
+      }
     }
-    
-    if (!accessToken || accessToken.includes("YOUR_")) return;
-    
-    var url = "https://api.line.me/v2/bot/message/reply";
-    var payload = {
-      replyToken: replyToken,
-      messages: messagesArray
-    };
-    
-    var options = {
-      method: "post",
-      headers: {
-        "Content-Type": "application/json; charset=UTF-8",
-        "Authorization": "Bearer " + accessToken
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
-    
-    UrlFetchApp.fetch(url, options);
   } catch (e) {
     Logger.log("sendLineMultipleRepliesエラー: " + e.message);
   }
