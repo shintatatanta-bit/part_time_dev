@@ -607,7 +607,15 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var now = new Date();
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
+        
+        // カレンダーの月をセット
         document.getElementById('calendarMonth').value = y + '-' + m;
+        
+        // 💡 締め管理の対象月にも今月を自動セットする
+        var closingMonthEl = document.getElementById('closingMonth');
+        if (closingMonthEl) {
+          closingMonthEl.value = y + '-' + m;
+        }
 
         renderFreePalette();
         loadStaffList();
