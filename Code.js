@@ -2020,7 +2020,7 @@ function getStaffSubmittedShiftDates(data) {
 }
 
 /**
- * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数
+ * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数（修正版）
  */
 function getClosingStatus(data) {
   try {
@@ -2028,7 +2028,6 @@ function getClosingStatus(data) {
     var yearMonth = data.yearMonth; // "2026-10"
     var half = data.half; // "first" または "second"
     
-    // 期間の開始日・終了日を決定（17日などに確認依頼を出しても期間がズレないよう完全固定）
     var parts = yearMonth.split('-');
     var year = Number(parts[0]);
     var month = Number(parts[1]);
@@ -2053,7 +2052,7 @@ function getClosingStatus(data) {
     for (var i = 1; i < staffData.length; i++) {
       if (staffData[i][0] && staffData[i][4] === "有効") {
         staffList.push({
-          staffId: staffData[i][0],
+          staffId: String(staffData[i][0]),
           staffName: staffData[i][1],
           lineUserId: staffData[i][2],
           assignedAccount: staffData[i][3]
@@ -2061,44 +2060,68 @@ function getClosingStatus(data) {
       }
     }
     
-    // 2. 「シフト予定」シートから期間内の予定日数をカウント
+    // 2. 「シフト予定」シートから期間内の予定日数をカウント（日付変換を安全に実施）
     var shiftSheet = ss.getSheetByName("シフト予定");
-    var shiftMap = {}; // staffId -> 予定日数の配列
+    var shiftMap = {}; 
     if (shiftSheet) {
       var shiftData = shiftSheet.getDataRange().getValues();
       for (var s = 1; s < shiftData.length; s++) {
-        var sDate = String(shiftData[s][1] || "").substring(0, 10);
+        var rawDate = shiftData[s][1];
         var sId = String(shiftData[s][2] || "");
-        if (sDate >= startDateStr && sDate <= endDateStr) {
+        if (!rawDate || !sId) continue;
+        
+        var sDateStr = "";
+        if (rawDate instanceof Date) {
+          sDateStr = Utilities.formatDate(rawDate, "Asia/Tokyo", "yyyy-MM-dd");
+        } else {
+          var d = new Date(rawDate);
+          sDateStr = !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : String(rawDate).substring(0, 10);
+        }
+        
+        if (sDateStr >= startDateStr && sDateStr <= endDateStr) {
           if (!shiftMap[sId]) shiftMap[sId] = [];
-          shiftMap[sId].push(sDate);
+          if (shiftMap[sId].indexOf(sDateStr) === -1) {
+            shiftMap[sId].push(sDateStr);
+          }
         }
       }
     }
     
-    // 3. 「申請データ」シートから期間内の申請日数をカウント
+    // 3. 「申請データ」シートから期間内の申請日数をカウント（日付変換を安全に実施）
     var dataSheet = ss.getSheetByName("申請データ");
     var kintaiMap = {};
     if (dataSheet) {
       var kData = dataSheet.getDataRange().getValues();
       for (var k = 1; k < kData.length; k++) {
-        var kDate = String(kData[k][3] || "").substring(0, 10);
+        var rawKDate = kData[k][3];
         var kId = String(kData[k][1] || "");
-        if (kDate >= startDateStr && kDate <= endDateStr) {
+        if (!rawKDate || !kId) continue;
+        
+        var kDateStr = "";
+        if (rawKDate instanceof Date) {
+          kDateStr = Utilities.formatDate(rawKDate, "Asia/Tokyo", "yyyy-MM-dd");
+        } else {
+          var kd = new Date(rawKDate);
+          kDateStr = !isNaN(kd.getTime()) ? Utilities.formatDate(kd, "Asia/Tokyo", "yyyy-MM-dd") : String(rawKDate).substring(0, 10);
+        }
+        
+        if (kDateStr >= startDateStr && kDateStr <= endDateStr) {
           if (!kintaiMap[kId]) kintaiMap[kId] = [];
-          kintaiMap[kId].push(kDate);
+          if (kintaiMap[kId].indexOf(kDateStr) === -1) {
+            kintaiMap[kId].push(kDateStr);
+          }
         }
       }
     }
     
-    // 4. 「締め管理」シートからスタッフごとの確定ステータスを読み込む（なければ自動作成）
+    // 4. 「締め管理」シートからステータスを読み込む
     var closingSheet = ss.getSheetByName("締め管理");
     if (!closingSheet) {
       closingSheet = ss.insertSheet("締め管理");
       closingSheet.appendRow(["staffId", "periodKey", "status", "updatedAt"]);
     }
     
-    var statusMap = {}; // staffId -> "確認待ち" or "確定済み"
+    var statusMap = {}; 
     var cData = closingSheet.getDataRange().getValues();
     var periodKey = yearMonth + "_" + half;
     for (var c = 1; c < cData.length; c++) {
