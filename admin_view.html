@@ -392,9 +392,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             </div>
           </div>
           <div class="calendar-controls-right">
-            <!-- 💡 Slack用テキストコピーボタンと印刷ボタンを1セットで綺麗に配置 -->
             <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="copySlackShiftText()">📋 Slack用シフトコピー</button>
-            <button class="secondary" onclick="openPrintPreview('A3')">🖨️ A3横 印刷</button>
             <button class="secondary" onclick="openPrintPreview('A4')">🖨️ A4横 印刷</button>
           </div>
         </div>
@@ -780,7 +778,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         }
       }
 
-      function openPrintPreview(size) {
+      function openPrintPreview() {
         var ym = document.getElementById('calendarMonth').value;
         if (!ym) { alert('対象月を選択してください。'); return; }
         var parts = ym.split('-');
@@ -789,28 +787,32 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var gridHtml = document.getElementById('calendarGrid').outerHTML;
         var printWin = window.open('', '_blank', 'width=1100,height=800');
         
-        var cellMinHeight = (size === 'A4') ? '115px' : '175px';
-        var fontSizeNum = (size === 'A4') ? '0.8rem' : '1rem';
+        // 💡 A4横に合わせたセル高さとフォントサイズの設定
+        var cellMinHeight = '125px';
+        var fontSizeNum = '0.9rem';
 
         var printDoc = printWin.document;
         printDoc.open();
         printDoc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titleText + '</title>');
         printDoc.write('<style>');
-        printDoc.write('@page { size: ' + size + ' landscape; margin: 10mm; }');
+        printDoc.write('@page { size: A4 landscape; margin: 10mm; }');
         printDoc.write('body { font-family: sans-serif; margin: 0; padding: 5px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; box-sizing: border-box; }');
-        printDoc.write('h2 { text-align: center; margin: 0 0 10px 0; font-size: 1.5rem; }');
+        printDoc.write('h2 { text-align: center; margin: 0 0 10px 0; font-size: 1.4rem; }');
         printDoc.write('.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; width: 100%; max-width: 100%; flex-grow: 1; }');
-        printDoc.write('.cal-header-cell { text-align: center; font-weight: bold; font-size: 0.95rem; padding: 8px 4px; background: #f1f5f9; border-radius: 4px; }');
+        printDoc.write('.cal-header-cell { text-align: center; font-weight: bold; font-size: 0.9rem; padding: 6px 4px; background: #f1f5f9; border-radius: 4px; }');
         printDoc.write('.cal-header-cell:nth-child(1) { color: #e11d48; }');
         printDoc.write('.cal-header-cell:nth-child(7) { color: #2563eb; }');
         printDoc.write('.cal-cell { min-height: ' + cellMinHeight + '; background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px; box-sizing: border-box; position: relative; }');
         printDoc.write('.cal-cell.other-month { background: #f8fafc; opacity: 0.3; }');
         printDoc.write('.cal-cell.closed-day { background: #f1f5f9 !important; border: 1px dashed #cbd5e1 !important; }');
-        printDoc.write('.cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }');
+        printDoc.write('.cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }');
         printDoc.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #475569; }');
         printDoc.write('.cal-date-num.sun-or-hol { color: #e11d48; }');
-        printDoc.write('.staff-circle-badge { background: #059669 !important; color: white !important; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 6pt !important; font-weight: bold; }');
-        printDoc.write('.free-badge { background: #d97706 !important; color: white !important; font-size: 6pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; }');
+        
+        // 💡 印刷時のスタッフチップ（丸バッジ）を大きく見やすくする調整
+        printDoc.write('.cal-section-shift { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }');
+        printDoc.write('.staff-circle-badge { background: #059669 !important; color: white !important; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10pt !important; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }');
+        printDoc.write('.free-badge { background: #d97706 !important; color: white !important; font-size: 7pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; }');
         printDoc.write('.del-x { display: none; }');
         printDoc.write('</style></head><body>');
         printDoc.write('<h2>' + titleText + '</h2>');
