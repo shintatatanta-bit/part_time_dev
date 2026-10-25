@@ -627,6 +627,9 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         loadLineHistory();
         loadPendingStaff();
         loadShiftNotifications();
+
+        // 💡 ページ読み込み完了時に自動で締め状況を読み込む！
+        loadClosingStatus();
       };
 
       // 💡 今日が1〜15日なら前半、16日〜末日なら後半を自動セット
