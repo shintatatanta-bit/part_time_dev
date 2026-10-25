@@ -75,25 +75,28 @@
           <input type="hidden" id="editRequestId" value="">
 
           <label>勤務日</label>
-          <input type="date" id="workDate" required>
+          <input type="date" id="workDate" onchange="validateKintaiForm()" required>
           
           <label>出勤時刻</label>
-          <input type="time" id="startTime" required>
+          <input type="time" id="startTime" onchange="validateKintaiForm()" required>
           
           <label>退勤時刻</label>
-          <input type="time" id="endTime" required>
+          <input type="time" id="endTime" onchange="validateKintaiForm()" required>
           
           <label>休憩時間 (分)</label>
-          <select id="breakTime" required>
+          <select id="breakTime" required onchange="validateKintaiForm()">
+            <option value="" selected disabled>選択してください</option>
             <option value="0">0分</option>
             <option value="15">15分</option>
-            <option value="30" selected>30分</option>
+            <option value="30">30分</option>
+            <option value="60">60分</option>
           </select>
           
           <label>交通費 (円)</label>
-          <input type="number" id="transportCost" value="0" min="0" step="1" pattern="^[0-9]+$" placeholder="例: 500" oninput="this.value = this.value.replace(/[^0-9]/g, '');" required>
+          <input type="number" id="transportCost" value="0" min="0" step="1" pattern="^[0-9]+$" placeholder="例: 500" oninput="this.value = this.value.replace(/[^0-9]/g, ''); validateKintaiForm();" required>
           
-          <button type="button" id="submitBtn" onclick="submitKintai()" style="background: var(--accent-color); margin-top: 18px;">申請を送信する</button>
+          <!-- 💡 id="kintaiSubmitBtn" を付与し、最初は無効化（disabled）しておく -->
+          <button type="button" id="kintaiSubmitBtn" onclick="submitKintai()" style="background: var(--accent-color); margin-top: 18px;" disabled>申請を送信する</button>
         </form>
       </div>
 
@@ -177,9 +180,41 @@
         var minutes = String(now.getMinutes()).padStart(2, '0');
         document.getElementById('endTime').value = hours + ':' + minutes;
 
+        // 💡 休憩時間を空欄（未選択）初期値にする
+        document.getElementById('breakTime').value = "";
+
         loadStaffHistory();
         loadShiftHistory();
+        validateKintaiForm(); // 初回チェック
       };
+
+      // 💡 必須項目の入力チェック ＆ 出退勤の前後関係チェックを行い、ボタンの有効/無効を切り替える関数
+      function validateKintaiForm() {
+        var workDate = document.getElementById('workDate').value;
+        var startTime = document.getElementById('startTime').value;
+        var endTime = document.getElementById('endTime').value;
+        var breakTime = document.getElementById('breakTime').value;
+        var transportCost = document.getElementById('transportCost').value;
+        var submitBtn = document.getElementById('kintaiSubmitBtn');
+
+        // 必須項目が空の場合はボタンを無効化
+        if (!workDate || !startTime || !endTime || breakTime === "" || transportCost === "") {
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = "0.5";
+          return;
+        }
+
+        // 出勤時間と退勤時間の比較（出勤 ≧ 退勤 の場合は無効化）
+        if (startTime >= endTime) {
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = "0.5";
+          return;
+        }
+
+        // すべてクリアしている場合はボタンを有効化
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = "1.0";
+      }
 
       function switchStaffTab(mode) {
         var tabKintai = document.getElementById('tabKintai');
@@ -301,7 +336,7 @@
         var m = String(now.getMonth() + 1).padStart(2, '0');
         var d = String(now.getDate()).padStart(2, '0');
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
-        document.getElementById('breakTime').value = "30";
+        document.getElementById('breakTime').value = ""; // 空欄に戻す
         document.getElementById('transportCost').value = "0";
         var hours = String(now.getHours()).padStart(2, '0');
         var minutes = String(now.getMinutes()).padStart(2, '0');
@@ -309,19 +344,31 @@
 
         document.getElementById('formTitle').innerText = '勤怠・交通費の申請';
         document.getElementById('editModeBanner').style.display = 'none';
-        document.getElementById('submitBtn').innerText = '申請を送信する';
-        document.getElementById('submitBtn').style.background = 'var(--accent-color)';
+        var submitBtn = document.getElementById('kintaiSubmitBtn');
+        submitBtn.innerText = '申請を送信する';
+        submitBtn.style.background = 'var(--accent-color)';
+        
+        validateKintaiForm();
       }
 
       function submitKintai() {
         var requestId = document.getElementById('editRequestId').value;
+        var startTime = document.getElementById('startTime').value;
+        var endTime = document.getElementById('endTime').value;
+
+        // 万が一の二重チェック（出勤が退勤より後の場合）
+        if (startTime >= endTime) {
+          alert('エラー: 出勤時刻は退勤時刻より前の時間を設定してください。');
+          return;
+        }
+
         var data = {
           requestId: requestId,
           staffId: document.getElementById('staffId').value,
           staffName: document.getElementById('staffNameVal').value,
           workDate: document.getElementById('workDate').value,
-          startTime: document.getElementById('startTime').value,
-          endTime: document.getElementById('endTime').value,
+          startTime: startTime,
+          endTime: endTime,
           breakTime: document.getElementById('breakTime').value,
           transportCost: document.getElementById('transportCost').value
         };
@@ -431,7 +478,7 @@ function toggleDate(dateStr) {
         renderDailyMemos(); // ▼ メモ入力枠を再描画
       }
 
-      // 💡 日ごとの入力枠を生成する関数（デザインとサンプル文字を調整）
+     // 💡 日ごとの入力枠を生成する関数
       function renderDailyMemos() {
         var container = document.getElementById('dailyMemoContainer');
         var dates = Object.keys(selectedDatesMap).sort();
@@ -449,16 +496,17 @@ function toggleDate(dateStr) {
           var displayDate = (dObj.getMonth() + 1) + '/' + dObj.getDate();
           var currentMemo = escapeHtml(selectedDatesMap[dStr]);
           
-          // 入殻枠ごとに薄い背景と枠線をつけてカレンダーエリアと差別化
+          // 入力枠ごとに薄い背景と枠線をつけてカレンダーエリアと差別化
           html += '<div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 6px;">';
           html += '<span style="font-weight: bold; width: 45px; color: var(--accent-color);">' + displayDate + '</span>';
-          // サンプル文字を「伝達事項（任意）」に変更
+          
+          // 💡 onchangeの引数を通常の dStr に修正し、プレースホルダーを「伝達事項（任意）」にする
           html += '<input type="text" placeholder="伝達事項（任意）" value="' + currentMemo + '" ';
-          html += 'onchange="updateDailyMemo(\'(\\\'' + dStr + '\\\')\', this.value)" style="flex-grow: 1; padding: 6px; margin: 0; font-size: 0.85rem; background: #fff;">';
+          html += 'onchange="updateDailyMemo(\'' + dStr + '\', this.value)" style="flex-grow: 1; padding: 6px; margin: 0; font-size: 0.85rem; background: #fff;">';
           html += '</div>';
         });
         container.innerHTML = html;
-      }
+      } 
 
       function updateDailyMemo(dateStr, val) {
         if (selectedDatesMap[dateStr] !== undefined) {
