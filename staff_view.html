@@ -431,21 +431,30 @@ function toggleDate(dateStr) {
         renderDailyMemos(); // ▼ メモ入力枠を再描画
       }
 
-      // ▼ 新規追加：選択された日付ごとの入力枠を生成する関数
+      // 💡 日ごとの入力枠を生成する関数（デザインとサンプル文字を調整）
       function renderDailyMemos() {
         var container = document.getElementById('dailyMemoContainer');
         var dates = Object.keys(selectedDatesMap).sort();
         var html = '';
         
+        // 日付が選択されている場合のみ、区別しやすい見出しを表示する
+        if (dates.length > 0) {
+          html += '<div style="margin-top: 16px; margin-bottom: 8px; font-weight: bold; font-size: 0.85rem; color: var(--text-main); border-top: 1px dashed var(--border-color); padding-top: 12px;">';
+          html += '📝 選択した日ごとの伝達事項・備考';
+          html += '</div>';
+        }
+
         dates.forEach(function(dStr) {
           var dObj = new Date(dStr);
           var displayDate = (dObj.getMonth() + 1) + '/' + dObj.getDate();
           var currentMemo = escapeHtml(selectedDatesMap[dStr]);
           
-          html += '<div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">';
+          // 入殻枠ごとに薄い背景と枠線をつけてカレンダーエリアと差別化
+          html += '<div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 6px;">';
           html += '<span style="font-weight: bold; width: 45px; color: var(--accent-color);">' + displayDate + '</span>';
-          html += '<input type="text" placeholder="時間や条件を入力 (任意)" value="' + currentMemo + '" ';
-          html += 'onchange="updateDailyMemo(\'' + dStr + '\', this.value)" style="flex-grow: 1; padding: 6px; margin: 0; font-size: 0.85rem;">';
+          // サンプル文字を「伝達事項（任意）」に変更
+          html += '<input type="text" placeholder="伝達事項（任意）" value="' + currentMemo + '" ';
+          html += 'onchange="updateDailyMemo(\'(\\\'' + dStr + '\\\')\', this.value)" style="flex-grow: 1; padding: 6px; margin: 0; font-size: 0.85rem; background: #fff;">';
           html += '</div>';
         });
         container.innerHTML = html;
