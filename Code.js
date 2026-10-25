@@ -2223,3 +2223,142 @@ function sendClosingReminderLine(data) {
     return { success: false, message: error.message };
   }
 }
+
+/**
+ * 💡 スタッフ側：指定期間の締めステータスを取得する関数
+ */
+function getStaffClosingStatus(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var staffId = String(data.staffId || "").trim();
+    var yearMonth = String(data.yearMonth || "").trim(); // "2026-10"
+    var half = String(data.half || "").trim(); // "first" または "second"
+    
+    var periodKey = yearMonth + "_" + half;
+    
+    // 期間の開始日・終了日を決定
+    var parts = yearMonth.split('-');
+    var year = Number(parts[0]);
+    var month = Number(parts[1]);
+    var startDateStr = "";
+    var endDateStr = "";
+    
+    if (half === "first") {
+      startDateStr = yearMonth + "-01";
+      endDateStr = yearMonth + "-15";
+    } else {
+      startDateStr = yearMonth + "-16";
+      var lastDayObj = new Date(year, month, 0);
+      endDateStr = yearMonth + "-" + String(lastDayObj.getDate()).padStart(2, '0');
+    }
+    
+    // 1. 期間内のスタッフ自身の申請データを集計
+    var dataSheet = ss.getSheetByName("申請データ");
+    var kintaiDays = 0;
+    var totalMinutes = 0;
+    var totalCost = 0;
+    
+    function parseDate(raw) {
+      if (!raw) return "";
+      if (raw instanceof Date) return Utilities.formatDate(raw, "Asia/Tokyo", "yyyy-MM-dd");
+      var d = new Date(raw);
+      return !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : String(raw).substring(0, 10);
+    }
+    
+    if (dataSheet) {
+      var kData = dataSheet.getDataRange().getValues();
+      for (var k = 1; k < kData.length; k++) {
+        var kId = String(kData[k][1] || "").trim();
+        var kDateStr = parseDate(kData[k][3]);
+        if (kId === staffId && kDateStr >= startDateStr && kDateStr <= endDateStr) {
+          kintaiDays++;
+          totalCost += Number(kData[k][7]) || 0;
+          
+          var startTime = formatTime(kData[k][4]);
+          var endTime = formatTime(kData[k][5]);
+          var breakMins = Number(kData[k][6]) || 0;
+          if (startTime && endTime) {
+            var sParts = startTime.split(":");
+            var eParts = endTime.split(":");
+            var startM = Number(sParts[0]) * 60 + Number(sParts[1]);
+            var endM = Number(eParts[0]) * 60 + Number(eParts[1]);
+            var workMins = (endM - startM) - breakMins;
+            if (workMins > 0) totalMinutes += workMins;
+          }
+        }
+      }
+    }
+    
+    // 2. 「締め・確認管理」シートからステータスを確認
+    var closingSheet = ss.getSheetByName("締め・確認管理");
+    if (!closingSheet) {
+      closingSheet = ss.insertSheet("締め・確認管理");
+      closingSheet.appendRow(["staffId", "periodKey", "status", "updatedAt"]);
+    }
+    
+    var status = "確認待ち";
+    var cData = closingSheet.getDataRange().getValues();
+    for (var c = 1; c < cData.length; c++) {
+      if (String(cData[c][0]).trim() === staffId && String(cData[c][1]).trim() === periodKey) {
+        status = String(cData[c][2]).trim();
+        break;
+      }
+    }
+    
+    var totH = Math.floor(totalMinutes / 60);
+    var totM = totalMinutes % 60;
+    
+    return {
+      success: true,
+      startDate: startDateStr,
+      endDate: endDateStr,
+      kintaiDays: kintaiDays,
+      totalWorkHoursStr: totH + "時間" + totM + "分",
+      totalCost: totalCost,
+      status: status
+    };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * 💡 スタッフ側：指定期間の内容を確定する関数
+ */
+function confirmStaffClosingStatus(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var staffId = String(data.staffId || "").trim();
+    var yearMonth = String(data.yearMonth || "").trim();
+    var half = String(data.half || "").trim();
+    var periodKey = yearMonth + "_" + half;
+    
+    var closingSheet = ss.getSheetByName("締め・確認管理");
+    if (!closingSheet) {
+      closingSheet = ss.insertSheet("締め・確認管理");
+      closingSheet.appendRow(["staffId", "periodKey", "status", "updatedAt"]);
+    }
+    
+    var cData = closingSheet.getDataRange().getValues();
+    var targetRow = -1;
+    
+    for (var c = 1; c < cData.length; c++) {
+      if (String(cData[c][0]).trim() === staffId && String(cData[c][1]).trim() === periodKey) {
+        targetRow = c + 1;
+        break;
+      }
+    }
+    
+    var timestamp = new Date();
+    if (targetRow !== -1) {
+      closingSheet.getRange(targetRow, 3).setValue("確定済み");
+      closingSheet.getRange(targetRow, 4).setValue(timestamp);
+    } else {
+      closingSheet.appendRow([staffId, periodKey, "確定済み", timestamp]);
+    }
+    
+    return { success: true, message: "お疲れ様でした！勤務内容を確定し、管理者に報告しました。" };
+  } catch (error) {
+    return { success: false, message: "確定エラー: " + error.message };
+  }
+}

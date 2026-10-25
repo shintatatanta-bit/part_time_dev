@@ -55,10 +55,30 @@
         スタッフ名: <strong style="color: var(--text-main);"><?= staffName ?></strong>
       </p>
 
+<!-- 🔒 勤怠確認・確定ビュー -->
+      <div id="viewClosing" class="card" style="display: none; text-align: left; margin: 0;">
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠確認・確定</h3>
+        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">対象期間の実績を確認し、問題なければ「内容を確定する」ボタンを押してください。</p>
+
+        <label>対象月</label>
+        <input type="month" id="staffClosingMonth" onchange="loadStaffClosingData()" style="margin-top:4px;">
+
+        <label>対象期間（半期）</label>
+        <select id="staffClosingHalf" onchange="loadStaffClosingData()" style="margin-top:4px;">
+          <option value="first">前半 (1日 〜 15日)</option>
+          <option value="second">後半 (16日 〜 末日)</option>
+        </select>
+
+        <div id="staffClosingResultBox" style="margin-top: 14px; background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; font-size: 0.85rem;">
+          読み込み中...
+        </div>
+      </div>
+
       <!-- タブ切り替え -->
       <div class="portal-tabs">
         <button id="tabKintai" class="portal-tab-btn active" onclick="switchStaffTab('kintai')">⏰ 勤怠申請</button>
         <button id="tabPref" class="portal-tab-btn" onclick="switchStaffTab('pref')">📅 シフト希望</button>
+        <button id="tabClosing" class="portal-tab-btn" onclick="switchStaffTab('closing')">🔒 勤怠確認・確定</button>
         <button id="tabHistory" class="portal-tab-btn" onclick="switchStaffTab('history')">📋 申請履歴</button>
       </div>
       
@@ -636,6 +656,61 @@ function toggleDate(dateStr) {
           var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
           return chars[tag] || tag;
         });
+      }
+
+      // 💡 期間切替時に自動でスタッフ自身の締め実績を読み込む
+      function loadStaffClosingData() {
+        var staffId = document.getElementById('staffId').value;
+        var ym = document.getElementById('staffClosingMonth').value;
+        var half = document.getElementById('staffClosingHalf').value;
+        var box = document.getElementById('staffClosingResultBox');
+        
+        if (!ym || !staffId) return;
+        box.innerHTML = '集計中...';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) {
+              box.innerHTML = '<span style="color: var(--danger-color);">エラー: ' + res.message + '</span>';
+              return;
+            }
+
+            var statusBadge = res.status === '確定済み' 
+              ? '<span style="color: var(--success-color); font-weight: bold;">✅ 確定済み（報告完了）</span>' 
+              : '<span style="color: var(--warning-color); font-weight: bold;">⏳ 確認待ち</span>';
+
+            var html = '<div style="margin-bottom: 8px;"><strong>📅 対象期間:</strong> ' + res.startDate + ' 〜 ' + res.endDate + '</div>';
+            html += '<div style="margin-bottom: 8px;"><strong>📊 申請日数:</strong> ' + res.kintaiDays + '日</div>';
+            html += '<div style="margin-bottom: 8px;"><strong>⏱️ 労働時間合計:</strong> ' + res.totalWorkHoursStr + '</div>';
+            html += '<div style="margin-bottom: 12px;"><strong>🚃 交通費合計:</strong> ¥' + res.totalCost.toLocaleString() + '</div>';
+            html += '<div style="margin-bottom: 14px; padding-top: 8px; border-top: 1px solid var(--border-color);"><strong>ステータス:</strong> ' + statusBadge + '</div>';
+
+            if (res.status !== '確定済み') {
+              html += '<button type="button" style="background: var(--success-color); width: 100%;" onclick="confirmStaffClosing()">🚀 内容を確定して管理者に報告する</button>';
+            } else {
+              html += '<p style="color: var(--success-color); font-size: 0.8rem; text-align: center; margin: 0; font-weight: 600;">この期間のデータは確定済みです。修正が必要な場合は管理者へご連絡ください。</p>';
+            }
+
+            box.innerHTML = html;
+          })
+          .getStaffClosingStatus({ staffId: staffId, yearMonth: ym, half: half });
+      }
+
+      function confirmStaffClosing() {
+        var staffId = document.getElementById('staffId').value;
+        var ym = document.getElementById('staffClosingMonth').value;
+        var half = document.getElementById('staffClosingHalf').value;
+
+        if (!confirm('この期間の勤務内容に間違いありませんか？\n確定すると管理者に報告され、内容がロックされます。')) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            alert(res.message);
+            if (res.success) {
+              loadStaffClosingData(); // 画面を更新
+            }
+          })
+          .confirmStaffClosingStatus({ staffId: staffId, yearMonth: ym, half: half });
       }
     </script>
   </body>
