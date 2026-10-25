@@ -48,9 +48,9 @@ function doGet(e) {
   var page = params.page || "";
   
   // page=staff の場合はスタッフ用ポータルを表示
-  if (page === "staff") {
-    var template = HtmlService.createTemplateFromFile("staff_view");
-    template.staffId = params.staffId || "";
+if (page === "staff") {
+    var template = HtmlService.createTemplateFromFile("staff_view"); // ←現在用意されているファイル名等に合わせる、あるいは新規にHTMLファイルを作り直す
+  template.staffId = params.staffId || "";
     template.staffName = getStaffName(params.staffId);
     return template.evaluate()
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
