@@ -5,9 +5,9 @@ function doPost(e) {
   try {
     var contents = JSON.parse(e.postData.contents);
     var events = contents.events;
-    var destination = contents.destination; // 💡 LINEから送られてきた宛先ボットのID
+    var destination = contents.destination; // 💡 LINEから送られてきた宛先ボットのID (Uから始まる文字列)
     
-    // 💡 宛先ID（destination）に対応するアクセストークンを確実に取得する
+    // 💡 宛先ID（destination）から、該当するアカウントのアクセストークンを特定する
     var accessToken = getAccessTokenByDestination(destination);
     
     for (var i = 0; i < events.length; i++) {
@@ -30,7 +30,7 @@ function doPost(e) {
             { type: "text", text: "② 次に、以下のリンクから登録フォームを開き、コピーしたLINE IDを貼り付けてください。\n\n▼ スタッフ初回登録ページ\n" + registerUrl }
           ];
           
-          // 💡 特定した正しいアクセストークンを使って返信する
+          // 💡 特定したアクセストークンを使って返信する（万が一特定できなかった場合の順次試行フォールバック付き）
           sendLineMultipleRepliesWithToken(replyToken, messages, accessToken);
         }
       }
@@ -44,8 +44,8 @@ function doPost(e) {
 }
 
 /**
- * 💡 Webhookの destination から、アカウントマスタの正しいアクセストークンを引く関数
- * （スプレッドシートにBot IDが未登録の場合の自動フォールバック機能付き）
+ * 💡 Webhookの destination（ボットID）から、アカウントマスタの正しいアクセストークンを引く関数
+ * LINEの /v2/bot/info APIを使ってボットIDを自動照合し、シートのE列に自動保存します
  */
 function getAccessTokenByDestination(destination) {
   try {
@@ -55,33 +55,45 @@ function getAccessTokenByDestination(destination) {
     
     var data = sheet.getDataRange().getValues();
     
-    // もしスプレッドシートのC列やD列等に destination（Bot User ID）が記録されている場合はここで一致検索できます
-    // 今回は、万が一シート側にIDが直接書かれていない場合でも確実に切り替えができるよう、
-    // 送信されてきた destination をログに残しつつ、もし一致するものがあればそれを返し、
-    // なければ安全にトークンを動的判定する仕組みにします。
-    
-    for (var i = 1; i < data.length; i++) {
-      var accName = data[i][0];
-      var token = data[i][1];
-      var storedDest = data[i][4] ? String(data[i][4]).trim() : ""; // E列などにBot IDが保存されている想定
+    // ① まず、すでにスプレッドシートのE列（5列目）に destination（Bot ID）が記録されていれば、それを即座に返す
+    if (destination) {
+      for (var i = 1; i < data.length; i++) {
+        var token = data[i][1] ? String(data[i][1]).trim() : "";
+        var storedDest = data[i][4] ? String(data[i][4]).trim() : "";
+        
+        if (storedDest && storedDest === String(destination).trim()) {
+          return token;
+        }
+      }
       
-      if (storedDest && storedDest === destination) {
-        return token; // 完全に一致するアカウントのトークンを返す
+      // ② E列にまだ記録がない場合、各トークンで LINE API (/v2/bot/info) を叩いて本当のBot IDを調べ、一致するものを探す
+      for (var j = 1; j < data.length; j++) {
+        var checkToken = data[j][1] ? String(data[j][1]).trim() : "";
+        if (!checkToken || checkToken.indexOf("YOUR_") !== -1) continue;
+        
+        var res = UrlFetchApp.fetch("https://api.line.me/v2/bot/info", {
+          method: "get",
+          headers: { "Authorization": "Bearer " + checkToken },
+          muteHttpExceptions: true
+        });
+        
+        if (res.getResponseCode() === 200) {
+          var info = JSON.parse(res.getContentText());
+          var botUserId = info.userId; // このトークンを持つ公式LINEのBot ID
+          
+          if (botUserId) {
+            // 次回から一瞬で判定できるよう、スプレッドシートのE列（5列目）にBot IDを自動記録しておく
+            sheet.getRange(j + 1, 5).setValue(botUserId);
+            
+            if (botUserId === String(destination).trim()) {
+              return checkToken; // 宛先と完全一致したトークンを返す！
+            }
+          }
+        }
       }
     }
     
-    // 【自動フォールバック】もしE列にIDが未登録の場合でも、
-    // LINEから飛んできたイベントの署名や、順次テストして200OKを返す安全なルーティングを行います。
-    for (var j = 1; j < data.length; j++) {
-      var fallbackToken = data[j][1];
-      if (!fallbackToken || fallbackToken.includes("YOUR_")) continue;
-      
-      // 試しにこのトークンがこの replyToken に対して有効かチェック（または割り当て）
-      // ここでは簡易的に、受け取ったリクエストのイベント情報を元に各アカウントのトークンを順に検証して通す方式を採用します
-      return fallbackToken;
-    }
-    
-    return data.length > 1 ? data[1][1] : "";
+    return ""; // 特定できなかった場合は空文字を返し、送信関数側の順次トライに任せる
   } catch (e) {
     Logger.log("getAccessTokenByDestinationエラー: " + e.message);
     return "";
@@ -90,28 +102,58 @@ function getAccessTokenByDestination(destination) {
 
 /**
  * 💡 指定したアクセストークンを使用して複数のメッセージを返信する関数
+ * （もしトークンが未特定・不一致だった場合は、全アカウントのトークンを順番に試して確実に返信します）
  */
 function sendLineMultipleRepliesWithToken(replyToken, messagesArray, accessToken) {
   try {
-    if (!accessToken || accessToken.includes("YOUR_")) return;
-    
     var url = "https://api.line.me/v2/bot/message/reply";
-    var payload = {
+    var payload = JSON.stringify({
       replyToken: replyToken,
       messages: messagesArray
-    };
+    });
     
-    var options = {
-      method: "post",
-      headers: {
-        "Content-Type": "application/json; charset=UTF-8",
-        "Authorization": "Bearer " + accessToken
-      },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    };
+    // ① 特定されたアクセストークンがある場合は、まずそれで送信を試みる
+    if (accessToken && accessToken.indexOf("YOUR_") === -1) {
+      var res = UrlFetchApp.fetch(url, {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "Authorization": "Bearer " + accessToken
+        },
+        payload: payload,
+        muteHttpExceptions: true
+      });
+      
+      if (res.getResponseCode() === 200) {
+        return; // 送信成功したら終了！
+      }
+    }
     
-    UrlFetchApp.fetch(url, options);
+    // ② 万が一①で送信できなかった場合（accessTokenが空など）、アカウントマスタの全トークンを順番に試す
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("アカウントマスタ");
+    if (!sheet) return;
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      var fallbackToken = data[i][1] ? String(data[i][1]).trim() : "";
+      if (!fallbackToken || fallbackToken.indexOf("YOUR_") !== -1 || fallbackToken === accessToken) continue;
+      
+      var resFallback = UrlFetchApp.fetch(url, {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "Authorization": "Bearer " + fallbackToken
+        },
+        payload: payload,
+        muteHttpExceptions: true
+      });
+      
+      // ステータス200（成功）が返ってきたら、正しく返信できたのでループを抜ける
+      if (resFallback.getResponseCode() === 200) {
+        break;
+      }
+    }
   } catch (e) {
     Logger.log("sendLineMultipleRepliesWithTokenエラー: " + e.message);
   }
@@ -121,20 +163,19 @@ function sendLineMultipleRepliesWithToken(replyToken, messagesArray, accessToken
  * 🌐 ブラウザやURLにアクセスされたときの入口
  */
 function doGet(e) {
-
   var params = e && e.parameter ? e.parameter : {};
   var page = params.page || "";
   
   // page=staff の場合はスタッフ用ポータルを表示
-if (page === "staff") {
-    var template = HtmlService.createTemplateFromFile("staff_view"); // ←現在用意されているファイル名等に合わせる、あるいは新規にHTMLファイルを作り直す
-  template.staffId = params.staffId || "";
+  if (page === "staff") {
+    var template = HtmlService.createTemplateFromFile("staff_view");
+    template.staffId = params.staffId || "";
     template.staffName = getStaffName(params.staffId);
     return template.evaluate()
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
   
-  // 💡 page=register の場合はスタッフ初回登録画面を表示
+  // page=register の場合はスタッフ初回登録画面を表示
   if (page === "register") {
     var regTemplate = HtmlService.createTemplateFromFile("staff_register");
     return regTemplate.evaluate()
@@ -176,24 +217,11 @@ function saveLineIdLog(lineUserId) {
  * 互換性のための既存関数（他の場所から呼ばれたとき用）
  */
 function sendLineReply(replyToken, messageText) {
-  // アカウントマスタの先頭のトークンを使用
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("アカウントマスタ");
-  if (!sheet) return;
-  var data = sheet.getDataRange().getValues();
-  if (data.length > 1) {
-    sendLineMultipleRepliesWithToken(replyToken, [{ type: "text", text: messageText }], data[1][1]);
-  }
+  sendLineMultipleRepliesWithToken(replyToken, [{ type: "text", text: messageText }], "");
 }
 
 function sendLineMultipleReplies(replyToken, messagesArray) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("アカウントマスタ");
-  if (!sheet) return;
-  var data = sheet.getDataRange().getValues();
-  if (data.length > 1) {
-    sendLineMultipleRepliesWithToken(replyToken, messagesArray, data[1][1]);
-  }
+  sendLineMultipleRepliesWithToken(replyToken, messagesArray, "");
 }
 
 /**
@@ -911,9 +939,6 @@ function toggleStaffStatus(staffId, newStatus) {
 }
 
 /**
- * スタッフからのシフト希望を保存し、管理者向けの新着通知を記録する関数
- */
-function s/**
  * スタッフからのシフト希望を保存し、管理者向けの新着通知を記録する関数（伝達事項対応版）
  */
 function saveShiftPreferences(data) {
@@ -930,7 +955,7 @@ function saveShiftPreferences(data) {
     var staffId = data.staffId;
     var staffName = data.staffName;
     var targetDates = data.selectedDates || [];
-    var memo = data.memo || ""; // 💡 伝達事項（備考）を受け取る
+    var memo = data.memo || "";
     
     var newRows = [existingData[0]]; 
     for (var i = 1; i < existingData.length; i++) {
@@ -957,7 +982,6 @@ function saveShiftPreferences(data) {
     var notifSheet = ss.getSheetByName("希望通知ログ");
     if (!notifSheet) {
       notifSheet = ss.insertSheet("希望通知ログ");
-      // 💡 伝達事項を記録できるように列を追加または対応（既存ログとの互換性を考慮）
       notifSheet.appendRow(["notifId", "staffId", "staffName", "yearMonth", "timestamp", "status", "memo"]);
     }
     
@@ -969,7 +993,7 @@ function saveShiftPreferences(data) {
       data.yearMonth,
       new Date(),
       "未読",
-      memo // 💡 ログに伝達事項を保存
+      memo
     ]);
     
     return { success: true, message: "シフト希望を提出し、予定に反映しました！" };
@@ -1490,7 +1514,7 @@ function registerStaffBySelf(data) {
     
     var assignedAccount = data.assignedAccount || "アカウントA"; 
 
-    // 💡【追加】指定されたアカウントに現在「有効」なスタッフが何名いるかカウントする
+    // 指定されたアカウントに現在「有効」なスタッフが何名いるかカウントする
     var dataRows = sheet.getDataRange().getValues();
     var activeCount = 0;
     
@@ -1503,7 +1527,7 @@ function registerStaffBySelf(data) {
       }
     }
 
-    // 💡【追加】すでに10名以上登録されている場合は登録をブロックする
+    // すでに10名以上登録されている場合は登録をブロックする
     if (activeCount >= 10) {
       return { 
         success: false, 
@@ -1623,14 +1647,13 @@ function getAccountDetailsList() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // 💡 スタッフマスタから各アカウントごとの有効な登録人数をあらかじめ集計する
     var staffSheet = ss.getSheetByName("スタッフマスタ");
     var countsMap = {};
     if (staffSheet) {
       var staffData = staffSheet.getDataRange().getValues();
       for (var s = 1; s < staffData.length; s++) {
-        var acc = staffData[s][3]; // 割当アカウント
-        var status = staffData[s][4]; // ステータス (有効/退職)
+        var acc = staffData[s][3];
+        var status = staffData[s][4];
         if (acc && status === "有効") {
           countsMap[acc] = (countsMap[acc] || 0) + 1;
         }
@@ -1657,7 +1680,7 @@ function getAccountDetailsList() {
           channelId: row[1] || "",
           addUrl: row[2] || "https://lin.ee/default",
           qrUrl: row[3] || "",
-          count: countsMap[accName] || 0 // 💡 登録人数をセット
+          count: countsMap[accName] || 0
         });
       }
     }
@@ -1679,81 +1702,9 @@ function getStaffKintaiHistory(staffId) {
     var data = sheet.getDataRange().getValues();
     var history = [];
     
-    // ヘッダーを飛ばして下から（新しい順に）走査
     for (var i = data.length - 1; i >= 1; i--) {
       var row = data[i];
-      var sId = row[1];
-      
-      if (String(sId) === String(staffId)) {
-        var workDate = formatTimeOrDate(row[3]);
-        var startTime = formatTime(row[4]);
-        var endTime = formatTime(row[5]);
-        var breakTime = row[6];
-        var cost = Number(row[7]) || 0;
-        var timestamp = formatTimestamp(row[8]);
-        
-        history.push({
-          workDate: workDate,
-          startTime: startTime,
-          endTime: endTime,
-          breakTime: breakTime,
-          transportCost: cost,
-          timestamp: timestamp
-        });
-        
-        if (history.length >= 20) break;
-      }
-    }
-    
-    return { success: true, history: history };
-  } catch (error) {
-    return { success: false, history: [], message: error.message };
-  }
-}
-
-function formatTimeOrDate(val) {
-  if (!val) return "";
-  if (val instanceof Date) {
-    return Utilities.formatDate(val, "Asia/Tokyo", "yyyy/MM/dd");
-  }
-  var str = String(val);
-  if (str.indexOf("T") !== -1) {
-    var d = new Date(val);
-    if (!isNaN(d.getTime())) {
-      return Utilities.formatDate(d, "Asia/Tokyo", "yyyy/MM/dd");
-    }
-  }
-  return str.substring(0, 10);
-}
-
-function formatTimestamp(val) {
-  if (!val) return "";
-  if (val instanceof Date) {
-    return Utilities.formatDate(val, "Asia/Tokyo", "yyyy/MM/dd HH:mm");
-  }
-  var d = new Date(val);
-  if (!isNaN(d.getTime())) {
-    return Utilities.formatDate(d, "Asia/Tokyo", "yyyy/MM/dd HH:mm");
-  }
-  return String(val);
-}
-
-/**
- * 💡 スタッフ自身が自分の直近の勤怠申請履歴を確認するための関数（最大20件）
- */
-function getStaffKintaiHistory(staffId) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("申請データ");
-    if (!sheet) return { success: true, history: [] };
-    
-    var data = sheet.getDataRange().getValues();
-    var history = [];
-    
-    // ヘッダーを飛ばして下から（新しい順に）走査
-    for (var i = data.length - 1; i >= 1; i--) {
-      var row = data[i];
-      var requestId = row[0]; // 一意のID (req_xxxx)
+      var requestId = row[0];
       var sId = row[1];
       
       if (String(sId) === String(staffId)) {
@@ -1796,10 +1747,9 @@ function updateKintaiData(data) {
     var sheetData = sheet.getDataRange().getValues();
     var targetRow = -1;
     
-    // requestId（0列目）が一致する行を検索
     for (var i = 1; i < sheetData.length; i++) {
       if (String(sheetData[i][0]) === String(data.requestId)) {
-        targetRow = i + 1; // 1行目がヘッダーなので +1
+        targetRow = i + 1;
         break;
       }
     }
@@ -1808,7 +1758,6 @@ function updateKintaiData(data) {
       return { success: false, message: "対象の申請データが見つかりませんでした。" };
     }
     
-    // 指定された行のデータを更新（勤務日、出勤時刻、退勤時刻、休憩、交通費）
     sheet.getRange(targetRow, 4).setValue(data.workDate);
     sheet.getRange(targetRow, 5).setValue(data.startTime);
     sheet.getRange(targetRow, 6).setValue(data.endTime);
@@ -1836,6 +1785,18 @@ function formatTimeOrDate(val) {
   return str.substring(0, 10);
 }
 
+function formatTimestamp(val) {
+  if (!val) return "";
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, "Asia/Tokyo", "yyyy/MM/dd HH:mm");
+  }
+  var d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    return Utilities.formatDate(d, "Asia/Tokyo", "yyyy/MM/dd HH:mm");
+  }
+  return String(val);
+}
+
 /**
  * 💡 スタッフが自分のシフト希望提出履歴（伝達事項含む）を確認するための関数
  */
@@ -1848,12 +1809,11 @@ function getStaffShiftHistory(staffId) {
     var data = sheet.getDataRange().getValues();
     var historyMap = {};
     
-    // 下から（新しい順に）走査し、月ごとに最新の希望内容をまとめる
     for (var i = data.length - 1; i >= 1; i--) {
       var row = data[i];
       var sId = String(row[1] || "");
       var yearMonth = String(row[3] || "");
-      var memo = String(row[6] || ""); // 伝達事項
+      var memo = String(row[6] || "");
       
       if (sId === String(staffId) && yearMonth) {
         if (!historyMap[yearMonth]) {
@@ -1865,7 +1825,6 @@ function getStaffShiftHistory(staffId) {
       }
     }
     
-    // シフト予定シートから該当スタッフの月別希望日数を正確にカウントする
     var shiftSheet = ss.getSheetByName("シフト予定");
     var daysCountMap = {};
     if (shiftSheet) {
@@ -1876,7 +1835,7 @@ function getStaffShiftHistory(staffId) {
         var rowStaffId = String(sRow[2] || "");
         
         if (rowStaffId === String(staffId) && sDateStr) {
-          var ym = sDateStr.substring(0, 7); // "yyyy-MM"
+          var ym = sDateStr.substring(0, 7);
           daysCountMap[ym] = (daysCountMap[ym] || 0) + 1;
         }
       }
