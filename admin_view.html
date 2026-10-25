@@ -301,6 +301,41 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         background: var(--danger-color) !important;
         animation: pulseAttention 1.5s infinite;
       }
+
+      @media screen and (max-width: 768px) {
+        /* 追従エリア自体の余白やパディングをスリムにする */
+        .sticky-top-area {
+          padding: 8px 6px;
+          margin: -6px -6px 8px -6px;
+        }
+        
+        /* 左右2カラム（チップと保存ボタン）を縦並びまたはコンパクトに調整 */
+        .top-grid-container {
+          grid-template-columns: 1fr; /* スマホでは上下に配置し、幅を有効活用 */
+          gap: 8px;
+        }
+
+        /* チップが入るコンテナの高さを制限してスクロールまたはコンパクトにする */
+        .left-chips-column {
+          max-height: 110px;       /* 高さを制限して下にカレンダーが見えるようにする */
+          overflow-y: auto;        /* チップが増えたらエリア内でスクロール */
+          gap: 4px;
+        }
+
+        /* スタッフチップや予定チップの文字サイズ・余白を小さくする */
+        .staff-chip {
+          font-size: 6.5pt !important;
+          padding: 3px 8px;
+        }
+
+        /* 「変更内容を保存する」ボタンをスマホでも圧迫しないサイズにする */
+        .save-btn {
+          height: 36px;
+          font-size: 0.8rem;
+          padding: 6px 12px;
+          width: 100%;
+        }
+      }
     </style>
   </head>
 
