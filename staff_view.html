@@ -266,17 +266,22 @@
       function switchStaffTab(mode) {
         var tabKintai = document.getElementById('tabKintai');
         var tabPref = document.getElementById('tabPref');
+        var tabClosing = document.getElementById('tabClosing'); // 💡 追加
         var tabHistory = document.getElementById('tabHistory');
         
         var viewKintai = document.getElementById('viewKintai');
         var viewPref = document.getElementById('viewPref');
+        var viewClosing = document.getElementById('viewClosing'); // 💡 追加
         var viewHistory = document.getElementById('viewHistory');
 
         tabKintai.classList.remove('active');
         tabPref.classList.remove('active');
+        if (tabClosing) tabClosing.classList.remove('active'); // 💡 追加
         tabHistory.classList.remove('active');
+        
         viewKintai.style.display = 'none';
         viewPref.style.display = 'none';
+        if (viewClosing) viewClosing.style.display = 'none'; // 💡 追加
         viewHistory.style.display = 'none';
 
         if (mode === 'kintai') {
@@ -285,7 +290,21 @@
         } else if (mode === 'pref') {
           tabPref.classList.add('active');
           viewPref.style.display = 'block';
-        } else if (mode === 'history') {
+        } else if (mode === 'closing') { // 💡 追加ここから
+          if (tabClosing) tabClosing.classList.add('active');
+          if (viewClosing) {
+            viewClosing.style.display = 'block';
+            // 💡 画面が開いたときに今月の年月を自動セットしてデータを読み込む
+            var now = new Date();
+            var y = now.getFullYear();
+            var m = String(now.getMonth() + 1).padStart(2, '0');
+            var closingMonthInput = document.getElementById('staffClosingMonth');
+            if (closingMonthInput && !closingMonthInput.value) {
+              closingMonthInput.value = y + '-' + m;
+            }
+            loadStaffClosingData();
+          }
+        } else if (mode === 'history') { // 💡 追加ここまで
           tabHistory.classList.add('active');
           viewHistory.style.display = 'block';
           loadHistoryTable();
