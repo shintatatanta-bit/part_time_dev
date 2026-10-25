@@ -112,7 +112,8 @@ function sendLineMultipleReplies(replyToken, messagesArray) {
     
     var accountData = accountSheet.getDataRange().getValues();
     
-    // 💡 登録されているすべてのアクセストークンを上から順に試し、正しく返信できる（ステータス200が返る）トークンを使って送信する
+    // アカウントマスタに登録されているすべてのアクセストークンを順番に試し、
+    // 正しい宛先（エラーにならないトークン）を見つけて返信する
     for (var i = 1; i < accountData.length; i++) {
       var accessToken = accountData[i][1];
       if (!accessToken || accessToken.includes("YOUR_")) continue;
@@ -135,7 +136,7 @@ function sendLineMultipleReplies(replyToken, messagesArray) {
       
       var res = UrlFetchApp.fetch(url, options);
       
-      // 正しく送信（返信）できたらループを終了する
+      // LINEサーバーから「成功 (ステータス200)」が返ってきたら、正しい宛先なのでループを抜ける
       if (res.getResponseCode() === 200) {
         break;
       }
