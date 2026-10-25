@@ -64,6 +64,13 @@
       
       <!-- 勤怠・交通費申請フォーム -->
       <div id="viewKintai" class="card" style="text-align: left; margin: 0;">
+        
+        <!-- 💡 スタッフ向け未申請アラート表示エリア -->
+        <div id="staffPendingAlertBox" style="display: none; background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 0.85rem;">
+          <strong>⚠️ 勤怠未申請のシフトがあります</strong>
+          <div id="staffPendingDatesText" style="margin-top: 4px; font-size: 0.8rem;"></div>
+        </div>
+
         <h3 id="formTitle" style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠・交通費の申請</h3>
         
         <div id="editModeBanner" class="edit-banner">
@@ -180,13 +187,33 @@
         var minutes = String(now.getMinutes()).padStart(2, '0');
         document.getElementById('endTime').value = hours + ':' + minutes;
 
-        // 💡 休憩時間を空欄（未選択）初期値にする
         document.getElementById('breakTime').value = "";
 
         loadStaffHistory();
         loadShiftHistory();
-        validateKintaiForm(); // 初回チェック
+        loadStaffPendingAlert(); // 💡 スタッフ用の未提出アラートを読み込む
+        validateKintaiForm();
       };
+
+      // 💡 スタッフ用未提出アラートを読み込む関数
+      function loadStaffPendingAlert() {
+        var staffId = document.getElementById('staffId').value;
+        if (!staffId) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            var alertBox = document.getElementById('staffPendingAlertBox');
+            var textDiv = document.getElementById('staffPendingDatesText');
+            
+            if (res.success && res.pendingDates && res.pendingDates.length > 0) {
+              textDiv.innerText = '以下の日程にシフト予定がありますが、まだ勤怠申請が提出されていません：\n• ' + res.pendingDates.join(', ');
+              alertBox.style.display = 'block';
+            } else {
+              alertBox.style.display = 'none';
+            }
+          })
+          .getStaffPendingDates(staffId);
+      }
 
       // 💡 必須項目の入力チェック ＆ 出退勤の前後関係チェックを行い、ボタンの有効/無効を切り替える関数
       function validateKintaiForm() {
