@@ -1018,8 +1018,16 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
               for (var s = 0; s < cachedStaffList.length; s++) {
                 if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
               }
-              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
-              html += '<span>' + escapeHtml(dispChar) + '</span>';
+              
+              // 💡 ツールチップとメモアイコン（💬）のロジックを追加
+              var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
+              if (sh.dailyMemo) {
+                tooltipText += '\n伝達事項: ' + escapeHtml(sh.dailyMemo);
+              }
+              var memoIcon = sh.dailyMemo ? '<span style="position:absolute; top:-4px; left:-4px; font-size:6pt;">💬</span>' : '';
+
+              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="' + tooltipText + '">';
+              html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
               html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
               html += '</div>';
             });
@@ -1428,7 +1436,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
       function toggleAccordion(cardId) { document.getElementById(cardId).classList.toggle('open'); }
 
-      function loadShiftNotifications() {
+     function loadShiftNotifications() {
         var card = document.getElementById('shiftNotifCard');
         var container = document.getElementById('shiftNotifContainer');
 
@@ -1438,9 +1446,9 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             card.style.display = 'block';
             var html = '';
             res.notifications.forEach(function(item) {
+              // 💡 「確認済み」ボタンを削除し、テキスト表示のみにする
               html += '<div style="display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 6px 10px; border-radius: 4px; margin-top: 6px; border: 1px solid var(--border-color);">';
               html += '<span>👤 <strong>' + escapeHtml(item.staffName) + '</strong> さんから <strong>' + escapeHtml(item.yearMonth) + '度</strong> の希望シフトが提出されました</span>';
-              html += '<button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="markAsRead(\'' + item.notifId + '\')">確認済み</button>';
               html += '</div>';
             });
             container.innerHTML = html;
