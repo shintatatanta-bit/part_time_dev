@@ -69,8 +69,17 @@
       }
       .save-btn:hover { background: #047857 !important; }
 
-      @media screen and (max-width: 768px) {
-        .top-grid-container { grid-template-columns: 1fr; }
+     @media screen and (max-width: 768px) {
+        /* スマホ画面のときはカレンダーのセルを少しコンパクトにしてはみ出しを防ぐ */
+        .cal-cell {
+          min-height: 70px; /* 高さを少し抑える */
+          padding: 4px;     /* 内側余白を狭くする */
+          font-size: 0.75rem;
+        }
+        .cal-header-cell {
+          padding: 6px 2px;
+          font-size: 0.7rem;
+        }
       }
 
       .quick-btns { display: flex; gap: 8px; margin-top: 8px; }
@@ -117,7 +126,13 @@
         transform: scale(1.05);
       }
       
-      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+      .cal-grid { 
+        display: grid; 
+        grid-template-columns: repeat(7, 1fr); 
+        gap: 4px; /* スマホで見やすいように少し隙間を狭くする例 */
+        width: 100%;
+        box-sizing: border-box;
+      }
       .cal-header-cell { text-align: center; font-weight: 600; font-size: 0.75rem; padding: 8px; background: #f1f5f9; border-radius: 6px; color: var(--text-sub); letter-spacing: 0.05em; }
       .cal-header-cell:nth-child(1) { color: var(--danger-color); }
       .cal-header-cell:nth-child(7) { color: var(--accent-color); }
