@@ -383,6 +383,58 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
       </div>
     </div>
 
+<!-- アコーディオン: 🔒 締め作業・確認管理 -->
+    <div class="accordion-card" id="acc-closing">
+      <div class="accordion-header" onclick="toggleAccordion('acc-closing')">
+        <h3>🔒 締め作業・確認管理（15日・末日締）</h3>
+        <span style="font-size:0.75rem; color:var(--text-sub); font-weight:600;">▼ 開閉</span>
+      </div>
+      <div class="accordion-content">
+        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">💡 対象期間を指定して、スタッフの申請状況確認や確定依頼（LINE送信）を行います。過去の期間に影響を与えずに安全に作業できます。</p>
+        
+        <div class="flex-row" style="align-items: flex-end; gap: 10px; margin-bottom: 12px;">
+          <div class="flex-col">
+            <label>対象月</label>
+            <input type="month" id="closingMonth" style="margin-top:4px;">
+          </div>
+          <div class="flex-col">
+            <label>対象期間（半期）</label>
+            <select id="closingHalf" style="margin-top:4px;">
+              <option value="first">前半 (1日 〜 15日)</option>
+              <option value="second">後半 (16日 〜 末日)</option>
+            </select>
+          </div>
+          <div style="flex: 0 0 auto;">
+            <button type="button" style="height: 40px; background: var(--accent-color);" onclick="loadClosingStatus()">🔍 状況を読み込む</button>
+          </div>
+        </div>
+
+        <!-- 一括確認依頼ボタン -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 8px 0; padding-top: 10px; border-top: 1px solid var(--border-color);">
+          <span id="closingSummaryText" style="font-size: 0.85rem; font-weight: bold; color: var(--text-main);">対象期間を選択してください</span>
+          <button type="button" class="secondary" style="background: var(--success-color); color: #fff; border: none;" onclick="sendClosingRequestLine()">📢 未確定者に確認・確定依頼を送る</button>
+        </div>
+
+        <!-- スタッフごとの締め確認一覧テーブル -->
+        <div style="overflow-x: auto; max-height: 350px;">
+          <table>
+            <thead>
+              <tr>
+                <th>スタッフ名</th>
+                <th>予定日数</th>
+                <th>申請日数</th>
+                <th style="text-align: center;">ステータス</th>
+                <th style="text-align: center;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="closingTableBody">
+              <tr><td colspan="5" style="text-align: center; color: var(--text-sub);">期間を選択して「状況を読み込む」を押してください</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- アコーディオン 2: 月半期別 勤怠集計 -->
     <div class="accordion-card" id="acc-summary">
       <div class="accordion-header" onclick="toggleAccordion('acc-summary')">

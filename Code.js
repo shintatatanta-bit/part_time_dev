@@ -2022,3 +2022,122 @@ function getStaffSubmittedShiftDates(data) {
     return { success: false, submittedDates: [], message: error.message };
   }
 }
+
+/**
+ * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数
+ */
+function getClosingStatus(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var yearMonth = data.yearMonth; // "2026-10"
+    var half = data.half; // "first" または "second"
+    
+    // 期間の開始日・終了日を決定（17日などに確認依頼を出しても期間がズレないよう完全固定）
+    var parts = yearMonth.split('-');
+    var year = Number(parts[0]);
+    var month = Number(parts[1]);
+    var startDateStr = "";
+    var endDateStr = "";
+    
+    if (half === "first") {
+      startDateStr = yearMonth + "-01";
+      endDateStr = yearMonth + "-15";
+    } else {
+      startDateStr = yearMonth + "-16";
+      var lastDayObj = new Date(year, month, 0);
+      endDateStr = yearMonth + "-" + String(lastDayObj.getDate()).padStart(2, '0');
+    }
+    
+    // 1. スタッフマスタから有効なスタッフ一覧を取得
+    var staffSheet = ss.getSheetByName("スタッフマスタ");
+    if (!staffSheet) return { success: false, message: "スタッフマスタが見つかりません" };
+    var staffData = staffSheet.getDataRange().getValues();
+    
+    var staffList = [];
+    for (var i = 1; i < staffData.length; i++) {
+      if (staffData[i][0] && staffData[i][4] === "有効") {
+        staffList.push({
+          staffId: staffData[i][0],
+          staffName: staffData[i][1],
+          lineUserId: staffData[i][2],
+          assignedAccount: staffData[i][3]
+        });
+      }
+    }
+    
+    // 2. 「シフト予定」シートから期間内の予定日数をカウント
+    var shiftSheet = ss.getSheetByName("シフト予定");
+    var shiftMap = {}; // staffId -> 予定日数の配列
+    if (shiftSheet) {
+      var shiftData = shiftSheet.getDataRange().getValues();
+      for (var s = 1; s < shiftData.length; s++) {
+        var sDate = String(shiftData[s][1] || "").substring(0, 10);
+        var sId = String(shiftData[s][2] || "");
+        if (sDate >= startDateStr && sDate <= endDateStr) {
+          if (!shiftMap[sId]) shiftMap[sId] = [];
+          shiftMap[sId].push(sDate);
+        }
+      }
+    }
+    
+    // 3. 「申請データ」シートから期間内の申請日数をカウント
+    var dataSheet = ss.getSheetByName("申請データ");
+    var kintaiMap = {};
+    if (dataSheet) {
+      var kData = dataSheet.getDataRange().getValues();
+      for (var k = 1; k < kData.length; k++) {
+        var kDate = String(kData[k][3] || "").substring(0, 10);
+        var kId = String(kData[k][1] || "");
+        if (kDate >= startDateStr && kDate <= endDateStr) {
+          if (!kintaiMap[kId]) kintaiMap[kId] = [];
+          kintaiMap[kId].push(kDate);
+        }
+      }
+    }
+    
+    // 4. 「締め管理」シートからスタッフごとの確定ステータスを読み込む
+    var closingSheet = ss.getSheetByName("締め管理");
+    var statusMap = {}; // staffId -> "確認待ち" or "確定済み"
+    if (closingSheet) {
+      var cData = closingSheet.getDataRange().getValues();
+      var periodKey = yearMonth + "_" + half;
+      for (var c = 1; c < cData.length; c++) {
+        // cData[1]: staffId, cData[2]: periodKey, cData[3]: status
+        if (String(cData[c][1]) === periodKey) {
+          statusMap[String(cData[c][0])] = cData[c][2]; // "確定済み" など
+        }
+      }
+    }
+    
+    var resultList = [];
+    var allConfirmed = true;
+    
+    staffList.forEach(function(staff) {
+      var scheduledDays = shiftMap[staff.staffId] ? shiftMap[staff.staffId].length : 0;
+      var kintaiDays = kintaiMap[staff.staffId] ? kintaiMap[staff.staffId].length : 0;
+      var status = statusMap[staff.staffId] || "確認待ち";
+      
+      if (status !== "確定済み") {
+        allConfirmed = false;
+      }
+      
+      resultList.push({
+        staffId: staff.staffId,
+        staffName: staff.staffName,
+        scheduledDays: scheduledDays,
+        kintaiDays: kintaiDays,
+        status: status
+      });
+    });
+    
+    return {
+      success: true,
+      startDate: startDateStr,
+      endDate: endDateStr,
+      resultList: resultList,
+      allConfirmed: allConfirmed
+    };
+  } catch (error) {
+    return { success: false, message: "締め状況取得エラー: " + error.message };
+  }
+}
