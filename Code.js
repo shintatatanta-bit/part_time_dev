@@ -1884,7 +1884,7 @@ function getAccountNameByDestination(destination) {
 }
 
 /**
- * 💡 指定したスタッフの過去1か月間における「シフト予定があるのに未提出の日」のリストを取得する関数
+ * 💡 指定したスタッフの過去1か月間における「シフト予定があるのに未提出の日」のリストを取得する関数（日付順にソート）
  */
 function getStaffPendingDates(staffId) {
   try {
@@ -1936,6 +1936,11 @@ function getStaffPendingDates(staffId) {
         }
       }
     }
+
+    // 💡 日付を古い順（昇順）に並び替える
+    scheduledDates.sort(function(a, b) {
+      return new Date(a) - new Date(b);
+    });
 
     return { success: true, pendingDates: scheduledDates };
   } catch (error) {
