@@ -1976,7 +1976,7 @@ function getStaffPendingDates(staffId) {
 }
 
 /**
- * 💡 指定したスタッフの対象月における既存のシフト希望（申請済み日）のリストを取得する関数
+ * 💡 指定したスタッフの対象月における既存のシフト希望（申請済み日）のリストを取得する関数（日付の型違いを完全に吸収）
  */
 function getStaffSubmittedShiftDates(data) {
   try {
@@ -1986,21 +1986,33 @@ function getStaffSubmittedShiftDates(data) {
     
     var shiftData = sheet.getDataRange().getValues();
     var staffId = String(data.staffId);
-    var yearMonth = data.yearMonth; // "2026-10" など
+    var targetYearMonth = String(data.yearMonth); // 例: "2026-10"
     var submittedDates = [];
     
     for (var i = 1; i < shiftData.length; i++) {
       var row = shiftData[i];
-      var workDateStr = String(row[1] || "");
+      var rawDate = row[1];
       var rowStaffId = String(row[2] || "");
       
-      if (rowStaffId === staffId && workDateStr.indexOf(yearMonth) === 0) {
-        var d = new Date(workDateStr);
+      if (!rawDate || rowStaffId !== staffId) continue;
+      
+      var dateStr = "";
+      if (rawDate instanceof Date) {
+        dateStr = Utilities.formatDate(rawDate, "Asia/Tokyo", "yyyy-MM-dd");
+      } else {
+        var d = new Date(rawDate);
         if (!isNaN(d.getTime())) {
-          var y = d.getFullYear();
-          var m = ('0' + (d.getMonth() + 1)).slice(-2);
-          var day = ('0' + d.getDate()).slice(-2);
-          submittedDates.push(y + '-' + m + '-' + day);
+          dateStr = Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd");
+        } else {
+          // 文字列形式の場合のフォールバック
+          dateStr = String(rawDate).substring(0, 10);
+        }
+      }
+      
+      // 対象月（例: "2026-10"）に一致する場合のみ追加
+      if (dateStr.indexOf(targetYearMonth) === 0) {
+        if (submittedDates.indexOf(dateStr) === -1) {
+          submittedDates.push(dateStr);
         }
       }
     }
