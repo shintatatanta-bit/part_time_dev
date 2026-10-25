@@ -55,26 +55,7 @@
         スタッフ名: <strong style="color: var(--text-main);"><?= staffName ?></strong>
       </p>
 
-<!-- 🔒 勤怠確認・確定ビュー -->
-      <div id="viewClosing" class="card" style="display: none; text-align: left; margin: 0;">
-        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠確認・確定</h3>
-        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">対象期間の実績を確認し、問題なければ「内容を確定する」ボタンを押してください。</p>
-
-        <label>対象月</label>
-        <input type="month" id="staffClosingMonth" onchange="loadStaffClosingData()" style="margin-top:4px;">
-
-        <label>対象期間（半期）</label>
-        <select id="staffClosingHalf" onchange="loadStaffClosingData()" style="margin-top:4px;">
-          <option value="first">前半 (1日 〜 15日)</option>
-          <option value="second">後半 (16日 〜 末日)</option>
-        </select>
-
-        <div id="staffClosingResultBox" style="margin-top: 14px; background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; font-size: 0.85rem;">
-          読み込み中...
-        </div>
-      </div>
-
-     <!-- タブ切り替え -->
+      <!-- タブ切り替え（一番上に正しく配置） -->
       <div class="portal-tabs">
         <button id="tabKintai" class="portal-tab-btn active" onclick="switchStaffTab('kintai')">⏰ 勤怠申請</button>
         <button id="tabPref" class="portal-tab-btn" onclick="switchStaffTab('pref')">📅 シフト希望</button>
@@ -84,8 +65,6 @@
       
       <!-- 勤怠・交通費申請フォーム -->
       <div id="viewKintai" class="card" style="text-align: left; margin: 0;">
-        
-        <!-- 💡 スタッフ向け未申請アラート表示エリア -->
         <div id="staffPendingAlertBox" style="display: none; background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 0.85rem;">
           <strong>⚠️ 勤怠未申請のシフトがあります</strong>
           <div id="staffPendingDatesText" style="margin-top: 4px; font-size: 0.8rem;"></div>
@@ -122,7 +101,6 @@
           <label>交通費 (円)</label>
           <input type="number" id="transportCost" value="0" min="0" step="1" pattern="^[0-9]+$" placeholder="例: 500" oninput="this.value = this.value.replace(/[^0-9]/g, ''); validateKintaiForm();" required>
           
-          <!-- 💡 id="kintaiSubmitBtn" を付与し、最初は無効化（disabled）しておく -->
           <button type="button" id="kintaiSubmitBtn" onclick="submitKintai()" style="background: var(--accent-color); margin-top: 18px;" disabled>申請を送信する</button>
         </form>
       </div>
@@ -149,12 +127,30 @@
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">木</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">金</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
-        </div> <!-- ← カレンダーのグリッドはここで閉じる -->
+        </div>
 
-        <!-- ▼ ここ（グリッドの外側）に配置する -->
         <div id="dailyMemoContainer" style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;"></div>
 
         <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
+      </div>
+
+      <!-- 🔒 勤怠確認・確定ビュー -->
+      <div id="viewClosing" class="card" style="display: none; text-align: left; margin: 0;">
+        <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠確認・確定</h3>
+        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">対象期間の実績を確認し、問題なければ「内容を確定する」ボタンを押してください。</p>
+
+        <label>対象月</label>
+        <input type="month" id="staffClosingMonth" onchange="loadStaffClosingData()" style="margin-top:4px;">
+
+        <label>対象期間（半期）</label>
+        <select id="staffClosingHalf" onchange="loadStaffClosingData()" style="margin-top:4px;">
+          <option value="first">前半 (1日 〜 15日)</option>
+          <option value="second">後半 (16日 〜 末日)</option>
+        </select>
+
+        <div id="staffClosingResultBox" style="margin-top: 14px; background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; font-size: 0.85rem;">
+          読み込み中...
+        </div>
       </div>
 
       <!-- 申請履歴 -->
@@ -180,7 +176,7 @@
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望提出履歴</h3>
         <div style="overflow-x: auto; max-height: 180px;">
           <table>
-<thead><tr><th>勤務希望日</th><th>伝達事項・備考</th></tr></thead>
+            <thead><tr><th>勤務希望日</th><th>伝達事項・備考</th></tr></thead>
             <tbody id="staffShiftHistoryTableBody">
               <tr><td colspan="3" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>
             </tbody>
@@ -199,23 +195,29 @@
         var m = String(now.getMonth() + 1).padStart(2, '0');
         var d = String(now.getDate()).padStart(2, '0');
         
-        document.getElementById('targetMonth').value = y + '-' + m;
-        renderMiniCalendar();
-        document.getElementById('workDate').value = y + '-' + m + '-' + d;
+        var targetMonthInput = document.getElementById('targetMonth');
+        if (targetMonthInput) targetMonthInput.value = y + '-' + m;
 
-        var hours = String(now.getHours()).padStart(2, '0');
-        var minutes = String(now.getMinutes()).padStart(2, '0');
-        document.getElementById('endTime').value = hours + ':' + minutes;
+        var workDateInput = document.getElementById('workDate');
+        if (workDateInput) workDateInput.value = y + '-' + m + '-' + d;
 
-        document.getElementById('breakTime').value = "";
+        var endTimeInput = document.getElementById('endTime');
+        if (endTimeInput) {
+          var hours = String(now.getHours()).padStart(2, '0');
+          var minutes = String(now.getMinutes()).padStart(2, '0');
+          endTimeInput.value = hours + ':' + minutes;
+        }
+
+        var breakTimeInput = document.getElementById('breakTime');
+        if (breakTimeInput) breakTimeInput.value = "";
 
         loadStaffHistory();
         loadShiftHistory();
-        loadStaffPendingAlert(); // 💡 スタッフ用の未提出アラートを読み込む
+        loadStaffPendingAlert();
         validateKintaiForm();
+        renderMiniCalendar(); // 💡 初期表示時にカレンダーを描画
       };
 
-      // 💡 スタッフ用未提出アラートを読み込む関数
       function loadStaffPendingAlert() {
         var staffId = document.getElementById('staffId').value;
         if (!staffId) return;
@@ -224,6 +226,7 @@
           .withSuccessHandler(function(res) {
             var alertBox = document.getElementById('staffPendingAlertBox');
             var textDiv = document.getElementById('staffPendingDatesText');
+            if (!alertBox || !textDiv) return;
             
             if (res.success && res.pendingDates && res.pendingDates.length > 0) {
               textDiv.innerText = '以下の日程にシフト予定がありますが、まだ勤怠申請が提出されていません：\n• ' + res.pendingDates.join(', ');
@@ -235,7 +238,6 @@
           .getStaffPendingDates(staffId);
       }
 
-      // 💡 必須項目の入力チェック ＆ 出退勤の前後関係チェックを行い、ボタンの有効/無効を切り替える関数
       function validateKintaiForm() {
         var workDate = document.getElementById('workDate').value;
         var startTime = document.getElementById('startTime').value;
@@ -243,22 +245,20 @@
         var breakTime = document.getElementById('breakTime').value;
         var transportCost = document.getElementById('transportCost').value;
         var submitBtn = document.getElementById('kintaiSubmitBtn');
+        if (!submitBtn) return;
 
-        // 必須項目が空の場合はボタンを無効化
         if (!workDate || !startTime || !endTime || breakTime === "" || transportCost === "") {
           submitBtn.disabled = true;
           submitBtn.style.opacity = "0.5";
           return;
         }
 
-        // 出勤時間と退勤時間の比較（出勤 ≧ 退勤 の場合は無効化）
         if (startTime >= endTime) {
           submitBtn.disabled = true;
           submitBtn.style.opacity = "0.5";
           return;
         }
 
-        // すべてクリアしている場合はボタンを有効化
         submitBtn.disabled = false;
         submitBtn.style.opacity = "1.0";
       }
@@ -266,35 +266,35 @@
       function switchStaffTab(mode) {
         var tabKintai = document.getElementById('tabKintai');
         var tabPref = document.getElementById('tabPref');
-        var tabClosing = document.getElementById('tabClosing'); // 💡 追加
+        var tabClosing = document.getElementById('tabClosing');
         var tabHistory = document.getElementById('tabHistory');
         
         var viewKintai = document.getElementById('viewKintai');
         var viewPref = document.getElementById('viewPref');
-        var viewClosing = document.getElementById('viewClosing'); // 💡 追加
+        var viewClosing = document.getElementById('viewClosing');
         var viewHistory = document.getElementById('viewHistory');
 
-        tabKintai.classList.remove('active');
-        tabPref.classList.remove('active');
-        if (tabClosing) tabClosing.classList.remove('active'); // 💡 追加
-        tabHistory.classList.remove('active');
+        if (tabKintai) tabKintai.classList.remove('active');
+        if (tabPref) tabPref.classList.remove('active');
+        if (tabClosing) tabClosing.classList.remove('active');
+        if (tabHistory) tabHistory.classList.remove('active');
         
-        viewKintai.style.display = 'none';
-        viewPref.style.display = 'none';
-        if (viewClosing) viewClosing.style.display = 'none'; // 💡 追加
-        viewHistory.style.display = 'none';
+        if (viewKintai) viewKintai.style.display = 'none';
+        if (viewPref) viewPref.style.display = 'none';
+        if (viewClosing) viewClosing.style.display = 'none';
+        if (viewHistory) viewHistory.style.display = 'none';
 
         if (mode === 'kintai') {
-          tabKintai.classList.add('active');
-          viewKintai.style.display = 'block';
+          if (tabKintai) tabKintai.classList.add('active');
+          if (viewKintai) viewKintai.style.display = 'block';
         } else if (mode === 'pref') {
-          tabPref.classList.add('active');
-          viewPref.style.display = 'block';
-        } else if (mode === 'closing') { // 💡 追加ここから
+          if (tabPref) tabPref.classList.add('active');
+          if (viewPref) viewPref.style.display = 'block';
+          renderMiniCalendar(); // 💡 シフト希望タブを開いたときにカレンダーを確実に再描画
+        } else if (mode === 'closing') {
           if (tabClosing) tabClosing.classList.add('active');
           if (viewClosing) {
             viewClosing.style.display = 'block';
-            // 💡 画面が開いたときに今月の年月を自動セットしてデータを読み込む
             var now = new Date();
             var y = now.getFullYear();
             var m = String(now.getMonth() + 1).padStart(2, '0');
@@ -304,9 +304,9 @@
             }
             loadStaffClosingData();
           }
-        } else if (mode === 'history') { // 💡 追加ここまで
-          tabHistory.classList.add('active');
-          viewHistory.style.display = 'block';
+        } else if (mode === 'history') {
+          if (tabHistory) tabHistory.classList.add('active');
+          if (viewHistory) viewHistory.style.display = 'block';
           loadHistoryTable();
         }
       }
@@ -318,6 +318,7 @@
         google.script.run
           .withSuccessHandler(function(res) {
             var tbody = document.getElementById('staffHistoryTableBody');
+            if (!tbody) return;
             if (!res.success || res.history.length === 0) {
               tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">申請履歴はありません</td></tr>';
               return;
@@ -346,13 +347,13 @@
         google.script.run
           .withSuccessHandler(function(res) {
             var tbody = document.getElementById('staffShiftHistoryTableBody');
+            if (!tbody) return;
             if (!res.success || res.history.length === 0) {
               tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--text-sub);">シフト希望の提出履歴はありません</td></tr>';
               return;
             }
 
             var html = '';
-            // 💡 1日ごとに分解してテーブルに並べる
             res.history.forEach(function(item) {
               html += '<tr>';
               html += '<td>' + item.workDate + '</td>';
@@ -365,11 +366,6 @@
       }
 
       function loadHistoryTable() {
-        var tbody = document.getElementById('staffHistoryTableBody');
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
-        var shiftTbody = document.getElementById('staffShiftHistoryTableBody');
-        shiftTbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
-        
         loadStaffHistory();
         loadShiftHistory();
       }
@@ -388,10 +384,11 @@
         document.getElementById('formTitle').innerText = '勤怠・交通費の修正';
         document.getElementById('editModeBanner').style.display = 'flex';
         
-        // 💡 IDを正しい「kintaiSubmitBtn」に修正
         var submitBtn = document.getElementById('kintaiSubmitBtn');
-        submitBtn.innerText = '修正を保存する';
-        submitBtn.style.background = 'var(--warning-color)';
+        if (submitBtn) {
+          submitBtn.innerText = '修正を保存する';
+          submitBtn.style.background = 'var(--warning-color)';
+        }
 
         validateKintaiForm();
         switchStaffTab('kintai');
@@ -406,7 +403,7 @@
         var m = String(now.getMonth() + 1).padStart(2, '0');
         var d = String(now.getDate()).padStart(2, '0');
         document.getElementById('workDate').value = y + '-' + m + '-' + d;
-        document.getElementById('breakTime').value = ""; // 空欄に戻す
+        document.getElementById('breakTime').value = "";
         document.getElementById('transportCost').value = "0";
         var hours = String(now.getHours()).padStart(2, '0');
         var minutes = String(now.getMinutes()).padStart(2, '0');
@@ -415,8 +412,10 @@
         document.getElementById('formTitle').innerText = '勤怠・交通費の申請';
         document.getElementById('editModeBanner').style.display = 'none';
         var submitBtn = document.getElementById('kintaiSubmitBtn');
-        submitBtn.innerText = '申請を送信する';
-        submitBtn.style.background = 'var(--accent-color)';
+        if (submitBtn) {
+          submitBtn.innerText = '申請を送信する';
+          submitBtn.style.background = 'var(--success-color)';
+        }
         
         validateKintaiForm();
       }
@@ -426,7 +425,6 @@
         var startTime = document.getElementById('startTime').value;
         var endTime = document.getElementById('endTime').value;
 
-        // 万が一の二重チェック（出勤が退勤より後の場合）
         if (startTime >= endTime) {
           alert('エラー: 出勤時刻は退勤時刻より前の時間を設定してください。');
           return;
@@ -449,8 +447,10 @@
         }
 
         var submitBtn = document.getElementById('kintaiSubmitBtn');
-        submitBtn.disabled = true;
-        submitBtn.innerText = '送信中...';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerText = '送信中...';
+        }
 
         var actionFunction = requestId ? 'updateKintaiData' : 'saveKintaiData';
 
@@ -458,36 +458,37 @@
           .withSuccessHandler(function(res) {
             alert(res.message);
             if (res.success) {
-              // 💡 ページ全体の再読み込み（reload）は行わず、画面内のデータだけを最新状態に更新する
               cancelEditMode();
               loadStaffHistory();
               if (typeof loadStaffPendingAlert === 'function') {
                 loadStaffPendingAlert();
               }
-              // 画面の一番上へスムーズにスクロール
               window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-              submitBtn.disabled = false;
-              submitBtn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+              }
             }
           })
           .withFailureHandler(function(err) {
             alert('通信エラーが発生しました: ' + err.message);
-            submitBtn.disabled = false;
-            submitBtn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+            }
           })
           [actionFunction](data);
       }
 
       var cachedClosedDays = [];
-      var cachedSubmittedDates = []; // 💡 申請済み日を保持するキャッシュ
+      var cachedSubmittedDates = [];
 
       function renderMiniCalendar() {
         var ymVal = document.getElementById('targetMonth').value;
         var staffId = document.getElementById('staffId').value;
         if (!ymVal || !staffId) return;
 
-        // 休業日と申請済み日を両方取得してからカレンダーを構築する
         google.script.run
           .withSuccessHandler(function(closedRes) {
             cachedClosedDays = closedRes.success ? closedRes.closedDays : [];
@@ -508,10 +509,12 @@
         var month = Number(parts[1]);
 
         var grid = document.getElementById('miniCalendarGrid');
+        if (!grid) return;
+        
         var headerHtml = '';
         var headers = grid.querySelectorAll('div');
         for(var i=0; i<7; i++) {
-          headerHtml += headers[i].outerHTML;
+          if (headers[i]) headerHtml += headers[i].outerHTML;
         }
         var html = headerHtml;
 
@@ -533,20 +536,16 @@
           var dateStr = year + '-' + mStr + '-' + dStr;
           
           var isClosed = cachedClosedDays.includes(dateStr);
-          var isSubmitted = cachedSubmittedDates.includes(dateStr); // 💡 申請済み判定
+          var isSubmitted = cachedSubmittedDates.includes(dateStr);
           var isSelected = selectedDatesMap[dateStr] !== undefined;
 
-          // 💡 スタイルの分岐（申請済みの場合は専用のデザインにする）
           var bgStyle = '';
           var clickAction = '';
 
           if (isClosed) {
             bgStyle = 'background:#f1f5f9; color:#94a3b8; border:1px dashed #cbd5e1;';
-            clickAction = '';
           } else if (isSubmitted) {
-            // 💡 すでに申請済みの日のスタイル（薄いブルーで「申請済」を強調）
             bgStyle = 'background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600;';
-            clickAction = '';
           } else if (isSelected) {
             bgStyle = 'background:var(--success-color); color:white; font-weight:bold;';
             clickAction = 'onclick="toggleDate(\'' + dateStr + '\')"';
@@ -575,26 +574,22 @@
         updateCountDisplay();
       }
 
-      // 選択した日付とメモを保持するオブジェクトに変更
-var selectedDatesMap = {}; 
-
-function toggleDate(dateStr) {
+      function toggleDate(dateStr) {
         if (selectedDatesMap[dateStr] !== undefined) {
-          delete selectedDatesMap[dateStr]; // タップでもう一度消す
+          delete selectedDatesMap[dateStr];
         } else {
-          selectedDatesMap[dateStr] = ""; // 初期値は空のメモ
+          selectedDatesMap[dateStr] = "";
         }
         renderMiniCalendar();
-        renderDailyMemos(); // ▼ メモ入力枠を再描画
+        renderDailyMemos();
       }
 
-     // 💡 日ごとの入力枠を生成する関数
       function renderDailyMemos() {
         var container = document.getElementById('dailyMemoContainer');
+        if (!container) return;
         var dates = Object.keys(selectedDatesMap).sort();
         var html = '';
         
-        // 日付が選択されている場合のみ、区別しやすい見出しを表示する
         if (dates.length > 0) {
           html += '<div style="margin-top: 16px; margin-bottom: 8px; font-weight: bold; font-size: 0.85rem; color: var(--text-main); border-top: 1px dashed var(--border-color); padding-top: 12px;">';
           html += '📝 選択した日ごとの伝達事項・備考';
@@ -606,11 +601,8 @@ function toggleDate(dateStr) {
           var displayDate = (dObj.getMonth() + 1) + '/' + dObj.getDate();
           var currentMemo = escapeHtml(selectedDatesMap[dStr]);
           
-          // 入力枠ごとに薄い背景と枠線をつけてカレンダーエリアと差別化
           html += '<div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 6px;">';
           html += '<span style="font-weight: bold; width: 45px; color: var(--accent-color);">' + displayDate + '</span>';
-          
-          // 💡 onchangeの引数を通常の dStr に修正し、プレースホルダーを「伝達事項（任意）」にする
           html += '<input type="text" placeholder="伝達事項（任意）" value="' + currentMemo + '" ';
           html += 'onchange="updateDailyMemo(\'' + dStr + '\', this.value)" style="flex-grow: 1; padding: 6px; margin: 0; font-size: 0.85rem; background: #fff;">';
           html += '</div>';
@@ -626,7 +618,8 @@ function toggleDate(dateStr) {
 
       function updateCountDisplay() {
         var count = Object.keys(selectedDatesMap).length;
-        document.getElementById('selectedCount').innerText = '選択中の日数: ' + count + '日';
+        var countEl = document.getElementById('selectedCount');
+        if (countEl) countEl.innerText = '選択中の日数: ' + count + '日';
       }
 
       function submitPreferences() {
@@ -647,12 +640,14 @@ function toggleDate(dateStr) {
           staffName: document.getElementById('staffNameVal').value,
           yearMonth: ymVal,
           dailyRequests: dailyRequests,
-          memo: "" // 全体メモは廃止
+          memo: ""
         };
 
         var btn = event.target;
-        btn.disabled = true;
-        btn.innerText = '送信中...';
+        if (btn) {
+          btn.disabled = true;
+          btn.innerText = '送信中...';
+        }
 
         google.script.run
           .withSuccessHandler(function(res) {
@@ -663,28 +658,21 @@ function toggleDate(dateStr) {
               renderDailyMemos();
               switchStaffTab('history');
             }
-            btn.disabled = false;
-            btn.innerText = 'シフト希望を送信する';
+            if (btn) {
+              btn.disabled = false;
+              btn.innerText = 'シフト希望を送信する';
+            }
           })
           .saveShiftPreferences(data);
       }
 
-      function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/[&<>'"]/g, function(tag) {
-          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
-          return chars[tag] || tag;
-        });
-      }
-
-      // 💡 期間切替時に自動でスタッフ自身の締め実績を読み込む
       function loadStaffClosingData() {
         var staffId = document.getElementById('staffId').value;
         var ym = document.getElementById('staffClosingMonth').value;
         var half = document.getElementById('staffClosingHalf').value;
         var box = document.getElementById('staffClosingResultBox');
         
-        if (!ym || !staffId) return;
+        if (!ym || !staffId || !box) return;
         box.innerHTML = '集計中...';
 
         google.script.run
@@ -726,10 +714,18 @@ function toggleDate(dateStr) {
           .withSuccessHandler(function(res) {
             alert(res.message);
             if (res.success) {
-              loadStaffClosingData(); // 画面を更新
+              loadStaffClosingData();
             }
           })
           .confirmStaffClosingStatus({ staffId: staffId, yearMonth: ym, half: half });
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>'"]/g, function(tag) {
+          var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+          return chars[tag] || tag;
+        });
       }
     </script>
   </body>
