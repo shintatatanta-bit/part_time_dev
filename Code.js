@@ -2020,13 +2020,13 @@ function getStaffSubmittedShiftDates(data) {
 }
 
 /**
- * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数（修正版）
+ * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数（超ロバスト版）
  */
 function getClosingStatus(data) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var yearMonth = data.yearMonth; // "2026-10"
-    var half = data.half; // "first" または "second"
+    var yearMonth = String(data.yearMonth || "").trim(); // 例: "2026-10"
+    var half = String(data.half || "").trim(); // "first" または "second"
     
     var parts = yearMonth.split('-');
     var year = Number(parts[0]);
@@ -2043,6 +2043,8 @@ function getClosingStatus(data) {
       endDateStr = yearMonth + "-" + String(lastDayObj.getDate()).padStart(2, '0');
     }
     
+    Logger.log("🔍 [締め確認] 対象期間: " + startDateStr + " 〜 " + endDateStr);
+
     // 1. スタッフマスタから有効なスタッフ一覧を取得
     var staffSheet = ss.getSheetByName("スタッフマスタ");
     if (!staffSheet) return { success: false, message: "スタッフマスタが見つかりません" };
@@ -2050,33 +2052,45 @@ function getClosingStatus(data) {
     
     var staffList = [];
     for (var i = 1; i < staffData.length; i++) {
-      if (staffData[i][0] && staffData[i][4] === "有効") {
+      var sId = String(staffData[i][0] || "").trim();
+      var sName = String(staffData[i][1] || "").trim();
+      var sStatus = String(staffData[i][4] || "").trim();
+      if (sId && sStatus === "有効") {
         staffList.push({
-          staffId: String(staffData[i][0]),
-          staffName: staffData[i][1],
-          lineUserId: staffData[i][2],
-          assignedAccount: staffData[i][3]
+          staffId: sId,
+          staffName: sName
         });
       }
     }
     
-    // 2. 「シフト予定」シートから期間内の予定日数をカウント（日付変換を安全に実施）
+    // 日付を安全に "YYYY-MM-DD" 文字列に変換するヘルパー関数
+    function parseDateToString(raw) {
+      if (!raw) return "";
+      if (raw instanceof Date) {
+        return Utilities.formatDate(raw, "Asia/Tokyo", "yyyy-MM-dd");
+      }
+      var str = String(raw).trim();
+      if (str.length >= 10 && str.indexOf("-") !== -1) {
+        return str.substring(0, 10);
+      }
+      var d = new Date(raw);
+      if (!isNaN(d.getTime())) {
+        return Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd");
+      }
+      return str;
+    }
+
+    // 2. 「シフト予定」シートから期間内の予定日数をカウント
     var shiftSheet = ss.getSheetByName("シフト予定");
     var shiftMap = {}; 
     if (shiftSheet) {
       var shiftData = shiftSheet.getDataRange().getValues();
       for (var s = 1; s < shiftData.length; s++) {
         var rawDate = shiftData[s][1];
-        var sId = String(shiftData[s][2] || "");
+        var sId = String(shiftData[s][2] || "").trim();
         if (!rawDate || !sId) continue;
         
-        var sDateStr = "";
-        if (rawDate instanceof Date) {
-          sDateStr = Utilities.formatDate(rawDate, "Asia/Tokyo", "yyyy-MM-dd");
-        } else {
-          var d = new Date(rawDate);
-          sDateStr = !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : String(rawDate).substring(0, 10);
-        }
+        var sDateStr = parseDateToString(rawDate);
         
         if (sDateStr >= startDateStr && sDateStr <= endDateStr) {
           if (!shiftMap[sId]) shiftMap[sId] = [];
@@ -2087,23 +2101,17 @@ function getClosingStatus(data) {
       }
     }
     
-    // 3. 「申請データ」シートから期間内の申請日数をカウント（日付変換を安全に実施）
+    // 3. 「申請データ」シートから期間内の申請日数をカウント
     var dataSheet = ss.getSheetByName("申請データ");
     var kintaiMap = {};
     if (dataSheet) {
       var kData = dataSheet.getDataRange().getValues();
       for (var k = 1; k < kData.length; k++) {
         var rawKDate = kData[k][3];
-        var kId = String(kData[k][1] || "");
+        var kId = String(kData[k][1] || "").trim();
         if (!rawKDate || !kId) continue;
         
-        var kDateStr = "";
-        if (rawKDate instanceof Date) {
-          kDateStr = Utilities.formatDate(rawKDate, "Asia/Tokyo", "yyyy-MM-dd");
-        } else {
-          var kd = new Date(rawKDate);
-          kDateStr = !isNaN(kd.getTime()) ? Utilities.formatDate(kd, "Asia/Tokyo", "yyyy-MM-dd") : String(rawKDate).substring(0, 10);
-        }
+        var kDateStr = parseDateToString(rawKDate);
         
         if (kDateStr >= startDateStr && kDateStr <= endDateStr) {
           if (!kintaiMap[kId]) kintaiMap[kId] = [];
@@ -2125,8 +2133,10 @@ function getClosingStatus(data) {
     var cData = closingSheet.getDataRange().getValues();
     var periodKey = yearMonth + "_" + half;
     for (var c = 1; c < cData.length; c++) {
-      if (String(cData[c][1]) === periodKey) {
-        statusMap[String(cData[c][0])] = cData[c][2];
+      var cStaffId = String(cData[c][0] || "").trim();
+      var cPeriod = String(cData[c][1] || "").trim();
+      if (cPeriod === periodKey) {
+        statusMap[cStaffId] = String(cData[c][2] || "").trim();
       }
     }
     
