@@ -137,19 +137,22 @@
       <!-- 🔒 勤怠確認・確定ビュー -->
       <div id="viewClosing" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">勤怠確認・確定</h3>
-        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">対象期間の実績を確認し、問題なければ「内容を確定する」ボタンを押してください。</p>
+        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">対象月と期間を選択すると、実績が表示されます。内容を確認して「内容を確定する」ボタンを押してください。</p>
 
         <label>対象月</label>
-        <input type="month" id="staffClosingMonth" onchange="loadStaffClosingData()" style="margin-top:4px;">
+        <!-- 💡 value="" で初期値を空にする -->
+        <input type="month" id="staffClosingMonth" value="" onchange="loadStaffClosingData()" style="margin-top:4px;">
 
         <label>対象期間（半期）</label>
+        <!-- 💡 未選択のプレースホルダーを用意 -->
         <select id="staffClosingHalf" onchange="loadStaffClosingData()" style="margin-top:4px;">
+          <option value="" selected disabled>-- 選択してください --</option>
           <option value="first">前半 (1日 〜 15日)</option>
           <option value="second">後半 (16日 〜 末日)</option>
         </select>
 
         <div id="staffClosingResultBox" style="margin-top: 14px; background: #f8fafc; border: 1px solid var(--border-color); padding: 14px; border-radius: 8px; font-size: 0.85rem;">
-          読み込み中...
+          上のプルダウンから「対象月」と「対象期間（半期）」を選択してください。
         </div>
       </div>
 
@@ -295,15 +298,10 @@
           if (tabClosing) tabClosing.classList.add('active');
           if (viewClosing) {
             viewClosing.style.display = 'block';
-            var now = new Date();
-            var y = now.getFullYear();
-            var m = String(now.getMonth() + 1).padStart(2, '0');
-            var closingMonthInput = document.getElementById('staffClosingMonth');
-            if (closingMonthInput && !closingMonthInput.value) {
-              closingMonthInput.value = y + '-' + m;
-            }
+            // ❌ 自動セット処理は削除し、手動選択させるため loadStaffClosingData() だけ呼び出す
             loadStaffClosingData();
           }
+          
         } else if (mode === 'history') {
           if (tabHistory) tabHistory.classList.add('active');
           if (viewHistory) viewHistory.style.display = 'block';
@@ -717,7 +715,15 @@
         var half = document.getElementById('staffClosingHalf').value;
         var box = document.getElementById('staffClosingResultBox');
         
-        if (!ym || !staffId || !box) return;
+        if (!box) return;
+
+        // 💡 どちらか一方が未選択の場合は、選択を促すメッセージを出して中断する
+        if (!ym || !half) {
+          box.innerHTML = '上のプルダウンから「対象月」と「対象期間（半期）」を選択してください。';
+          return;
+        }
+
+        if (!staffId) return;
         box.innerHTML = '集計中...';
 
         google.script.run
@@ -736,7 +742,7 @@
             html += '<div style="margin-bottom: 8px;"><strong>⏱️ 労働時間合計:</strong> ' + res.totalWorkHoursStr + '</div>';
             html += '<div style="margin-bottom: 12px;"><strong>🚃 交通費合計:</strong> ¥' + res.totalCost.toLocaleString() + '</div>';
             
-            // 💡 対象期間の申請明細テーブル
+            // 対象期間の申請明細テーブル
             html += '<div style="margin: 12px 0 8px 0; font-weight: bold; font-size: 0.8rem; border-top: 1px solid var(--border-color); padding-top: 8px;">📋 この期間の申請明細</div>';
             if (res.records && res.records.length > 0) {
               html += '<div style="max-height: 140px; overflow-y: auto; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff;">';
