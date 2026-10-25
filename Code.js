@@ -1972,7 +1972,7 @@ function getStaffPendingDates(staffId) {
 }
 
 /**
- * 💡 締め状況の取得 ＆ 詳細デバッグログ出力版
+ * 💡 締め状況の取得 ＆ 詳細コンソールログ出力版
  */
 function getClosingStatus(data) {
   try {
@@ -1995,9 +1995,9 @@ function getClosingStatus(data) {
       endDateStr = yearMonth + "-" + String(lastDayObj.getDate()).padStart(2, '0');
     }
 
-    Logger.log("==================================================");
-    Logger.log("🔍 [デバッグ開始] 対象期間: " + startDateStr + " 〜 " + endDateStr);
-    Logger.log("==================================================");
+    console.log("==================================================");
+    console.log("🔍 [デバッグ開始] 対象期間: " + startDateStr + " 〜 " + endDateStr);
+    console.log("==================================================");
 
     // 日付を安全に "YYYY-MM-DD" 文字列に変換するヘルパー
     function parseDateToString(raw) {
@@ -2019,7 +2019,7 @@ function getClosingStatus(data) {
     // 1. スタッフマスタの検証
     var staffSheet = ss.getSheetByName("スタッフマスタ");
     if (!staffSheet) {
-      Logger.log("❌ エラー: 「スタッフマスタ」シートが見つかりません");
+      console.log("❌ エラー: 「スタッフマスタ」シートが見つかりません");
       return { success: false, message: "スタッフマスタが見つかりません" };
     }
     var staffData = staffSheet.getDataRange().getValues();
@@ -2029,7 +2029,7 @@ function getClosingStatus(data) {
       var sId = String(staffData[i][0] || "").trim().toLowerCase();
       var sName = String(staffData[i][1] || "").trim();
       var sStatus = String(staffData[i][4] || "").trim();
-      Logger.log("👤 スタッフ行[" + i + "] ID(小文字): [" + sId + "] 名前: [" + sName + "] ステータス: [" + sStatus + "]");
+      console.log("👤 スタッフ行[" + i + "] ID(小文字): [" + sId + "] 名前: [" + sName + "] ステータス: [" + sStatus + "]");
       
       if (sId && sStatus === "有効") {
         staffList.push({
@@ -2039,32 +2039,32 @@ function getClosingStatus(data) {
         });
       }
     }
-    Logger.log("✅ 有効なスタッフ数: " + staffList.length + "名");
+    console.log("✅ 有効なスタッフ数: " + staffList.length + "名");
 
     // 2. 「シフト予定」シートの検証
     var shiftSheet = ss.getSheetByName("シフト予定");
     var shiftMap = {}; 
     if (shiftSheet) {
       var shiftData = shiftSheet.getDataRange().getValues();
-      Logger.log("📅 シフト予定シートの総行数: " + shiftData.length);
+      console.log("📅 シフト予定シートの総行数: " + shiftData.length);
       for (var s = 1; s < shiftData.length; s++) {
         var rawDate = shiftData[s][1]; // B列：勤務日
         var sId = String(shiftData[s][2] || "").trim().toLowerCase(); // C列：スタッフID
         if (!rawDate || !sId) continue;
         
         var sDateStr = parseDateToString(rawDate);
-        Logger.log("  -> シフト行[" + s + "] 日付変換: [" + sDateStr + "] スタッフID: [" + sId + "]");
+        console.log("  -> シフト行[" + s + "] 日付変換: [" + sDateStr + "] スタッフID: [" + sId + "]");
 
         if (sDateStr >= startDateStr && sDateStr <= endDateStr) {
           if (!shiftMap[sId]) shiftMap[sId] = [];
           if (shiftMap[sId].indexOf(sDateStr) === -1) {
             shiftMap[sId].push(sDateStr);
-            Logger.log("    🎯 【予定マッチ】スタッフ [" + sId + "] の日付 [" + sDateStr + "] を予定日数に加算します");
+            console.log("    🎯 【予定マッチ】スタッフ [" + sId + "] の日付 [" + sDateStr + "] を予定日数に加算します");
           }
         }
       }
     } else {
-      Logger.log("⚠️ 警告: 「シフト予定」シートが見つかりません");
+      console.log("⚠️ 警告: 「シフト予定」シートが見つかりません");
     }
 
     // 3. 「申請データ」シートの検証
@@ -2072,25 +2072,25 @@ function getClosingStatus(data) {
     var kintaiMap = {};
     if (dataSheet) {
       var kData = dataSheet.getDataRange().getValues();
-      Logger.log("📋 申請データシートの総行数: " + kData.length);
+      console.log("📋 申請データシートの総行数: " + kData.length);
       for (var k = 1; k < kData.length; k++) {
         var rawKDate = kData[k][3]; // D列：勤務日
         var kId = String(kData[k][1] || "").trim().toLowerCase(); // B列：スタッフID
         if (!rawKDate || !kId) continue;
         
         var kDateStr = parseDateToString(rawKDate);
-        Logger.log("  -> 申請行[" + k + "] 日付変換: [" + kDateStr + "] スタッフID: [" + kId + "]");
+        console.log("  -> 申請行[" + k + "] 日付変換: [" + kDateStr + "] スタッフID: [" + kId + "]");
 
         if (kDateStr >= startDateStr && kDateStr <= endDateStr) {
           if (!kintaiMap[kId]) kintaiMap[kId] = [];
           if (kintaiMap[kId].indexOf(kDateStr) === -1) {
             kintaiMap[kId].push(kDateStr);
-            Logger.log("    🎯 【申請マッチ】スタッフ [" + kId + "] の日付 [" + kDateStr + "] を申請日数に加算します");
+            console.log("    🎯 【申請マッチ】スタッフ [" + kId + "] の日付 [" + kDateStr + "] を申請日数に加算します");
           }
         }
       }
     } else {
-      Logger.log("⚠️ 警告: 「申請データ」シートが見つかりません");
+      console.log("⚠️ 警告: 「申請データ」シートが見つかりません");
     }
 
     // 4. 「締め・確認管理」シートの検証
@@ -2119,7 +2119,7 @@ function getClosingStatus(data) {
       var kintaiDays = kintaiMap[staff.staffId] ? kintaiMap[staff.staffId].length : 0;
       var status = statusMap[staff.staffId] || "確認待ち";
       
-      Logger.log("📊 集計結果 -> スタッフ: " + staff.staffName + " (ID: " + staff.staffId + ") | 予定日数: " + scheduledDays + " | 申請日数: " + kintaiDays);
+      console.log("📊 集計結果 -> スタッフ: " + staff.staffName + " (ID: " + staff.staffId + ") | 予定日数: " + scheduledDays + " | 申請日数: " + kintaiDays);
 
       if (status !== "確定済み") {
         allConfirmed = false;
@@ -2134,7 +2134,7 @@ function getClosingStatus(data) {
       });
     });
     
-    Logger.log("==================================================");
+    console.log("==================================================");
     return {
       success: true,
       startDate: startDateStr,
@@ -2143,7 +2143,7 @@ function getClosingStatus(data) {
       allConfirmed: allConfirmed
     };
   } catch (error) {
-    Logger.log("❌ 致命的エラー: " + error.message);
+    console.log("❌ 致命的エラー: " + error.message);
     return { success: false, message: "締め状況取得エラー: " + error.message };
   }
 }
