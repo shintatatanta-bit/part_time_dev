@@ -1274,9 +1274,9 @@ function getKintaiPendingStaff() {
     }
     
     pendingList.sort(function(a, b) {
-      return new Date(b.targetDate) - new Date(a.targetDate);
+      return new Date(a.targetDate) - new Date(b.targetDate);
     });
-
+    
     return { success: true, pendingList: pendingList };
   } catch (error) {
     return { success: false, message: "未提出者取得エラー: " + error.message, pendingList: [] };
