@@ -1809,63 +1809,47 @@ function formatTimestamp(val) {
 }
 
 /**
- * 💡 スタッフが自分のシフト希望提出履歴（伝達事項含む）を確認するための関数
+ * 💡 スタッフが自分のシフト希望提出履歴（日付ごと＆伝達事項）を確認するための関数
  */
 function getStaffShiftHistory(staffId) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("希望通知ログ");
-    if (!sheet) return { success: true, history: [] };
-    
-    var data = sheet.getDataRange().getValues();
-    var historyMap = {};
-    
-    for (var i = data.length - 1; i >= 1; i--) {
-      var row = data[i];
-      var sId = String(row[1] || "");
-      var yearMonth = String(row[3] || "");
-      var memo = String(row[6] || "");
-      
-      if (sId === String(staffId) && yearMonth) {
-        if (!historyMap[yearMonth]) {
-          historyMap[yearMonth] = {
-            yearMonth: yearMonth,
-            memo: memo
-          };
-        }
-      }
-    }
-    
     var shiftSheet = ss.getSheetByName("シフト予定");
-    var daysCountMap = {};
-    if (shiftSheet) {
-      var shiftData = shiftSheet.getDataRange().getValues();
-      for (var j = 1; j < shiftData.length; j++) {
-        var sRow = shiftData[j];
-        var sDateStr = String(sRow[1] || "");
-        var rowStaffId = String(sRow[2] || "");
-        
-        if (rowStaffId === String(staffId) && sDateStr) {
-          var ym = sDateStr.substring(0, 7);
-          daysCountMap[ym] = (daysCountMap[ym] || 0) + 1;
-        }
-      }
-    }
-
+    if (!shiftSheet) return { success: true, history: [] };
+    
+    var shiftData = shiftSheet.getDataRange().getValues();
     var historyList = [];
-    for (var ymKey in historyMap) {
-      var formattedYm = ymKey;
-      if (ymKey.indexOf("-") !== -1) {
-        var parts = ymKey.split("-");
-        formattedYm = parts[0] + "年" + Number(parts[1]) + "月";
+    
+    // シフト予定シートから該当スタッフのデータ（日付とE列のメモ）をすべて取得する
+    for (var i = 1; i < shiftData.length; i++) {
+      var row = shiftData[i];
+      var workDateStr = String(row[1] || "");
+      var rowStaffId = String(row[2] || "");
+      var memo = String(row[4] || ""); // E列のメモ
+      
+      if (rowStaffId === String(staffId) && workDateStr) {
+        var d = new Date(workDateStr);
+        var formattedDate = workDateStr;
+        if (!isNaN(d.getTime())) {
+          var weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+          var m = ('0' + (d.getMonth() + 1)).slice(-2);
+          var day = ('0' + d.getDate()).slice(-2);
+          var dayOfWeek = weekDays[d.getDay()];
+          formattedDate = m + '/' + day + '(' + dayOfWeek + ')';
+        }
+        
+        historyList.push({
+          workDate: formattedDate,
+          rawDate: workDateStr,
+          memo: memo
+        });
       }
-
-      historyList.push({
-        yearMonth: formattedYm,
-        daysCount: daysCountMap[ymKey] || 0,
-        memo: historyMap[ymKey].memo
-      });
     }
+    
+    // 日付順に並び替え
+    historyList.sort(function(a, b) {
+      return new Date(a.rawDate) - new Date(b.rawDate);
+    });
     
     return { success: true, history: historyList };
   } catch (error) {

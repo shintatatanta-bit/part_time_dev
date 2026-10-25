@@ -124,11 +124,6 @@
         <!-- ▼ ここ（グリッドの外側）に配置する -->
         <div id="dailyMemoContainer" style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;"></div>
 
-        <!-- 💡 常に確実に表示される伝達事項の入力欄 -->
-        <label>伝達事項・備考 (任意)</label>
-        
-        <textarea id="shiftMemo" rows="2" placeholder="例: 8日は午後から、10日は15時まで" style="resize: vertical; margin-bottom: 14px;"></textarea>
-
         <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
       </div>
 
@@ -155,13 +150,7 @@
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望提出履歴</h3>
         <div style="overflow-x: auto; max-height: 180px;">
           <table>
-            <thead>
-              <tr>
-                <th>対象月</th>
-                <th>希望日数</th>
-                <th>伝達事項・備考</th>
-              </tr>
-            </thead>
+<thead><tr><th>勤務希望日</th><th>伝達事項・備考</th></tr></thead>
             <tbody id="staffShiftHistoryTableBody">
               <tr><td colspan="3" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>
             </tbody>
@@ -257,15 +246,15 @@
           .withSuccessHandler(function(res) {
             var tbody = document.getElementById('staffShiftHistoryTableBody');
             if (!res.success || res.history.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">シフト希望の提出履歴はありません</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; color: var(--text-sub);">シフト希望の提出履歴はありません</td></tr>';
               return;
             }
 
             var html = '';
+            // 💡 1日ごとに分解してテーブルに並べる
             res.history.forEach(function(item) {
               html += '<tr>';
-              html += '<td>' + item.yearMonth + '</td>';
-              html += '<td>' + item.daysCount + '日</td>';
+              html += '<td>' + item.workDate + '</td>';
               html += '<td>' + (item.memo ? escapeHtml(item.memo) : '<span style="color:#94a3b8;">なし</span>') + '</td>';
               html += '</tr>';
             });
@@ -480,20 +469,18 @@ function toggleDate(dateStr) {
           return;
         }
 
-        // ▼ サーバーに送るデータを「日付だけ」から「日付＋メモ」のセットに変更
         var dailyRequests = datesArray.map(function(dStr) {
           return { date: dStr, memo: selectedDatesMap[dStr] };
         });
 
         var ymVal = document.getElementById('targetMonth').value;
-        var memoVal = document.getElementById('shiftMemo').value.trim();
 
         var data = {
           staffId: document.getElementById('staffId').value,
           staffName: document.getElementById('staffNameVal').value,
           yearMonth: ymVal,
-          dailyRequests: dailyRequests, // 配列を新しいものに変更
-          memo: memoVal
+          dailyRequests: dailyRequests,
+          memo: "" // 全体メモは廃止
         };
 
         var btn = event.target;
@@ -505,9 +492,8 @@ function toggleDate(dateStr) {
             alert(res.message);
             if (res.success) {
               selectedDatesMap = {};
-              document.getElementById('shiftMemo').value = '';
               renderMiniCalendar();
-              renderDailyMemos(); // 枠もリセット
+              renderDailyMemos();
               switchStaffTab('history');
             }
             btn.disabled = false;
