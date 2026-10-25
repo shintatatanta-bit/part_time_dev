@@ -18,10 +18,19 @@ function doPost(e) {
         var lineUserId = event.source.userId;
         var replyToken = event.replyToken;
         
-        if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
+          if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
           saveLineIdLog(lineUserId);
           
+          // ▼▼ 追加・変更 ▼▼
+          var accountName = getAccountNameByDestination(destination);
           var webAppUrl = ScriptApp.getService().getUrl();
+          // URLの末尾にアカウント名をパラメータとしてくっつける
+          var registerUrl = webAppUrl + "?page=register&account=" + encodeURIComponent(accountName);
+          // ▲▲ 追加・変更 ▲▲
+
+          var messages = [
+
+            var webAppUrl = ScriptApp.getService().getUrl();
           var registerUrl = webAppUrl + "?page=register";
 
           var messages = [
@@ -175,9 +184,10 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
   
-  // page=register の場合はスタッフ初回登録画面を表示
+  // 💡 page=register の場合はスタッフ初回登録画面を表示
   if (page === "register") {
     var regTemplate = HtmlService.createTemplateFromFile("staff_register");
+    regTemplate.accountName = params.account || ""; // URLからアカウント名を受け取る
     return regTemplate.evaluate()
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
@@ -1859,5 +1869,29 @@ function getStaffShiftHistory(staffId) {
     return { success: true, history: historyList };
   } catch (error) {
     return { success: false, history: [], message: error.message };
+  }
+}
+
+/**
+ * 💡 Webhookの destination からアカウント名を取得する関数
+ */
+function getAccountNameByDestination(destination) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("アカウントマスタ");
+    if (!sheet) return "アカウントA";
+    
+    var data = sheet.getDataRange().getValues();
+    if (destination) {
+      for (var i = 1; i < data.length; i++) {
+        var storedDest = data[i][4] ? String(data[i][4]).trim() : "";
+        if (storedDest === String(destination).trim()) {
+          return data[i][0]; // A列のアカウント名を返す
+        }
+      }
+    }
+    return data.length > 1 ? data[1][0] : "アカウントA";
+  } catch (e) {
+    return "アカウントA";
   }
 }

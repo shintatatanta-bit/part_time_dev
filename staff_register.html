@@ -33,10 +33,9 @@
         <label>カレンダー表示文字 (1〜4文字)</label>
         <input type="text" id="displayChar" placeholder="例: 山田" maxlength="4" required>
 
-        <label>割当LINEアカウント</label>
-        <select id="assignedAccount">
-          <option value="">読み込み中...</option>
-        </select>
+<!-- 変更後：固定枠にする -->
+        <label>割当LINEアカウント（変更不可）</label>
+        <input type="text" id="assignedAccount" value="<?= accountName ?>" readonly style="background-color: #e2e8f0; color: #475569; cursor: not-allowed; font-weight: bold;">
         
         <div class="help-box">
           💡 <strong>登録手順：</strong><br>
@@ -50,21 +49,6 @@
     </div>
 
     <script>
-      window.onload = function() {
-        loadAccountOptions();
-      };
-
-      // アカウントマスタからアカウント一覧を取得してプルダウンに反映
-      function loadAccountOptions() {
-        google.script.run.withSuccessHandler(function(accounts) {
-          var select = document.getElementById('assignedAccount');
-          var html = '';
-          (accounts || []).forEach(function(acc) {
-            html += '<option value="' + escapeHtml(acc) + '">' + escapeHtml(acc) + '</option>';
-          });
-          select.innerHTML = html;
-        }).getAccountList();
-      }
 
 // スタッフ氏名から最初の1文字を表示文字に自動反映
       function autoFillChar() {
