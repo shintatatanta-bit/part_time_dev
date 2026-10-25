@@ -340,10 +340,14 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
   </head>
 
   <body>
-    <!-- ヘッダーエリア（タイトル ＆ スタッフ管理ボタン） -->
+    <!-- ヘッダーエリア（タイトル ＆ 各種管理ボタン） -->
     <div class="header-container">
       <h2>🛠️ 管理者ダッシュボード</h2>
-      <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openStaffModal()">⚙️ スタッフ管理</button>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <!-- 💡 締め作業を開くボタンを追加 -->
+        <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openClosingModal()">🔒 締め作業・確認</button>
+        <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openStaffModal()">⚙️ スタッフ管理</button>
+      </div>
     </div>
     
     <!-- 勤怠未提出者アラートカード（常時表示） -->
@@ -434,56 +438,6 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         </div>
 
         <div id="calendarList" class="list-view-container" style="display: none; margin-top: 12px;"></div>
-      </div>
-    </div>
-
-<!-- アコーディオン: 🔒 締め作業・確認管理 -->
-    <div class="accordion-card" id="acc-closing">
-      <div class="accordion-header" onclick="toggleAccordion('acc-closing')">
-        <h3>🔒 締め作業・確認管理（15日・末日締）</h3>
-        <span style="font-size:0.75rem; color:var(--text-sub); font-weight:600;">▼ 開閉</span>
-      </div>
-      <div class="accordion-content">
-        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">💡 対象期間を指定して、スタッフの申請状況確認や確定依頼（LINE送信）を行います。過去の期間に影響を与えずに安全に作業できます。</p>
-        
-        <div class="flex-row" style="align-items: flex-end; gap: 10px; margin-bottom: 12px;">
-          <div class="flex-col">
-            <label>対象月</label>
-            <input type="month" id="closingMonth" value="" onchange="loadClosingStatus()" style="margin-top:4px;">
-          </div>
-          <div class="flex-col">
-            <label>対象期間（半期）</label>
-            <select id="closingHalf" onchange="loadClosingStatus()" style="margin-top:4px;">
-              <option value="" selected disabled>-- 選択してください --</option>
-              <option value="first">前半 (1日 〜 15日)</option>
-              <option value="second">後半 (16日 〜 末日)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- 一括確認依頼ボタン -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 8px 0; padding-top: 10px; border-top: 1px solid var(--border-color);">
-          <span id="closingSummaryText" style="font-size: 0.85rem; font-weight: bold; color: var(--text-main);">対象期間を選択してください</span>
-          <button type="button" class="secondary" style="background: var(--success-color); color: #fff; border: none;" onclick="sendClosingRequestLine()">📢 未確定者に確認・確定依頼を送る</button>
-        </div>
-
-        <!-- スタッフごとの締め確認一覧テーブル -->
-        <div style="overflow-x: auto; max-height: 350px;">
-          <table>
-            <thead>
-              <tr>
-                <th>スタッフ名</th>
-                <th>予定日数</th>
-                <th>申請日数</th>
-                <th style="text-align: center;">ステータス</th>
-                <th style="text-align: center;">操作</th>
-              </tr>
-            </thead>
-            <tbody id="closingTableBody">
-              <tr><td colspan="5" style="text-align: center; color: var(--text-sub);">期間を選択して「状況を読み込む」を押してください</td></tr>
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
 
@@ -640,6 +594,61 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           <button type="button" style="background: var(--accent-color);" onclick="confirmPlacement('single')">この日だけ配置する</button>
           <button type="button" style="background: var(--success-color);" onclick="confirmPlacement('weekly')">今月中の同曜日を一括配置</button>
           <button type="button" class="secondary" style="width:100%;" onclick="closeModal()">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+<!-- 🔒 締め作業・確認管理 モーダルポップアップ -->
+    <div id="closingModal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 680px; max-height: 85vh;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
+          <h4 style="margin: 0;">🔒 締め作業・確認管理（15日・末日締）</h4>
+          <button type="button" class="secondary" onclick="closeClosingModal()">✕ 閉じる</button>
+        </div>
+
+        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">💡 対象期間を指定して、スタッフの申請状況確認や確定依頼（LINE送信）を行います。</p>
+        
+        <div class="flex-row" style="align-items: flex-end; gap: 10px; margin-bottom: 12px;">
+          <div class="flex-col">
+            <label>対象月</label>
+            <input type="month" id="closingMonth" value="" onchange="loadClosingStatus()" style="margin-top:4px;">
+          </div>
+          <div class="flex-col">
+            <label>対象期間（半期）</label>
+            <select id="closingHalf" onchange="loadClosingStatus()" style="margin-top:4px;">
+              <option value="" selected disabled>-- 選択してください --</option>
+              <option value="first">前半 (1日 〜 15日)</option>
+              <option value="second">後半 (16日 〜 末日)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 一括確認依頼ボタン -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 8px 0; padding-top: 10px; border-top: 1px solid var(--border-color);">
+          <span id="closingSummaryText" style="font-size: 0.85rem; font-weight: bold; color: var(--text-main);">対象期間を選択してください</span>
+          <button type="button" class="secondary" style="background: var(--success-color); color: #fff; border: none;" onclick="sendClosingRequestLine()">📢 未確定者に確認・確定依頼を送る</button>
+        </div>
+
+        <!-- スタッフごとの締め確認一覧テーブル -->
+        <div style="overflow-x: auto; max-height: 320px; margin-bottom: 16px;">
+          <table>
+            <thead>
+              <tr>
+                <th>スタッフ名</th>
+                <th>予定日数</th>
+                <th>申請日数</th>
+                <th style="text-align: center;">ステータス</th>
+                <th style="text-align: center;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="closingTableBody">
+              <tr><td colspan="5" style="text-align: center; color: var(--text-sub);">期間を選択して「状況を読み込む」を押してください</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="text-align: right;">
+          <button type="button" class="secondary" onclick="closeClosingModal()">閉じる</button>
         </div>
       </div>
     </div>
@@ -1880,6 +1889,16 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             alert('通信エラー: ' + err.message);
           })
           .getSlackShiftText(ym);
+      }
+
+      function openClosingModal() {
+        var modal = document.getElementById('closingModal');
+        if (modal) modal.style.display = 'flex';
+      }
+
+      function closeClosingModal() {
+        var modal = document.getElementById('closingModal');
+        if (modal) modal.style.display = 'none';
       }
     </script>
   </body>
