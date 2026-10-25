@@ -398,59 +398,62 @@
       }
 
       var cachedClosedDays = [];
+      var cachedSubmittedDates = []; // 💡 申請済み日を保持するキャッシュ
 
       function renderMiniCalendar() {
         var ymVal = document.getElementById('targetMonth').value;
-        if (!ymVal) return;
+        var staffId = document.getElementById('staffId').value;
+        if (!ymVal || !staffId) return;
 
+        // 休業日と申請済み日を両方取得してからカレンダーを構築する
         google.script.run
-          .withSuccessHandler(function(res) {
-            cachedClosedDays = res.success ? res.closedDays : [];
-            buildMiniCalendarGrid(ymVal);
+          .withSuccessHandler(function(closedRes) {
+            cachedClosedDays = closedRes.success ? closedRes.closedDays : [];
+            
+            google.script.run
+              .withSuccessHandler(function(subRes) {
+                cachedSubmittedDates = subRes.success ? subRes.submittedDates : [];
+                buildMiniCalendarGrid(ymVal);
+              })
+              .getStaffSubmittedShiftDates({ staffId: staffId, yearMonth: ymVal });
           })
           .getClosedDays(ymVal);
       }
 
-      function buildMiniCalendarGrid(ymVal) {
-        var parts = ymVal.split('-');
-        var year = Number(parts[0]);
-        var month = Number(parts[1]);
-
-        var grid = document.getElementById('miniCalendarGrid');
-        var headerHtml = '';
-        var headers = grid.querySelectorAll('div');
-        for(var i=0; i<7; i++) {
-          headerHtml += headers[i].outerHTML;
-        }
-        var html = headerHtml;
-
-        var firstDayObj = new Date(year, month - 1, 1);
-        var lastDayObj = new Date(year, month, 0);
-        var firstDayOfWeek = firstDayObj.getDay();
-        var totalDays = lastDayObj.getDate();
-        var prevLastDayObj = new Date(year, month - 1, 0);
-        var prevLastDay = prevLastDayObj.getDate();
-
-        for (var i = 0; i < firstDayOfWeek; i++) {
-          var pDay = prevLastDay - (firstDayOfWeek - 1 - i);
-          html += '<div style="aspect-ratio:1; background:#f8fafc; opacity:0.3; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border:1px solid var(--border-color); border-radius:4px;"><span>' + pDay + '</span></div>';
-        }
-
-        for (var day = 1; day <= totalDays; day++) {
+      for (var day = 1; day <= totalDays; day++) {
           var mStr = String(month).padStart(2, '0');
           var dStr = String(day).padStart(2, '0');
           var dateStr = year + '-' + mStr + '-' + dStr;
           
           var isClosed = cachedClosedDays.includes(dateStr);
+          var isSubmitted = cachedSubmittedDates.includes(dateStr); // 💡 申請済み判定
           var isSelected = selectedDatesMap[dateStr] !== undefined;
 
-          var bgStyle = isClosed ? 'background:#f1f5f9; color:#94a3b8; border:1px dashed #cbd5e1;' : (isSelected ? 'background:var(--success-color); color:white; font-weight:bold;' : 'background:#fff; border:1px solid var(--border-color);');
-          var clickAction = isClosed ? '' : 'onclick="toggleDate(\'' + dateStr + '\')"';
-          
-          html += '<div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border-radius:6px; cursor:pointer; ' + bgStyle + '" ' + clickAction + '>';
-          html += '<div><span>' + day + '</span>';
+          // 💡 スタイルの分岐（申請済みの場合は専用のデザインにする）
+          var bgStyle = '';
+          var clickAction = '';
+
           if (isClosed) {
-            html += '<span style="font-size:0.55rem; display:block; line-height:1;">休業日</span>';
+            bgStyle = 'background:#f1f5f9; color:#94a3b8; border:1px dashed #cbd5e1;';
+            clickAction = '';
+          } else if (isSubmitted) {
+            // 💡 すでに申請済みの日のスタイル（薄いブルーやグレーで「申請済」を強調）
+            bgStyle = 'background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600;';
+            clickAction = '';
+          } else if (isSelected) {
+            bgStyle = 'background:var(--success-color); color:white; font-weight:bold;';
+            clickAction = 'onclick="toggleDate(\'' + dateStr + '\')"';
+          } else {
+            bgStyle = 'background:#fff; border:1px solid var(--border-color);';
+            clickAction = 'onclick="toggleDate(\'' + dateStr + '\')"';
+          }
+          
+          html += '<div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border-radius:6px; cursor:' + (isSubmitted || isClosed ? 'default' : 'pointer') + '; ' + bgStyle + '" ' + clickAction + '>';
+          html += '<div style="text-align:center;"><span>' + day + '</span>';
+          if (isClosed) {
+            html += '<span style="font-size:0.5rem; display:block; line-height:1;">休業日</span>';
+          } else if (isSubmitted) {
+            html += '<span style="font-size:0.5rem; display:block; line-height:1; font-weight:bold;">申請済</span>';
           }
           html += '</div></div>';
         }

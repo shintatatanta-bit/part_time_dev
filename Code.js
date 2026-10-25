@@ -1974,3 +1974,39 @@ function getStaffPendingDates(staffId) {
     return { success: false, pendingDates: [], message: error.message };
   }
 }
+
+/**
+ * 💡 指定したスタッフの対象月における既存のシフト希望（申請済み日）のリストを取得する関数
+ */
+function getStaffSubmittedShiftDates(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("シフト予定");
+    if (!sheet) return { success: true, submittedDates: [] };
+    
+    var shiftData = sheet.getDataRange().getValues();
+    var staffId = String(data.staffId);
+    var yearMonth = data.yearMonth; // "2026-10" など
+    var submittedDates = [];
+    
+    for (var i = 1; i < shiftData.length; i++) {
+      var row = shiftData[i];
+      var workDateStr = String(row[1] || "");
+      var rowStaffId = String(row[2] || "");
+      
+      if (rowStaffId === staffId && workDateStr.indexOf(yearMonth) === 0) {
+        var d = new Date(workDateStr);
+        if (!isNaN(d.getTime())) {
+          var y = d.getFullYear();
+          var m = ('0' + (d.getMonth() + 1)).slice(-2);
+          var day = ('0' + d.getDate()).slice(-2);
+          submittedDates.push(y + '-' + m + '-' + day);
+        }
+      }
+    }
+    
+    return { success: true, submittedDates: submittedDates };
+  } catch (error) {
+    return { success: false, submittedDates: [], message: error.message };
+  }
+}
