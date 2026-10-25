@@ -2265,6 +2265,9 @@ function getStaffClosingStatus(data) {
       return !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : String(raw).substring(0, 10);
     }
     
+    / Code.js 内の getStaffClosingStatus 関数の中盤〜終盤を以下のように調整
+    var records = []; // 💡 明細を格納する配列
+    
     if (dataSheet) {
       var kData = dataSheet.getDataRange().getValues();
       for (var k = 1; k < kData.length; k++) {
@@ -2272,22 +2275,36 @@ function getStaffClosingStatus(data) {
         var kDateStr = parseDate(kData[k][3]);
         if (kId === staffId && kDateStr >= startDateStr && kDateStr <= endDateStr) {
           kintaiDays++;
-          totalCost += Number(kData[k][7]) || 0;
+          var cost = Number(kData[k][7]) || 0;
+          totalCost += cost;
           
           var startTime = formatTime(kData[k][4]);
           var endTime = formatTime(kData[k][5]);
           var breakMins = Number(kData[k][6]) || 0;
+          var workMins = 0;
           if (startTime && endTime) {
             var sParts = startTime.split(":");
             var eParts = endTime.split(":");
             var startM = Number(sParts[0]) * 60 + Number(sParts[1]);
             var endM = Number(eParts[0]) * 60 + Number(eParts[1]);
-            var workMins = (endM - startM) - breakMins;
+            workMins = (endM - startM) - breakMins;
             if (workMins > 0) totalMinutes += workMins;
           }
+          
+          // 💡 期間内の各申請明細を保持
+          records.push({
+            workDate: kDateStr,
+            startTime: startTime,
+            endTime: endTime,
+            breakTime: breakMins,
+            transportCost: cost
+          });
         }
       }
     }
+    
+    // 日付順にソート
+    records.sort(function(a, b) { return a.workDate > b.workDate ? 1 : -1; });
     
     // 2. 「締め・確認管理」シートからステータスを確認
     var closingSheet = ss.getSheetByName("締め・確認管理");
@@ -2315,7 +2332,8 @@ function getStaffClosingStatus(data) {
       kintaiDays: kintaiDays,
       totalWorkHoursStr: totH + "時間" + totM + "分",
       totalCost: totalCost,
-      status: status
+      status: status,
+      records: records // 💡 明細リストを返す
     };
   } catch (error) {
     return { success: false, message: error.message };

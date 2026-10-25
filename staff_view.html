@@ -735,6 +735,25 @@
             html += '<div style="margin-bottom: 8px;"><strong>📊 申請日数:</strong> ' + res.kintaiDays + '日</div>';
             html += '<div style="margin-bottom: 8px;"><strong>⏱️ 労働時間合計:</strong> ' + res.totalWorkHoursStr + '</div>';
             html += '<div style="margin-bottom: 12px;"><strong>🚃 交通費合計:</strong> ¥' + res.totalCost.toLocaleString() + '</div>';
+            
+            // 💡 【追加】対象期間の申請明細テーブル
+            html += '<div style="margin: 12px 0 8px 0; font-weight: bold; font-size: 0.8rem; border-top: 1px solid var(--border-color); padding-top: 8px;">📋 この期間の申請明細</div>';
+            if (res.records && res.records.length > 0) {
+              html += '<div style="max-height: 140px; overflow-y: auto; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff;">';
+              html += '<table style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">';
+              html += '<tr style="background: #f1f5f9;"><th style="padding: 4px; border: 1px solid var(--border-color);">日付</th><th style="padding: 4px; border: 1px solid var(--border-color);">時間</th><th style="padding: 4px; border: 1px solid var(--border-color);">交通費</th></tr>';
+              res.records.forEach(function(rec) {
+                html += '<tr>';
+                html += '<td style="padding: 4px; border: 1px solid var(--border-color);">' + rec.workDate.substring(5) + '</td>';
+                html += '<td style="padding: 4px; border: 1px solid var(--border-color);">' + rec.startTime + '〜' + rec.endTime + '</td>';
+                html += '<td style="padding: 4px; border: 1px solid var(--border-color);">¥' + rec.transportCost.toLocaleString() + '</td>';
+                html += '</tr>';
+              });
+              html += '</table></div>';
+            } else {
+              html += '<p style="font-size: 0.75rem; color: var(--text-sub); margin-bottom: 12px;">この期間の申請データはありません。</p>';
+            }
+
             html += '<div style="margin-bottom: 14px; padding-top: 8px; border-top: 1px solid var(--border-color);"><strong>ステータス:</strong> ' + statusBadge + '</div>';
 
             if (res.status !== '確定済み') {
