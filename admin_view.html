@@ -1748,6 +1748,10 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             });
             tbody.innerHTML = html;
           })
+          .withFailureHandler(function(err) {
+            alert('通信エラー: ' + err.message);
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger-color);">読み込みに失敗しました</td></tr>';
+          })
           .getClosingStatus({ yearMonth: ym, half: half });
       }
 

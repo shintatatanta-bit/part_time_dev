@@ -1177,14 +1177,10 @@ function sendLineMessage(data) {
     var timestamp = new Date();
     var targetNameDisplay = (data.targetType === "all") ? "【一斉送信】全スタッフ" : (targetStaff[0] ? targetStaff[0].staffName : "個別");
     var resultStr = "成功: " + successCount + "件 / 失敗: " + failCount + "件";
-
     histSheet.appendRow([historyId, timestamp, targetNameDisplay, data.messageText, resultStr]);
 
-    return { 
-      success: true, 
-      message: "メッセージを送信しました！（" + resultStr + "）" 
-    };
-
+    // 💡 ここのダブルクォーテーションを追加
+    return { success: true, message: successCount + "名に確認・確定依頼を送信しました！" };
   } catch (error) {
     return { success: false, message: "送信エラー: " + error.message };
   }
@@ -2095,17 +2091,19 @@ function getClosingStatus(data) {
       }
     }
     
-    // 4. 「締め管理」シートからスタッフごとの確定ステータスを読み込む
+    // 4. 「締め管理」シートからスタッフごとの確定ステータスを読み込む（なければ自動作成）
     var closingSheet = ss.getSheetByName("締め管理");
+    if (!closingSheet) {
+      closingSheet = ss.insertSheet("締め管理");
+      closingSheet.appendRow(["staffId", "periodKey", "status", "updatedAt"]);
+    }
+    
     var statusMap = {}; // staffId -> "確認待ち" or "確定済み"
-    if (closingSheet) {
-      var cData = closingSheet.getDataRange().getValues();
-      var periodKey = yearMonth + "_" + half;
-      for (var c = 1; c < cData.length; c++) {
-        // cData[1]: staffId, cData[2]: periodKey, cData[3]: status
-        if (String(cData[c][1]) === periodKey) {
-          statusMap[String(cData[c][0])] = cData[c][2]; // "確定済み" など
-        }
+    var cData = closingSheet.getDataRange().getValues();
+    var periodKey = yearMonth + "_" + half;
+    for (var c = 1; c < cData.length; c++) {
+      if (String(cData[c][1]) === periodKey) {
+        statusMap[String(cData[c][0])] = cData[c][2];
       }
     }
     
