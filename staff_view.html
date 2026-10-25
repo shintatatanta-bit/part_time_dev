@@ -415,12 +415,13 @@
           .withSuccessHandler(function(res) {
             alert(res.message);
             if (res.success) {
-              // 💡 申請が成功したらページを自動リロード
-              window.location.reload();
-            } else {
-              btn.disabled = false;
-              btn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+              // 💡 画面をリロードせず、フォームを初期化して未申請アラートや履歴を再読み込みする
+              cancelEditMode();
+              loadStaffHistory();
+              loadStaffPendingAlert();
             }
+            btn.disabled = false;
+            btn.innerText = requestId ? '修正を保存する' : '申請を送信する';
           })
           [actionFunction](data);
       }
