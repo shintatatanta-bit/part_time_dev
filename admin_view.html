@@ -239,9 +239,10 @@
         margin-bottom: 20px; 
         border: 1px solid var(--border-color); 
         box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        overflow: hidden;
+        overflow: visible !important; /* 👈 hidden だと sticky が効かなくなるため visible に変更 */
         transition: all 0.2s ease;
       }
+
       .accordion-card.open {
         box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05);
         border-color: #94a3b8;
