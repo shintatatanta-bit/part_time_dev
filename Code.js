@@ -2020,7 +2020,7 @@ function getStaffSubmittedShiftDates(data) {
 }
 
 /**
- * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数（超ロバスト版）
+ * 💡 指定した期間（年月 ＋ 前半/後半）におけるスタッフごとの締め・確認状況を取得する関数（完全修正版）
  */
 function getClosingStatus(data) {
   try {
@@ -2042,8 +2042,6 @@ function getClosingStatus(data) {
       var lastDayObj = new Date(year, month, 0);
       endDateStr = yearMonth + "-" + String(lastDayObj.getDate()).padStart(2, '0');
     }
-    
-    Logger.log("🔍 [締め確認] 対象期間: " + startDateStr + " 〜 " + endDateStr);
 
     // 1. スタッフマスタから有効なスタッフ一覧を取得
     var staffSheet = ss.getSheetByName("スタッフマスタ");
@@ -2063,7 +2061,7 @@ function getClosingStatus(data) {
       }
     }
     
-    // 日付を安全に "YYYY-MM-DD" 文字列に変換するヘルパー関数
+    // 日付を安全に "YYYY-MM-DD" 文字列に変換するヘルパー
     function parseDateToString(raw) {
       if (!raw) return "";
       if (raw instanceof Date) {
@@ -2091,7 +2089,6 @@ function getClosingStatus(data) {
         if (!rawDate || !sId) continue;
         
         var sDateStr = parseDateToString(rawDate);
-        
         if (sDateStr >= startDateStr && sDateStr <= endDateStr) {
           if (!shiftMap[sId]) shiftMap[sId] = [];
           if (shiftMap[sId].indexOf(sDateStr) === -1) {
@@ -2107,12 +2104,11 @@ function getClosingStatus(data) {
     if (dataSheet) {
       var kData = dataSheet.getDataRange().getValues();
       for (var k = 1; k < kData.length; k++) {
-        var rawKDate = kData[k][3];
-        var kId = String(kData[k][1] || "").trim();
+        var rawKDate = kData[k][3]; // D列が勤務日
+        var kId = String(kData[k][1] || "").trim(); // B列がスタッフID
         if (!rawKDate || !kId) continue;
         
         var kDateStr = parseDateToString(rawKDate);
-        
         if (kDateStr >= startDateStr && kDateStr <= endDateStr) {
           if (!kintaiMap[kId]) kintaiMap[kId] = [];
           if (kintaiMap[kId].indexOf(kDateStr) === -1) {
@@ -2122,10 +2118,10 @@ function getClosingStatus(data) {
       }
     }
     
-    // 4. 「締め管理」シートからステータスを読み込む
-    var closingSheet = ss.getSheetByName("締め管理");
+    // 4. 「締め・確認管理」シートからステータスを読み込む（シート名タブに合わせる）
+    var closingSheet = ss.getSheetByName("締め・確認管理");
     if (!closingSheet) {
-      closingSheet = ss.insertSheet("締め管理");
+      closingSheet = ss.insertSheet("締め・確認管理");
       closingSheet.appendRow(["staffId", "periodKey", "status", "updatedAt"]);
     }
     
