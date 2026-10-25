@@ -2141,3 +2141,98 @@ function getClosingStatus(data) {
     return { success: false, message: "締め状況取得エラー: " + error.message };
   }
 }
+
+/**
+ * 💡 締め確認・確定依頼のLINEメッセージを送信する関数
+ */
+function sendClosingReminderLine(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var yearMonth = data.yearMonth;
+    var half = data.half;
+    var targetStaffIds = data.staffIds || [];
+    var targetMode = data.targetMode || "";
+    
+    var periodLabel = yearMonth.replace("-", "年") + "月度 " + (half === "first" ? "前半(1〜15日)" : "後半(16〜末日)");
+    
+    // 対象スタッフの絞り込み
+    var statusRes = getClosingStatus({ yearMonth: yearMonth, half: half });
+    if (!statusRes.success) return { success: false, message: statusRes.message };
+    
+    var sendTargets = [];
+    statusRes.resultList.forEach(function(item) {
+      if (item.status !== "確定済み") {
+        if (targetMode === "unconfirmed" || targetStaffIds.indexOf(item.staffId) !== -1) {
+          sendTargets.push(item.staffId);
+        }
+      }
+    });
+    
+    if (sendTargets.length === 0) {
+      return { success: false, message: "送信対象となる未確定のスタッフがいません。" };
+    }
+    
+    // スタッフマスタとアカウントマスタからLINE IDとトークンを取得
+    var staffSheet = ss.getSheetByName("スタッフマスタ");
+    var staffData = staffSheet.getDataRange().getValues();
+    var staffMap = {};
+    for (var i = 1; i < staffData.length; i++) {
+      if (staffData[i][0]) {
+        staffMap[staffData[i][0]] = {
+          staffName: staffData[i][1],
+          lineUserId: staffData[i][2],
+          assignedAccount: staffData[i][3]
+        };
+      }
+    }
+    
+    var accountSheet = ss.getSheetByName("アカウントマスタ");
+    var tokens = {};
+    if (accountSheet) {
+      var accData = accountSheet.getDataRange().getValues();
+      for (var k = 1; k < accData.length; k++) {
+        if (accData[k][0]) tokens[accData[k][0]] = accData[k][1];
+      }
+    }
+    
+    var messageText = 
+      "【勤怠の確認・確定のお願い】\n\n" +
+      "お疲れ様です！\n" +
+      "「" + periodLabel + "」の勤務実績について確認期間となりました。\n\n" +
+      "スタッフ専用ポータルを開き、申請内容に誤りがないかご確認の上、【内容を確定する】ボタンを押してご報告をお願いいたします！\n\n" +
+      "※ご不明な点や修正がある場合は管理者までご連絡ください。";
+    
+    var successCount = 0;
+    sendTargets.forEach(function(sId) {
+      var st = staffMap[sId];
+      if (!st || !st.lineUserId) return;
+      var token = tokens[st.assignedAccount];
+      if (!token || token.includes("YOUR_")) return;
+      
+      var url = "https://api.line.me/v2/bot/message/push";
+      var payload = {
+        to: st.lineUserId,
+        messages: [{ type: "text", text: messageText }]
+      };
+      
+      var options = {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "Authorization": "Bearer " + token
+        },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      };
+      
+      try {
+        var res = UrlFetchApp.fetch(url, options);
+        if (res.getResponseCode() === 200) successCount++;
+      } catch (e) {}
+    });
+    
+    return { success: true, message: successCount +名に確認・確定依頼を送信しました！ };
+  } catch (error) {
+    return { success: false, message: "送信エラー: " + error.message };
+  }
+}

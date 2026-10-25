@@ -1689,6 +1689,98 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
                             '</div>';
         }
       }
+
+      // 💡 締め状況を読み込んでテーブルに表示する関数
+      function loadClosingStatus() {
+        var ym = document.getElementById('closingMonth').value;
+        var half = document.getElementById('closingHalf').value;
+        if (!ym) { alert('対象月を選択してください。'); return; }
+
+        var tbody = document.getElementById('closingTableBody');
+        var summaryText = document.getElementById('closingSummaryText');
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) {
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--danger-color);">' + res.message + '</td></tr>';
+              return;
+            }
+
+            // 期間表示と全員完了バッジの切り替え
+            if (res.allConfirmed) {
+              summaryText.innerHTML = '対象期間: ' + res.startDate + ' 〜 ' + res.endDate + ' <span style="background: #d1fae5; color: #065f46; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">🎉 全員確認完了・締め作業終了</span>';
+            } else {
+              summaryText.innerText = '対象期間: ' + res.startDate + ' 〜 ' + res.endDate + ' (確認待ちのスタッフがいます)';
+            }
+            
+            var list = res.resultList;
+            if (list.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-sub);">有効なスタッフがいません</td></tr>';
+              return;
+            }
+
+            var html = '';
+            list.forEach(function(item) {
+              var statusBadge = item.status === '確定済み' 
+                ? '<span style="color: var(--success-color); font-weight: bold;">✅ 確定済み</span>' 
+                : '<span style="color: var(--danger-color); font-weight: bold;">⏳ 確認待ち</span>';
+              
+              html += '<tr>';
+              html += '<td>' + escapeHtml(item.staffName) + '</td>';
+              html += '<td>' + item.scheduledDays + '日</td>';
+              html += '<td>' + item.kintaiDays + '日</td>';
+              html += '<td style="text-align: center;">' + statusBadge + '</td>';
+              html += '<td style="text-align: center;">';
+              if (item.status !== '確定済み') {
+                html += '<button type="button" class="secondary" style="padding: 2px 8px; font-size: 0.75rem; background: var(--line-green); color: #fff; border:none;" onclick="sendSingleClosingReminder(\'' + item.staffId + '\', \'' + escapeHtml(item.staffName) + '\')">確認依頼送信</button>';
+              } else {
+                html += '<span style="font-size: 0.75rem; color: var(--text-sub);">完了</span>';
+              }
+              html += '</td>';
+              html += '</tr>';
+            });
+            tbody.innerHTML = html;
+          })
+          .getClosingStatus({ yearMonth: ym, half: half });
+      }
+
+      // 💡 個別のスタッフに確認依頼LINEを送る関数
+      function sendSingleClosingReminder(staffId, staffName) {
+        var ym = document.getElementById('closingMonth').value;
+        var half = document.getElementById('closingHalf').value;
+        var periodName = (half === 'first') ? '前半 (1〜15日)' : '後半 (16〜末日)';
+        
+        if (!confirm(staffName + ' さんに「' + ym + '度 ' + periodName + '」の勤怠確認・確定依頼LINEを送信しますか？')) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            alert(res.message);
+            if (res.success) {
+              loadClosingStatus(); // リロード
+            }
+          })
+          .sendClosingReminderLine({ staffIds: [staffId], yearMonth: ym, half: half });
+      }
+
+      // 💡 未確定者へ一斉に確認依頼を送る関数
+      function sendClosingRequestLine() {
+        var ym = document.getElementById('closingMonth').value;
+        var half = document.getElementById('closingHalf').value;
+        var periodName = (half === 'first') ? '前半 (1〜15日)' : '後半 (16〜末日)';
+
+        if (!ym) { alert('対象月を選択してください。'); return; }
+        if (!confirm(ym + '度 ' + periodName + ' の未確定スタッフへ一斉に確認依頼LINEを送信しますか？')) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            alert(res.message);
+            if (res.success) {
+              loadClosingStatus();
+            }
+          })
+          .sendClosingReminderLine({ staffIds: [], yearMonth: ym, half: half, targetMode: 'unconfirmed' });
+      }
     </script>
   </body>
 </html>
