@@ -633,6 +633,7 @@ function getShiftSchedule(yearMonth) {
       var workDate = row[1];
       var staffId = row[2];
       var staffName = row[3];
+      var dailyMemo = row[4] || ""; // E列から取得
       
       if (!workDate || !staffId) continue;
       var d = new Date(workDate);
@@ -643,10 +644,13 @@ function getShiftSchedule(yearMonth) {
       var day = ('0' + d.getDate()).slice(-2);
       var dateStr = y + '-' + m + '-' + day;
       
+      if (!workDate || !staffId) continue;
+      // ...(中略)...
       if (dateStr.indexOf(yearMonth) === 0) {
-        shifts.push({ shiftId: shiftId, workDate: dateStr, staffId: staffId, staffName: staffName });
+        shifts.push({ shiftId: shiftId, workDate: dateStr, staffId: staffId, staffName: staffName, dailyMemo: dailyMemo });
       }
     }
+
     return { success: true, shifts: shifts };
   } catch (error) {
     return { success: false, message: "シフト取得エラー: " + error.message };
@@ -960,7 +964,7 @@ function saveShiftPreferences(data) {
     var existingData = sheet.getDataRange().getValues();
     var staffId = data.staffId;
     var staffName = data.staffName;
-    var targetDates = data.selectedDates || [];
+    var targetRequests = data.dailyRequests || [];
     var memo = data.memo || "";
     
     var newRows = [existingData[0]]; 
@@ -975,9 +979,10 @@ function saveShiftPreferences(data) {
       }
     }
     
-    targetDates.forEach(function(dStr) {
+    targetRequests.forEach(function(req) {
       var shiftId = "shift_" + Utilities.getUuid().substring(0, 8);
-      newRows.push([shiftId, dStr, staffId, staffName]);
+      // E列に req.memo を追加保存
+      newRows.push([shiftId, req.date, staffId, staffName, req.memo || ""]);
     });
     
     sheet.clearContents();

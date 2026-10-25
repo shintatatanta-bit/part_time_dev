@@ -990,8 +990,15 @@
               for (var s = 0; s < cachedStaffList.length; s++) {
                 if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
               }
-              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="スタッフ名: ' + escapeHtml(sh.staffName) + '">';
-              html += '<span>' + escapeHtml(dispChar) + '</span>';
+              var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
+              if (sh.dailyMemo) {
+                tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
+              }
+              var memoIcon = sh.dailyMemo ? '<span style="position:absolute; top:-4px; left:-4px; font-size:6pt;">💬</span>' : '';
+
+              html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="' + tooltipText + '">';
+              html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
+              
               html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
               html += '</div>';
             });

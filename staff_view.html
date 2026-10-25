@@ -119,10 +119,14 @@
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">木</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--text-sub); border-radius: 4px;">金</div>
           <div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 6px; background: #f1f5f9; color: var(--accent-color); border-radius: 4px;">土</div>
-        </div>
+        </div> <!-- ← カレンダーのグリッドはここで閉じる -->
+
+        <!-- ▼ ここ（グリッドの外側）に配置する -->
+        <div id="dailyMemoContainer" style="margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;"></div>
 
         <!-- 💡 常に確実に表示される伝達事項の入力欄 -->
         <label>伝達事項・備考 (任意)</label>
+        
         <textarea id="shiftMemo" rows="2" placeholder="例: 8日は午後から、10日は15時まで" style="resize: vertical; margin-bottom: 14px;"></textarea>
 
         <button type="button" onclick="submitPreferences()">シフト希望を送信する</button>
@@ -402,8 +406,8 @@
           var dateStr = year + '-' + mStr + '-' + dStr;
           
           var isClosed = cachedClosedDays.includes(dateStr);
-          var isSelected = selectedDatesMap[dateStr];
-          
+          var isSelected = selectedDatesMap[dateStr] !== undefined;
+
           var bgStyle = isClosed ? 'background:#f1f5f9; color:#94a3b8; border:1px dashed #cbd5e1;' : (isSelected ? 'background:var(--success-color); color:white; font-weight:bold;' : 'background:#fff; border:1px solid var(--border-color);');
           var clickAction = isClosed ? '' : 'onclick="toggleDate(\'' + dateStr + '\')"';
           
@@ -425,13 +429,43 @@
         updateCountDisplay();
       }
 
-      function toggleDate(dateStr) {
-        if (selectedDatesMap[dateStr]) {
-          delete selectedDatesMap[dateStr];
+      // 選択した日付とメモを保持するオブジェクトに変更
+var selectedDatesMap = {}; 
+
+function toggleDate(dateStr) {
+        if (selectedDatesMap[dateStr] !== undefined) {
+          delete selectedDatesMap[dateStr]; // タップでもう一度消す
         } else {
-          selectedDatesMap[dateStr] = true;
+          selectedDatesMap[dateStr] = ""; // 初期値は空のメモ
         }
         renderMiniCalendar();
+        renderDailyMemos(); // ▼ メモ入力枠を再描画
+      }
+
+      // ▼ 新規追加：選択された日付ごとの入力枠を生成する関数
+      function renderDailyMemos() {
+        var container = document.getElementById('dailyMemoContainer');
+        var dates = Object.keys(selectedDatesMap).sort();
+        var html = '';
+        
+        dates.forEach(function(dStr) {
+          var dObj = new Date(dStr);
+          var displayDate = (dObj.getMonth() + 1) + '/' + dObj.getDate();
+          var currentMemo = escapeHtml(selectedDatesMap[dStr]);
+          
+          html += '<div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem;">';
+          html += '<span style="font-weight: bold; width: 45px; color: var(--accent-color);">' + displayDate + '</span>';
+          html += '<input type="text" placeholder="時間や条件を入力 (任意)" value="' + currentMemo + '" ';
+          html += 'onchange="updateDailyMemo(\'' + dStr + '\', this.value)" style="flex-grow: 1; padding: 6px; margin: 0; font-size: 0.85rem;">';
+          html += '</div>';
+        });
+        container.innerHTML = html;
+      }
+
+      function updateDailyMemo(dateStr, val) {
+        if (selectedDatesMap[dateStr] !== undefined) {
+          selectedDatesMap[dateStr] = val;
+        }
       }
 
       function updateCountDisplay() {
@@ -446,14 +480,19 @@
           return;
         }
 
+        // ▼ サーバーに送るデータを「日付だけ」から「日付＋メモ」のセットに変更
+        var dailyRequests = datesArray.map(function(dStr) {
+          return { date: dStr, memo: selectedDatesMap[dStr] };
+        });
+
         var ymVal = document.getElementById('targetMonth').value;
-        var memoVal = document.getElementById('shiftMemo').value.trim(); // 💡 確実な固定テキストエリアから値を取得
+        var memoVal = document.getElementById('shiftMemo').value.trim();
 
         var data = {
           staffId: document.getElementById('staffId').value,
           staffName: document.getElementById('staffNameVal').value,
           yearMonth: ymVal,
-          selectedDates: datesArray,
+          dailyRequests: dailyRequests, // 配列を新しいものに変更
           memo: memoVal
         };
 
@@ -466,9 +505,10 @@
             alert(res.message);
             if (res.success) {
               selectedDatesMap = {};
-              document.getElementById('shiftMemo').value = ''; // 入力欄をクリア
+              document.getElementById('shiftMemo').value = '';
               renderMiniCalendar();
-              switchStaffTab('history'); // 💡 送信後は自動で「申請履歴（シフト希望提出履歴）」タブに切り替わって確認できる
+              renderDailyMemos(); // 枠もリセット
+              switchStaffTab('history');
             }
             btn.disabled = false;
             btn.innerText = 'シフト希望を送信する';
