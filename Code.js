@@ -2237,7 +2237,7 @@ function sendClosingReminderLine(data) {
       } catch (e) {}
     });
     
-    return { success: true, message: successCount +名に確認・確定依頼を送信しました！ };
+    return { success: true, message: successCount + "名に確認・確定依頼を送信しました！" };
   } catch (error) {
     return { success: false, message: "送信エラー: " + error.message };
   }
