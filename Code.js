@@ -2154,42 +2154,27 @@ function getClosingStatus(data) {
 function sendClosingReminderLine(data) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var yearMonth = data.yearMonth;
-    var half = data.half;
-    var targetStaffIds = data.staffIds || [];
-    var targetMode = data.targetMode || "";
-    
+    var yearMonth = data.yearMonth, half = data.half, targetStaffIds = data.staffIds || [], targetMode = data.targetMode || "";
     var periodLabel = yearMonth.replace("-", "年") + "月度 " + (half === "first" ? "前半(1〜15日)" : "後半(16〜末日)");
     
-    // 対象スタッフの絞り込み
     var statusRes = getClosingStatus({ yearMonth: yearMonth, half: half });
     if (!statusRes.success) return { success: false, message: statusRes.message };
     
     var sendTargets = [];
     statusRes.resultList.forEach(function(item) {
-      if (item.status !== "確定済み") {
-        if (targetMode === "unconfirmed" || targetStaffIds.indexOf(item.staffId) !== -1) {
-          sendTargets.push(item.staffId);
-        }
+      if (item.status !== "確定済み" && (targetMode === "unconfirmed" || targetStaffIds.indexOf(item.staffId) !== -1)) {
+        sendTargets.push(item.staffId);
       }
     });
     
-    if (sendTargets.length === 0) {
-      return { success: false, message: "送信対象となる未確定のスタッフがいません。" };
-    }
+    if (sendTargets.length === 0) return { success: false, message: "送信対象のスタッフがいません。" };
     
-    // スタッフマスタとアカウントマスタからLINE IDとトークンを取得
     var staffSheet = ss.getSheetByName("スタッフマスタ");
     var staffData = staffSheet.getDataRange().getValues();
     var staffMap = {};
+    var targetNames = []; // 💡 履歴用のスタッフ名収集配列
     for (var i = 1; i < staffData.length; i++) {
-      if (staffData[i][0]) {
-        staffMap[staffData[i][0]] = {
-          staffName: staffData[i][1],
-          lineUserId: staffData[i][2],
-          assignedAccount: staffData[i][3]
-        };
-      }
+      if (staffData[i][0]) staffMap[staffData[i][0]] = { staffName: staffData[i][1], lineUserId: staffData[i][2], assignedAccount: staffData[i][3] };
     }
     
     var accountSheet = ss.getSheetByName("アカウントマスタ");
@@ -2201,44 +2186,40 @@ function sendClosingReminderLine(data) {
       }
     }
     
-    var messageText = 
-      "【勤怠の確認・確定のお願い】\n\n" +
-      "お疲れ様です！\n" +
-      "「" + periodLabel + "」の勤務実績について確認期間となりました。\n\n" +
-      "スタッフ専用ポータルを開き、申請内容に誤りがないかご確認の上、【内容を確定する】ボタンを押してご報告をお願いいたします！\n\n" +
-      "※ご不明な点や修正がある場合は管理者までご連絡ください。";
-    
+    var messageText = "【勤怠の確認・確定のお願い】\n\nお疲れ様です！\n「" + periodLabel + "」の勤務実績について確認期間となりました。\n\nスタッフ専用ポータルを開き、申請内容に誤りがないかご確認の上、【内容を確定する】ボタンを押してご報告をお願いいたします！";
     var successCount = 0;
+    var failCount = 0;
+    
     sendTargets.forEach(function(sId) {
       var st = staffMap[sId];
-      if (!st || !st.lineUserId) return;
+      if (!st || !st.lineUserId) { failCount++; return; }
       var token = tokens[st.assignedAccount];
-      if (!token || token.includes("YOUR_")) return;
+      if (!token || token.includes("YOUR_")) { failCount++; return; }
       
-      var url = "https://api.line.me/v2/bot/message/push";
-      var payload = {
-        to: st.lineUserId,
-        messages: [{ type: "text", text: messageText }]
-      };
-      
-      var options = {
+      targetNames.push(st.staffName);
+
+      var res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
         method: "post",
-        headers: {
-          "Content-Type": "application/json; charset=UTF-8",
-          "Authorization": "Bearer " + token
-        },
-        payload: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json; charset=UTF-8", "Authorization": "Bearer " + token },
+        payload: JSON.stringify({ to: st.lineUserId, messages: [{ type: "text", text: messageText }] }),
         muteHttpExceptions: true
-      };
-      
-      try {
-        var res = UrlFetchApp.fetch(url, options);
-        if (res.getResponseCode() === 200) successCount++;
-      } catch (e) {}
+      });
+      if (res.getResponseCode() === 200) successCount++; else failCount++;
     });
     
-    return { success: true, message: successCount + "名に確認・確定依頼を送信しました！" };
+    // 💡 【追加】送信履歴（「連絡履歴」シート）へ自動保存する処理
+    var histSheet = ss.getSheetByName("連絡履歴");
+    if (!histSheet) {
+      histSheet = ss.insertSheet("連絡履歴");
+      histSheet.appendRow(["historyId", "timestamp", "targetName", "messageText", "resultSummary"]);
+    }
+    var historyId = "hist_" + Utilities.getUuid().substring(0, 8);
+    var targetNameDisplay = "【締め確認依頼】" + (targetMode === "unconfirmed" ? "未確定者一斉" : targetNames.join(", "));
+    var resultStr = "成功: " + successCount + "件 / 失敗: " + failCount + "件";
+    histSheet.appendRow([historyId, new Date(), targetNameDisplay, messageText, resultStr]);
+
+    return { success: true, message: successCount + "名に確認・確定依頼を送信し、履歴に記録しました！" };
   } catch (error) {
-    return { success: false, message: "送信エラー: " + error.message };
+    return { success: false, message: error.message };
   }
 }
