@@ -315,6 +315,13 @@
         var staffId = document.getElementById('staffId').value;
         if (!staffId) return;
 
+        // まずスタッフ自身の「締め・確認状態」をあらかじめ確認しておく
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, '0');
+        var currentYm = y + '-' + m;
+
+        // 前半・後半どちらもチェックするため、まずは申請履歴を取得
         google.script.run
           .withSuccessHandler(function(res) {
             var tbody = document.getElementById('staffHistoryTableBody');
@@ -325,17 +332,55 @@
             }
 
             rawHistoryData = res.history;
-            var html = '';
-            res.history.forEach(function(item, idx) {
-              html += '<tr>';
-              html += '<td>' + item.workDate + '</td>';
-              html += '<td>' + item.startTime + '〜<br>' + item.endTime + '</td>';
-              html += '<td>' + item.breakTime + '分</td>';
-              html += '<td>¥' + item.transportCost.toLocaleString() + '</td>';
-              html += '<td style="text-align: center;"><button type="button" class="btn-edit" onclick="startEdit(' + idx + ')">修正</button></td>';
-              html += '</tr>';
-            });
-            tbody.innerHTML = html;
+
+            // サーバー側から「前半」「後半」それぞれの確定ステータスを並行して取得
+            google.script.run.withSuccessHandler(function(firstRes) {
+              google.script.run.withSuccessHandler(function(secondRes) {
+                
+                // 確定済みの日付を判定するためのマップを作成
+                var lockedDatesMap = {};
+                if (firstRes.success && firstRes.status === '確定済み') {
+                  // 前半(1〜15日)の期間日付をロック対象に登録
+                  var parts = currentYm.split('-');
+                  var yr = parts[0], mo = parts[1];
+                  for (var d = 1; d <= 15; d++) {
+                    lockedDatesMap[yr + '-' + mo + '-' + String(d).padStart(2, '0')] = true;
+                  }
+                }
+                if (secondRes.success && secondRes.status === '確定済み') {
+                  // 後半(16〜末日)の期間日付をロック対象に登録
+                  var parts2 = currentYm.split('-');
+                  var yr2 = parts2[0], mo2 = parts2[1];
+                  var lastDay = new Date(Number(yr2), Number(mo2), 0).getDate();
+                  for (var d2 = 16; d2 <= lastDay; d2++) {
+                    lockedDatesMap[yr2 + '-' + mo2 + '-' + String(d2).padStart(2, '0')] = true;
+                  }
+                }
+
+                var html = '';
+                res.history.forEach(function(item, idx) {
+                  var isLocked = lockedDatesMap[item.workDate] === true;
+                  
+                  html += '<tr>';
+                  html += '<td>' + item.workDate + '</td>';
+                  html += '<td>' + item.startTime + '〜<br>' + item.endTime + '</td>';
+                  html += '<td>' + item.breakTime + '分</td>';
+                  html += '<td>¥' + item.transportCost.toLocaleString() + '</td>';
+                  
+                  // 💡 確定済み（ロック中）の場合は修正ボタンの代わりにロックバッジを表示する
+                  if (isLocked) {
+                    html += '<td style="text-align: center;"><span style="font-size: 0.7rem; background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-weight: 600;">🔒 ロック中</span></td>';
+                  } else {
+                    html += '<td style="text-align: center;"><button type="button" class="btn-edit" onclick="startEdit(' + idx + ')">修正</button></td>';
+                  }
+                  
+                  html += '</tr>';
+                });
+                tbody.innerHTML = html;
+
+              }).getStaffClosingStatus({ staffId: staffId, yearMonth: currentYm, half: 'second' });
+            }).getStaffClosingStatus({ staffId: staffId, yearMonth: currentYm, half: 'first' });
+
           })
           .getStaffKintaiHistory(staffId);
       }
