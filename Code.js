@@ -2704,9 +2704,10 @@ function isStaffRetired(staffId) {
  */
 function getMaxStaffLimit() {
   try {
-    var props = PropertiesService.getDocumentProperties();
+    // 💡 Webアプリで確実に動作する getScriptProperties に変更
+    var props = PropertiesService.getScriptProperties(); 
     var limit = props.getProperty("MAX_STAFF_LIMIT");
-    return limit ? Number(limit) : 9; // 未設定ならデフォルト9
+    return limit ? Number(limit) : 9; 
   } catch (e) {
     return 9;
   }
@@ -2721,7 +2722,8 @@ function setMaxStaffLimit(newLimit) {
     if (isNaN(limitNum) || limitNum < 1) {
       return { success: false, message: "有効な数値を入力してください。" };
     }
-    var props = PropertiesService.getDocumentProperties();
+    // 💡 こちらも getScriptProperties に変更
+    var props = PropertiesService.getScriptProperties();
     props.setProperty("MAX_STAFF_LIMIT", String(limitNum));
     return { success: true, message: "登録上限を「" + limitNum + "人」に変更しました！" };
   } catch (e) {

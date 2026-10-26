@@ -783,7 +783,14 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         loadPendingStaff();
         loadShiftNotifications();
         
-        // ※ 締め管理の対象月・期間は、初期値を空欄にしてユーザーに手動選択させます
+        // 💡 【追加】画面を開いた時にサーバーから上限人数を取得して入力欄にセットする
+        google.script.run.withSuccessHandler(function(limit) {
+          var input = document.getElementById('maxStaffLimitInput');
+          if (input) {
+            input.value = limit;
+            updateAccountQrGuide(); // 読み込み後にQRなどの表示を更新
+          }
+        }).getMaxStaffLimit();
       };
 
       // 💡 今日が1〜15日なら前半、16日〜末日なら後半を自動セット
@@ -2303,16 +2310,30 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
       }
 
       function saveMaxLimit() {
-  var val = document.getElementById('maxStaffLimitInput').value;
-  google.script.run
-    .withSuccessHandler(function(res) {
-      showToast(res.message, res.success);
-      if (res.success) {
-        loadAccountQrOptions(); // 画面側の表示も更新
+        var val = document.getElementById('maxStaffLimitInput').value;
+        var btn = event.target;
+        var originalText = btn.innerText;
+        
+        // ボタンを「保存中...」にして連打を防止
+        btn.disabled = true;
+        btn.innerText = '保存中...';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            showToast(res.message, res.success);
+            if (res.success) {
+              loadAccountQrOptions(); // 画面側の表示も更新
+            }
+            btn.disabled = false;
+            btn.innerText = originalText;
+          })
+          .withFailureHandler(function(err) {
+            alert("エラーが発生しました: " + err.message);
+            btn.disabled = false;
+            btn.innerText = originalText;
+          })
+          .setMaxStaffLimit(val);
       }
-    })
-    .setMaxStaffLimit(val);
-}
     </script>
   </body>
 </html>
