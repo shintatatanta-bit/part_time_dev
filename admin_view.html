@@ -1522,6 +1522,21 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
           });
       }
 
+      // 💡 サーバー側の saveStaffHourlyWage を呼び出して時給を保存する関数
+      function saveStaffHourlyWage(data) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            showToast(res.message, res.success);
+            if (res.success) {
+              fetchSummary(); // 保存成功したら集計を再読み込み
+            }
+          })
+          .withFailureHandler(function(err) {
+            alert('通信エラー: ' + err.message);
+          })
+          .saveStaffHourlyWage(data);
+      }
+
       function checkStaffAlertBadge(staffId) {
         google.script.run.withSuccessHandler(function(res) {
           if (res.success && res.pendingDates && res.pendingDates.length > 0) {
