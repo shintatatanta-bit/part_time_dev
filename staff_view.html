@@ -45,17 +45,11 @@
       
       .edit-banner { background: #fef3c7; border: 1px solid #f59e0b; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.85rem; display: none; justify-content: space-between; align-items: center; color: #92400e; }
     
-    /* 🔒 管理者閲覧ロック時のスタイル */
-      .locked-overlay {
-        position: relative;
-      }
+      /* 🔒 管理者閲覧ロック時のスタイル */
+      .locked-overlay { position: relative; }
       .locked-overlay::after {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(241, 245, 249, 0.6);
-        z-index: 10;
-        cursor: not-allowed;
+        content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(241, 245, 249, 0.6); z-index: 10; cursor: not-allowed;
       }
       .admin-lock-banner {
         background: #fef3c7; border: 1px solid #f59e0b; color: #92400e;
@@ -74,13 +68,13 @@
         スタッフ名: <strong style="color: var(--text-main);"><?= staffName ?></strong>
       </p>
 
-<!-- 🔒 管理者ロックバナー（初期は非表示、adminモード時のみ表示） -->
-        <div id="adminLockBanner" class="admin-lock-banner" style="display: none;">
-          <span>🔒 管理者閲覧モード（誤操作防止のためロック中）</span>
-          <button type="button" onclick="unlockAdminMode()" style="background: var(--warning-color); color: #fff; border: none; padding: 4px 10px; font-size: 0.75rem; width: auto;">🔓 ロックを解除する</button>
-        </div>
+      <!-- 🔒 管理者ロックバナー -->
+      <div id="adminLockBanner" class="admin-lock-banner" style="display: none;">
+        <span>🔒 管理者閲覧モード（誤操作防止のためロック中）</span>
+        <button type="button" onclick="unlockAdminMode()" style="background: var(--warning-color); color: #fff; border: none; padding: 4px 10px; font-size: 0.75rem; width: auto;">🔓 ロックを解除する</button>
+      </div>
 
-      <!-- タブ切り替え（一番上に正しく配置） -->
+      <!-- タブ切り替え -->
       <div class="portal-tabs">
         <button id="tabKintai" class="portal-tab-btn active" onclick="switchStaffTab('kintai')">⏰ 勤怠申請</button>
         <button id="tabPref" class="portal-tab-btn" onclick="switchStaffTab('pref')">📅 シフト希望</button>
@@ -130,7 +124,7 @@
         </form>
       </div>
 
-      <!-- シフト希望の提出（カレンダー ＋ 固定の伝達事項入力欄） -->
+      <!-- シフト希望の提出 -->
       <div id="viewPref" class="card" style="display: none; text-align: left; margin: 0;">
         <h3 style="margin-top:0; font-size:1.1rem; color:var(--text-main); font-weight:700;">シフト希望の提出</h3>
         <input type="hidden" id="staffId" value="<?= staffId ?>">
@@ -165,11 +159,9 @@
         <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">対象月と期間を選択すると、実績が表示されます。内容を確認して「内容を確定する」ボタンを押してください。</p>
 
         <label>対象月</label>
-        <!-- 💡 value="" で初期値を空にする -->
         <input type="month" id="staffClosingMonth" value="" onchange="loadStaffClosingData()" style="margin-top:4px;">
 
         <label>対象期間（半期）</label>
-        <!-- 💡 未選択のプレースホルダーを用意 -->
         <select id="staffClosingHalf" onchange="loadStaffClosingData()" style="margin-top:4px;">
           <option value="" selected disabled>-- 選択してください --</option>
           <option value="first">前半 (1日 〜 15日)</option>
@@ -245,7 +237,6 @@
         validateKintaiForm();
         renderMiniCalendar(); 
         
-        // 💡 起動時に管理者ロックモードをチェック
         checkAdminLockMode();
       };
 
@@ -321,15 +312,13 @@
         } else if (mode === 'pref') {
           if (tabPref) tabPref.classList.add('active');
           if (viewPref) viewPref.style.display = 'block';
-          renderMiniCalendar(); // 💡 シフト希望タブを開いたときにカレンダーを確実に再描画
+          renderMiniCalendar();
         } else if (mode === 'closing') {
           if (tabClosing) tabClosing.classList.add('active');
           if (viewClosing) {
             viewClosing.style.display = 'block';
-            // ❌ 自動セット処理は削除し、手動選択させるため loadStaffClosingData() だけ呼び出す
             loadStaffClosingData();
           }
-          
         } else if (mode === 'history') {
           if (tabHistory) tabHistory.classList.add('active');
           if (viewHistory) viewHistory.style.display = 'block';
@@ -341,13 +330,11 @@
         var staffId = document.getElementById('staffId').value;
         if (!staffId) return;
 
-        // まずスタッフ自身の「締め・確認状態」をあらかじめ確認しておく
         var now = new Date();
         var y = now.getFullYear();
         var m = String(now.getMonth() + 1).padStart(2, '0');
         var currentYm = y + '-' + m;
 
-        // 前半・後半どちらもチェックするため、まずは申請履歴を取得
         google.script.run
           .withSuccessHandler(function(res) {
             var tbody = document.getElementById('staffHistoryTableBody');
@@ -359,14 +346,11 @@
 
             rawHistoryData = res.history;
 
-            // サーバー側から「前半」「後半」それぞれの確定ステータスを並行して取得
             google.script.run.withSuccessHandler(function(firstRes) {
               google.script.run.withSuccessHandler(function(secondRes) {
                 
-                // 確定済みの日付を判定するためのマップを作成
                 var lockedDatesMap = {};
                 if (firstRes.success && firstRes.status === '確定済み') {
-                  // 前半(1〜15日)の期間日付をロック対象に登録
                   var parts = currentYm.split('-');
                   var yr = parts[0], mo = parts[1];
                   for (var d = 1; d <= 15; d++) {
@@ -374,7 +358,6 @@
                   }
                 }
                 if (secondRes.success && secondRes.status === '確定済み') {
-                  // 後半(16〜末日)の期間日付をロック対象に登録
                   var parts2 = currentYm.split('-');
                   var yr2 = parts2[0], mo2 = parts2[1];
                   var lastDay = new Date(Number(yr2), Number(mo2), 0).getDate();
@@ -393,7 +376,6 @@
                   html += '<td>' + item.breakTime + '分</td>';
                   html += '<td>¥' + item.transportCost.toLocaleString() + '</td>';
                   
-                  // 💡 確定済み（ロック中）の場合は修正ボタンの代わりにロックバッジを表示する
                   if (isLocked) {
                     html += '<td style="text-align: center;"><span style="font-size: 0.7rem; background: #e2e8f0; color: #475569; padding: 2px 6px; border-radius: 4px; font-weight: 600;">🔒 ロック中</span></td>';
                   } else {
@@ -555,7 +537,6 @@
             [actionFunction](data);
         }
 
-        // 💡 新規申請のときだけ重複チェックを行い、同日データがあればアラートを出す（ブロックはしない）
         if (!isEdit) {
           google.script.run.withSuccessHandler(function(existingCount) {
             if (existingCount > 0) {
@@ -565,62 +546,11 @@
                   submitBtn.disabled = false;
                   submitBtn.innerText = '申請を送信する';
                 }
-                return; // キャンセルされたら送信しない
+                return;
               }
             }
             proceedSave();
           }).checkKintaiDuplication(data.staffId, data.workDate);
-        } else {
-          proceedSave();
-        }
-      }
-        
-        function proceedSave() {
-          if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerText = '送信中...';
-          }
-
-          var actionFunction = isEdit ? 'updateKintaiData' : 'saveKintaiData';
-
-          google.script.run
-            .withSuccessHandler(function(res) {
-              showToast(res.message, res.success);
-              if (res.success) {
-                cancelEditMode();
-                loadStaffHistory();
-                if (typeof loadStaffPendingAlert === 'function') {
-                  loadStaffPendingAlert();
-                }
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              } else {
-                if (submitBtn) {
-                  submitBtn.disabled = false;
-                  submitBtn.innerText = isEdit ? '修正を保存する' : '申請を送信する';
-                }
-              }
-            })
-            .withFailureHandler(function(err) {
-              alert('通信エラーが発生しました: ' + err.message);
-              if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerText = isEdit ? '修正を保存する' : '申請を送信する';
-              }
-            })
-            [actionFunction](data);
-        }
-
-        if (!isEdit) {
-          // 💡 すでに同じ日の申請があるかサーバーに問い合わせる
-          google.script.run.withSuccessHandler(function(existingCount) {
-            if (existingCount > 0) {
-              var msg = '⚠️ 【重複の確認】\n' + workDate + ' はすでに ' + existingCount + '件の勤怠申請が行われています。\n\n同日の2度目の勤務として追加登録しますが、よろしいですか？';
-              if (!confirm(msg)) {
-                return; // キャンセルされたら送信しない
-              }
-            }
-            proceedSave();
-          }).checkKintaiDuplication(data.staffId, workDate);
         } else {
           proceedSave();
         }
@@ -692,16 +622,13 @@
           } else if (isSubmitted) {
             bgStyle = 'background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600;';
           } else if (isSelected) {
-            // 💡 選択中のスタイル
             bgStyle = 'background:var(--success-color); color:white; font-weight:bold; border:1px solid var(--success-color);';
             clickAction = 'onclick="toggleDate(\'' + dateStr + '\')"';
           } else {
-            // 💡 未選択のスタイル
             bgStyle = 'background:#fff; border:1px solid var(--border-color);';
             clickAction = 'onclick="toggleDate(\'' + dateStr + '\')"';
           }
           
-          // 💡 各セルに一意の id="cell-2026-10-xx" を付与して高速に操作できるようにする
           html += '<div id="cell-' + dateStr + '" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border-radius:6px; cursor:' + (isSubmitted || isClosed ? 'default' : 'pointer') + '; ' + bgStyle + '" ' + clickAction + '>';
           html += '<div style="text-align:center;"><span>' + day + '</span>';
           if (isClosed) {
@@ -726,24 +653,20 @@
         var cellEl = document.getElementById('cell-' + dateStr);
         if (!cellEl) return;
 
-        // 状態を反転
         if (selectedDatesMap[dateStr] !== undefined) {
           delete selectedDatesMap[dateStr];
-          // 未選択の見た目に即座に変更（ノータイム）
           cellEl.style.background = '#fff';
           cellEl.style.color = '';
           cellEl.style.fontWeight = 'normal';
           cellEl.style.border = '1px solid var(--border-color)';
         } else {
           selectedDatesMap[dateStr] = "";
-          // 選択中の見た目に即座に変更（ノータイム）
           cellEl.style.background = 'var(--success-color)';
           cellEl.style.color = 'white';
           cellEl.style.fontWeight = 'bold';
           cellEl.style.border = '1px solid var(--success-color)';
         }
         
-        // 選択日数のカウントと伝達事項欄だけを更新
         updateCountDisplay();
         renderDailyMemos();
       }
@@ -838,7 +761,6 @@
         
         if (!box) return;
 
-        // 💡 どちらか一方が未選択の場合は、選択を促すメッセージを出して中断する
         if (!ym || !half) {
           box.innerHTML = '上のプルダウンから「対象月」と「対象期間（半期）」を選択してください。';
           return;
@@ -861,17 +783,11 @@
             var html = '<div style="margin-bottom: 8px;"><strong>📅 対象期間:</strong> ' + res.startDate + ' 〜 ' + res.endDate + '</div>';
             html += '<div style="margin-bottom: 8px;"><strong>📊 申請日数:</strong> ' + res.kintaiDays + '日</div>';
             html += '<div style="margin-bottom: 8px;"><strong>⏱️ 労働時間合計:</strong> ' + res.totalWorkHoursStr + '</div>';
-            
-            // 💡 【追加】スタッフ画面に時給と給与総額を表示
             html += '<div style="margin-bottom: 8px;"><strong>💰 適用時給:</strong> ¥' + (res.hourlyWage ? res.hourlyWage.toLocaleString() : 0) + '</div>';
             html += '<div style="margin-bottom: 8px; color: var(--success-color); font-weight: bold;"><strong>💵 給与総額:</strong> ¥' + (res.estimatedSalary ? res.estimatedSalary.toLocaleString() : 0) + '</div>';
-            
             html += '<div style="margin-bottom: 12px;"><strong>🚃 交通費合計:</strong> ¥' + res.totalCost.toLocaleString() + '</div>';
             
-            // 📋 この期間の申請明細テーブル（以降のコードはそのまま）
-            
-            // 対象期間の申請明細テーブル
-            html += '<div style="margin: 12px 0 8px 0; font-weight: bold; font-size: 0.8rem; border-top: 1px solid var(--border-color); padding-top: 8px;">📋 この期間の申請明細</div>';
+            html += '<div style="margin: 12px 0 8px 0; font-weight: bold; font-size: 0.80rem; border-top: 1px solid var(--border-color); padding-top: 8px;">📋 この期間の申請明細</div>';
             if (res.records && res.records.length > 0) {
               html += '<div style="max-height: 140px; overflow-y: auto; margin-bottom: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: #fff;">';
               html += '<table style="width: 100%; font-size: 0.75rem; border-collapse: collapse;">';
@@ -926,7 +842,6 @@
         });
       }
 
-      // 💡 画面上部にふわっと出して数秒で消えるカスタム通知（トースト）
       function showToast(message, isSuccess) {
         var existing = document.getElementById('customToast');
         if (existing) existing.remove();
@@ -950,14 +865,11 @@
           toast.style.opacity = '0';
           setTimeout(function() { toast.remove(); }, 300);
         }, 3000);
-      } // 👈 ここで showToast を独立して正しく閉じる！
+      }
 
-        // 🔒 管理者ロック用の制御関数
       var isAdminLocked = false;
 
-      <!-- スクリプトの末尾付近にある checkAdminLockMode 関数を以下のように書き換える -->
       function checkAdminLockMode() {
-        // 💡 GAS特有の問題を回避するため、サーバー側から直接値を受け取る
         var currentMode = "<?= typeof mode !== 'undefined' ? mode : '' ?>";
         
         if (currentMode === 'admin') {
