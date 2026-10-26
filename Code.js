@@ -1898,9 +1898,9 @@ function getStaffShiftHistory(staffId) {
       }
     }
     
-    // 日付順に並び替え
+  // 💡 日付の新しい順（降順）に並び替え
     historyList.sort(function(a, b) {
-      return new Date(a.rawDate) - new Date(b.rawDate);
+      return new Date(b.rawDate) - new Date(a.rawDate);
     });
     
     return { success: true, history: historyList };
