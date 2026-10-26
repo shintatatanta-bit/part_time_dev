@@ -181,6 +181,45 @@
       }
       .staff-circle-badge:hover .del-x { display: flex; }
 
+/* 💡 伝達事項マークを大きく目立たせる */
+      .staff-circle-badge .memo-badge-icon {
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        font-size: 8pt !important;
+        background: #f59e0b; /* 目立つオレンジ/ゴールド系背景 */
+        color: white;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        z-index: 2;
+      }
+
+      /* 💡 カレンダー下部の伝達事項一覧ボックス */
+      .monthly-memo-summary-box {
+        background: #fffbeb;
+        border: 1px solid #fef3c7;
+        border-radius: 8px;
+        padding: 14px;
+        margin-top: 16px;
+        font-size: 0.85rem;
+        color: var(--text-main);
+      }
+      .monthly-memo-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0;
+        border-bottom: 1px dashed #fde68a;
+      }
+      .monthly-memo-item:last-child {
+        border-bottom: none;
+      }
+
       /* LINE風メッセージエディタのデザイン */
       .line-chat-box {
         background: linear-gradient(135deg, #7494c0 0%, #5d7fa8 100%);
@@ -440,6 +479,27 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         <div id="calendarList" class="list-view-container" style="display: none; margin-top: 12px;"></div>
       </div>
     </div>
+
+<!-- カレンダー本体 -->
+        <div class="cal-grid" id="calendarGrid">
+          <div class="cal-header-cell">日</div>
+          <div class="cal-header-cell">月</div>
+          <div class="cal-header-cell">火</div>
+          <div class="cal-header-cell">水</div>
+          <div class="cal-header-cell">木</div>
+          <div class="cal-header-cell">金</div>
+          <div class="cal-header-cell">土</div>
+        </div>
+
+        <div id="calendarList" class="list-view-container" style="display: none; margin-top: 12px;"></div>
+
+        <!-- 💡 【追加】カレンダー内の伝達事項一覧エリア -->
+        <div id="monthlyMemoSummaryContainer" class="monthly-memo-summary-box" style="display: none;">
+          <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; color: #b45309;">💬 今月のスタッフ伝達事項・備考一覧</h4>
+          <div id="monthlyMemoListContent" style="display: flex; flex-direction: column; gap: 4px;">
+            <!-- ここに自動で一覧が差し込まれます -->
+          </div>
+        </div>
 
     <!-- アコーディオン 2: 月半期別 勤怠集計 -->
     <div class="accordion-card" id="acc-summary">
@@ -1061,6 +1121,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
                       .withSuccessHandler(function(freeRes) {
                         cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
                         renderCurrentView();
+                        renderMonthlyMemoSummary(); // 💡 カレンダー描画時に一覧も更新
                       })
                       .getFreeSchedules(yearMonthVal);
                   })
@@ -1148,7 +1209,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
               if (sh.dailyMemo) {
                 tooltipText += '\n伝達事項: ' + escapeHtml(sh.dailyMemo);
               }
-              var memoIcon = sh.dailyMemo ? '<span style="position:absolute; top:-4px; left:-4px; font-size:6pt;">💬</span>' : '';
+var memoIcon = sh.dailyMemo ? '<span class="memo-badge-icon" title="伝達事項あり">💬</span>' : '';
 
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="' + tooltipText + '">';
               html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
@@ -1238,7 +1299,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
               if (sh.dailyMemo) {
                 tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
               }
-              var memoIcon = sh.dailyMemo ? '<span style="position:absolute; top:-4px; left:-4px; font-size:6pt;">💬</span>' : '';
+="memo-badge-icon" title="伝達事項あり">💬</span>' : '';
 
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="' + tooltipText + '">';
               html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
@@ -1927,6 +1988,48 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           toast.style.opacity = '0';
           setTimeout(function() { toast.remove(); }, 300);
         }, 3000);
+      }
+
+      // 💡 今月の全シフトから伝達事項があるものを集めて一覧表示する関数
+      function renderMonthlyMemoSummary() {
+        var container = document.getElementById('monthlyMemoSummaryContainer');
+        var contentBox = document.getElementById('monthlyMemoListContent');
+        if (!container || !contentBox) return;
+
+        var memosWithDate = [];
+        cachedShiftsData.forEach(function(sh) {
+          if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
+            memosWithDate.push({
+              workDate: sh.workDate,
+              staffName: sh.staffName,
+              memo: sh.dailyMemo
+            });
+          }
+        });
+
+        // 日付順に並び替え
+        memosWithDate.sort(function(a, b) {
+          return new Date(a.workDate) - new Date(b.workDate);
+        });
+
+        if (memosWithDate.length === 0) {
+          container.style.display = 'none';
+          return;
+        }
+
+        container.style.display = 'block';
+        var html = '';
+        memosWithDate.forEach(function(item) {
+          var p = item.workDate.split('-');
+          var dateDisplay = Number(p[1]) + '/' + Number(p[2]); // 例: "10/19"
+          
+          html += '<div class="monthly-memo-item">';
+          html += '<span style="font-weight: bold; color: var(--accent-color); min-width: 45px;">' + dateDisplay + '</span>';
+          html += '<span style="font-weight: 600; min-width: 80px;">' + escapeHtml(item.staffName) + '</span>';
+          html += '<span style="color: var(--text-main); flex-grow: 1;">📝 ' + escapeHtml(item.memo) + '</span>';
+          html += '</div>';
+        });
+        contentBox.innerHTML = html;
       }
     </script>
   </body>
