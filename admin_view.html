@@ -384,7 +384,8 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
     <div class="header-container">
       <h2>🛠️ 管理者ダッシュボード</h2>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <!-- 💡 締め作業を開くボタンを追加 -->
+        <!-- 💡 追加：時給設定を開くボタン -->
+        <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openWageModal()">💰 時給設定</button>
         <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openClosingModal()">🔒 締め作業・確認</button>
         <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openStaffModal()">⚙️ スタッフ管理</button>
       </div>
@@ -643,6 +644,49 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           <button type="button" style="background: var(--accent-color);" onclick="confirmPlacement('single')">この日だけ配置する</button>
           <button type="button" style="background: var(--success-color);" onclick="confirmPlacement('weekly')">今月中の同曜日を一括配置</button>
           <button type="button" class="secondary" style="width:100%;" onclick="closeModal()">キャンセル</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 💰 時給設定・管理 モーダルポップアップ -->
+    <div id="wageModal" class="modal-overlay">
+      <div class="modal-content" style="max-width: 520px; max-height: 85vh;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 16px;">
+          <h4 style="margin: 0;">💰 時給設定・一括管理</h4>
+          <button type="button" class="secondary" onclick="closeWageModal()">✕ 閉じる</button>
+        </div>
+
+        <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0;">
+          全スタッフの時給を設定します。未設定の期は過去の時給が自動的に引き継がれます。
+        </p>
+        
+        <div class="flex-row" style="align-items: flex-end; gap: 10px; margin-bottom: 12px;">
+          <div class="flex-col">
+            <label>対象月</label>
+            <input type="month" id="wageMonth" onchange="loadWageData()" style="margin-top:4px;">
+          </div>
+          <div class="flex-col">
+            <label>対象期間（半期）</label>
+            <select id="wageHalf" onchange="loadWageData()" style="margin-top:4px;">
+              <option value="first">前半 (1日 〜 15日)</option>
+              <option value="second">後半 (16日 〜 末日)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto; max-height: 350px; margin-bottom: 16px;">
+          <table>
+            <thead>
+              <tr>
+                <th>スタッフ名</th>
+                <th style="width: 100px;">適用時給 (円)</th>
+                <th style="text-align: center; width: 70px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="wageTableBody">
+              <tr><td colspan="3" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -2124,6 +2168,93 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
           html += '</div>';
         });
         contentBox.innerHTML = html;
+      }
+
+      // 💰 時給管理モーダル用の処理
+      function openWageModal() {
+        document.getElementById('wageModal').style.display = 'flex';
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = String(now.getMonth() + 1).padStart(2, '0');
+        var d = now.getDate();
+        document.getElementById('wageMonth').value = y + '-' + m;
+        document.getElementById('wageHalf').value = d <= 15 ? 'first' : 'second';
+        loadWageData();
+      }
+
+      function closeWageModal() {
+        document.getElementById('wageModal').style.display = 'none';
+      }
+
+      function loadWageData() {
+        var ym = document.getElementById('wageMonth').value;
+        var half = document.getElementById('wageHalf').value;
+        var tbody = document.getElementById('wageTableBody');
+        
+        if (!ym || !half) return;
+        
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">読み込み中...</td></tr>';
+        
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (!res.success) {
+              tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--danger-color);">' + res.message + '</td></tr>';
+              return;
+            }
+            if (res.staffList.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-sub);">有効なスタッフがいません</td></tr>';
+              return;
+            }
+            
+            var html = '';
+            res.staffList.forEach(function(staff) {
+              html += '<tr>';
+              html += '<td>' + escapeHtml(staff.staffName) + '</td>';
+              html += '<td><input type="number" id="modal-wage-' + staff.staffId + '" value="' + staff.wage + '" style="width: 100%; padding: 6px; font-size: 0.85rem; margin:0; box-sizing:border-box;" min="0" step="10"></td>';
+              html += '<td style="text-align: center;">';
+              html += '<button type="button" class="secondary" style="padding: 6px 12px; font-size: 0.75rem; background: var(--accent-color); color: #fff; border:none;" onclick="updateWageFromModal(\'' + staff.staffId + '\')">保存</button>';
+              html += '</td>';
+              html += '</tr>';
+            });
+            tbody.innerHTML = html;
+          })
+          .getAllStaffWagesForPeriod({ yearMonth: ym, half: half });
+      }
+
+      function updateWageFromModal(staffId) {
+        var ym = document.getElementById('wageMonth').value;
+        var half = document.getElementById('wageHalf').value;
+        var periodKey = ym + '_' + half;
+        var inputEl = document.getElementById('modal-wage-' + staffId);
+        
+        if (!inputEl) return;
+        var newWage = Number(inputEl.value) || 0;
+        var btn = event.target;
+        var originalText = btn.innerText;
+        
+        btn.disabled = true;
+        btn.innerText = '保存中...';
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            showToast(res.message, res.success);
+            btn.disabled = false;
+            btn.innerText = originalText;
+            // 💡 集計画面が裏で開かれていれば再計算させる
+            if (document.getElementById('grandTotalContainer').style.display === 'block') {
+              fetchSummary();
+            }
+          })
+          .withFailureHandler(function(err) {
+            alert('通信エラー: ' + err.message);
+            btn.disabled = false;
+            btn.innerText = originalText;
+          })
+          .saveStaffHourlyWage({
+            staffId: staffId,
+            periodKey: periodKey,
+            hourlyWage: newWage
+          });
       }
     </script>
   </body>

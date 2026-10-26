@@ -2641,3 +2641,36 @@ function saveStaffHourlyWage(data) {
     return { success: false, message: "保存エラー: " + error.message };
   }
 }
+
+/**
+ * 💡 指定した期の全スタッフの時給リストを取得する関数
+ */
+function getAllStaffWagesForPeriod(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var staffSheet = ss.getSheetByName("スタッフマスタ");
+    if (!staffSheet) return { success: false, message: "スタッフマスタが見つかりません" };
+    
+    var staffData = staffSheet.getDataRange().getValues();
+    var activeStaff = [];
+    
+    for (var i = 1; i < staffData.length; i++) {
+      var sId = String(staffData[i][0] || "").trim();
+      var sName = String(staffData[i][1] || "").trim();
+      var status = String(staffData[i][4] || "").trim();
+      
+      if (sId && status === "有効") {
+        var wage = getEffectiveHourlyWage(sId, data.yearMonth, data.half);
+        activeStaff.push({
+          staffId: sId,
+          staffName: sName,
+          wage: wage
+        });
+      }
+    }
+    
+    return { success: true, staffList: activeStaff };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+}
