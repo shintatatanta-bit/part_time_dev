@@ -480,27 +480,6 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
       </div>
     </div>
 
-<!-- カレンダー本体 -->
-        <div class="cal-grid" id="calendarGrid">
-          <div class="cal-header-cell">日</div>
-          <div class="cal-header-cell">月</div>
-          <div class="cal-header-cell">火</div>
-          <div class="cal-header-cell">水</div>
-          <div class="cal-header-cell">木</div>
-          <div class="cal-header-cell">金</div>
-          <div class="cal-header-cell">土</div>
-        </div>
-
-        <div id="calendarList" class="list-view-container" style="display: none; margin-top: 12px;"></div>
-
-        <!-- 💡 【追加】カレンダー内の伝達事項一覧エリア -->
-        <div id="monthlyMemoSummaryContainer" class="monthly-memo-summary-box" style="display: none;">
-          <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; color: #b45309;">💬 今月のスタッフ伝達事項・備考一覧</h4>
-          <div id="monthlyMemoListContent" style="display: flex; flex-direction: column; gap: 4px;">
-            <!-- ここに自動で一覧が差し込まれます -->
-          </div>
-        </div>
-
     <!-- アコーディオン 2: 月半期別 勤怠集計 -->
     <div class="accordion-card" id="acc-summary">
       <div class="accordion-header" onclick="toggleAccordion('acc-summary')">
@@ -1205,11 +1184,12 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
               }
               
               // 💡 ツールチップとメモアイコン（💬）のロジックを追加
-              var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
+var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
               if (sh.dailyMemo) {
-                tooltipText += '\n伝達事項: ' + escapeHtml(sh.dailyMemo);
+                tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
               }
-var memoIcon = sh.dailyMemo ? '<span class="memo-badge-icon" title="伝達事項あり">💬</span>' : '';
+              // 💡 正しく変数に代入する形に修正
+              var memoIcon = sh.dailyMemo ? '<span class="memo-badge-icon" title="伝達事項あり">💬</span>' : '';
 
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="' + tooltipText + '">';
               html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
