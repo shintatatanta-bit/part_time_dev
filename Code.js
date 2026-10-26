@@ -319,6 +319,15 @@ function sendLineNoticeToStaff(data) {
   
   if (!accessToken || accessToken.includes("YOUR_")) return;
   
+    // 💡 スタッフマスタからそのスタッフ専用のポータルURL（G列 / インデックス6）を取得する
+  var staffUrl = "";
+  for (var i = 1; i < staffData.length; i++) {
+    if (staffData[i][0] === data.staffId) {
+      staffUrl = staffData[i][6] || ""; // G列のスタッフ用URL
+      break;
+    }
+  }
+
   var messageText = 
     "【勤怠申請の控え】\n" +
     "以下の内容で受け付けました。\n\n" +
@@ -326,8 +335,9 @@ function sendLineNoticeToStaff(data) {
     "⏰ 時間: " + data.startTime + " ～ " + data.endTime + "\n" +
     "☕ 休憩: " + data.breakTime + "分\n" +
     "🚃 交通費: " + data.transportCost + "円\n\n" +
+    (staffUrl ? "🔗 スタッフ専用ポータルURL:\n" + staffUrl + "\n\n" : "") +
     "お疲れ様でした！";
-  
+    
   var url = "https://api.line.me/v2/bot/message/push";
   var payload = {
     to: lineUserId,
