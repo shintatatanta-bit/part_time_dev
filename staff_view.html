@@ -855,9 +855,12 @@
         // 🔒 管理者ロック用の制御関数
       var isAdminLocked = false;
 
+      <!-- スクリプトの末尾付近にある checkAdminLockMode 関数を以下のように書き換える -->
       function checkAdminLockMode() {
-        var urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('mode') === 'admin') {
+        // 💡 GAS特有の問題を回避するため、サーバー側から直接値を受け取る
+        var currentMode = "<?= typeof mode !== 'undefined' ? mode : '' ?>";
+        
+        if (currentMode === 'admin') {
           isAdminLocked = true;
           applyLockState(true);
           var banner = document.getElementById('adminLockBanner');
