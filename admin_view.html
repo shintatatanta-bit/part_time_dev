@@ -1609,6 +1609,24 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
           .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
       }
 
+// 💡 スタッフの在籍・退職ステータスを切り替える関数
+      function changeStatus(staffId, newStatus) {
+        var actionName = (newStatus === "有効") ? "在籍状態" : "退職";
+        if (!confirm("このスタッフのステータスを「" + actionName + "」に変更しますか？")) return;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            showToast(res.message, res.success);
+            if (res.success) {
+              loadStaffList(); // スタッフ一覧を再読み込みして更新
+            }
+          })
+          .withFailureHandler(function(err) {
+            alert("通信エラー: " + err.message);
+          })
+          .changeStatus({ staffId: staffId, newStatus: newStatus });
+      }
+
       function toggleTargetSelect() {
         var type = document.getElementById('lineTargetType').value;
         var container = document.getElementById('individualSelectContainer');

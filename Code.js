@@ -2681,3 +2681,25 @@ function getAllStaffWagesForPeriod(data) {
     return { success: false, message: error.message };
   }
 }
+
+/**
+ * 💡 スタッフのステータス（有効/退職）を切り替える関数
+ */
+function changeStatus(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("スタッフマスタ");
+    if (!sheet) return { success: false, message: "スタッフマスタが見つかりません" };
+    
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][0]).trim() === String(data.staffId).trim()) {
+        sheet.getRange(i + 1, 5).setValue(data.newStatus); // E列(5列目)がステータス
+        return { success: true, message: "スタッフのステータスを「" + data.newStatus + "」に変更しました！" };
+      }
+    }
+    return { success: false, message: "対象スタッフが見つかりませんでした。" };
+  } catch (error) {
+    return { success: false, message: "エラー: " + error.message };
+  }
+}
