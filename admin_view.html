@@ -877,9 +877,12 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var acc = cachedAccountDetails[idx];
         var addUrl = acc.addUrl || "【友だち追加URL未設定】";
         var currentCount = acc.count || 0;
-        var maxLimit = Number(document.getElementById('maxStaffLimitInput') ? document.getElementById('maxStaffLimitInput').value : 9);
+        
+        // 💡 画面上の入力ボックス（またはデフォルト9）から上限人数を正確に取得する
+        var limitInput = document.getElementById('maxStaffLimitInput');
+        var maxLimit = limitInput ? Number(limitInput.value) || 9 : 9;
 
-        // 💡 登録人数バッジの表示を更新
+        // 💡 登録人数バッジの表示を更新（分母に変数 maxLimit を使用）
         var badge = document.getElementById('accountCountBadge');
         if (badge) {
           badge.innerText = "登録人数: " + currentCount + " / " + maxLimit + "人";
@@ -896,9 +899,9 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var guideTextarea = document.getElementById('lineGuideText');
         var qrBox = document.getElementById('qrCodeDisplayBox');
 
-        // 💡 【追加】上限（9人）に達している場合はQRコードや案内文を非表示にする
+        // 💡 【判定】現在人数が上限（maxLimit）以上の場合はQRコードや案内文を非表示にする
         if (currentCount >= maxLimit) {
-          guideTextarea.value = "⚠️ 「" + acc.name + "」は登録上限（9名）に達しているため、現在新規の案内を停止しています。";
+          guideTextarea.value = "⚠️ 「" + acc.name + "」は登録上限（" + maxLimit + "名）に達しているため、現在新規の案内を停止しています。";
           qrBox.innerHTML = '<div style="padding: 15px; font-size: 0.8rem; color: var(--danger-color); background: #fee2e2; border-radius: 6px; text-align: center;">' +
                             '<strong>⚠️ 上限到達のためQR非表示</strong><br>このアカウントは満員です。</div>';
           return;
@@ -2314,7 +2317,6 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
         var btn = event.target;
         var originalText = btn.innerText;
         
-        // ボタンを「保存中...」にして連打を防止
         btn.disabled = true;
         btn.innerText = '保存中...';
 
@@ -2322,7 +2324,8 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
           .withSuccessHandler(function(res) {
             showToast(res.message, res.success);
             if (res.success) {
-              loadAccountQrOptions(); // 画面側の表示も更新
+              // 💡 保存成功時に、QRガイドの表示更新関数を呼び出して分母やQRを即時反映させる
+              updateAccountQrGuide(); 
             }
             btn.disabled = false;
             btn.innerText = originalText;
