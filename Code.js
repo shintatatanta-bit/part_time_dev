@@ -2700,21 +2700,38 @@ function isStaffRetired(staffId) {
 }
 
 /**
- * 💡 現在の設定上の登録上限人数を取得する関数（デフォルトは9）
+ * 💡 スプレッドシートの「設定」シートから登録上限人数を取得する関数
  */
 function getMaxStaffLimit() {
   try {
-    // 💡 Webアプリで確実に動作する getScriptProperties に変更
-    var props = PropertiesService.getScriptProperties(); 
-    var limit = props.getProperty("MAX_STAFF_LIMIT");
-    return limit ? Number(limit) : 9; 
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("設定");
+    if (!sheet) {
+      // 「設定」シートがなければ自動作成してデフォルト9をセット
+      sheet = ss.insertSheet("設定");
+      sheet.appendRow(["設定キー", "設定値"]);
+      sheet.appendRow(["MAX_STAFF_LIMIT", 9]);
+      return 9;
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]).trim() === "MAX_STAFF_LIMIT") {
+        var val = Number(data[i][1]);
+        return !isNaN(val) && val > 0 ? val : 9;
+      }
+    }
+    
+    // 見つからない場合は行を追加して9を返す
+    sheet.appendRow(["MAX_STAFF_LIMIT", 9]);
+    return 9;
   } catch (e) {
     return 9;
   }
 }
 
 /**
- * 💡 登録上限人数をダッシュボードから変更・保存する関数
+ * 💡 ダッシュボードからの変更を「設定」シートに保存する関数
  */
 function setMaxStaffLimit(newLimit) {
   try {
@@ -2722,10 +2739,29 @@ function setMaxStaffLimit(newLimit) {
     if (isNaN(limitNum) || limitNum < 1) {
       return { success: false, message: "有効な数値を入力してください。" };
     }
-    // 💡 こちらも getScriptProperties に変更
-    var props = PropertiesService.getScriptProperties();
-    props.setProperty("MAX_STAFF_LIMIT", String(limitNum));
-    return { success: true, message: "登録上限を「" + limitNum + "人」に変更しました！" };
+    
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("設定");
+    if (!sheet) {
+      sheet = ss.insertSheet("設定");
+      sheet.appendRow(["設定キー", "設定値"]);
+    }
+    
+    var data = sheet.getDataRange().getValues();
+    var found = false;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]).trim() === "MAX_STAFF_LIMIT") {
+        sheet.getRange(i + 1, 2).setValue(limitNum);
+        found = true;
+        break;
+      }
+    }
+    
+    if (!found) {
+      sheet.appendRow(["MAX_STAFF_LIMIT", limitNum]);
+    }
+    
+    return { success: { limit: limitNum }, message: "登録上限を「" + limitNum + "人」に更新しました！" };
   } catch (e) {
     return { success: false, message: "保存エラー: " + e.message };
   }
