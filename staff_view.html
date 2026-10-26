@@ -518,38 +518,108 @@
         }
 
         var submitBtn = document.getElementById('kintaiSubmitBtn');
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.innerText = '送信中...';
-        }
+        var isEdit = !!requestId;
 
-        var actionFunction = requestId ? 'updateKintaiData' : 'saveKintaiData';
+        function proceedSave() {
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = '送信中...';
+          }
 
-        google.script.run
-          .withSuccessHandler(function(res) {
-            showToast(res.message, res.success);
-            if (res.success) {
-              cancelEditMode();
-              loadStaffHistory();
-              if (typeof loadStaffPendingAlert === 'function') {
-                loadStaffPendingAlert();
+          var actionFunction = isEdit ? 'updateKintaiData' : 'saveKintaiData';
+
+          google.script.run
+            .withSuccessHandler(function(res) {
+              showToast(res.message, res.success);
+              if (res.success) {
+                cancelEditMode();
+                loadStaffHistory();
+                if (typeof loadStaffPendingAlert === 'function') {
+                  loadStaffPendingAlert();
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                if (submitBtn) {
+                  submitBtn.disabled = false;
+                  submitBtn.innerText = isEdit ? '修正を保存する' : '申請を送信する';
+                }
               }
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
+            })
+            .withFailureHandler(function(err) {
+              alert('通信エラーが発生しました: ' + err.message);
               if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+                submitBtn.innerText = isEdit ? '修正を保存する' : '申請を送信する';
+              }
+            })
+            [actionFunction](data);
+        }
+
+        // 💡 新規申請のときだけ重複チェックを行い、同日データがあればアラートを出す（ブロックはしない）
+        if (!isEdit) {
+          google.script.run.withSuccessHandler(function(existingCount) {
+            if (existingCount > 0) {
+              var msg = '⚠️ 【重複の確認】\n' + data.workDate + ' はすでに ' + existingCount + '件の勤怠申請が行われています。\n\n同日の2度目の勤務として追加登録しますが、よろしいですか？';
+              if (!confirm(msg)) {
+                return; // キャンセルされたら送信しない
               }
             }
-          })
-          .withFailureHandler(function(err) {
-            alert('通信エラーが発生しました: ' + err.message);
-            if (submitBtn) {
-              submitBtn.disabled = false;
-              submitBtn.innerText = requestId ? '修正を保存する' : '申請を送信する';
+            proceedSave();
+          }).checkKintaiDuplication(data.staffId, data.workDate);
+        } else {
+          proceedSave();
+        }
+      }
+        
+        function proceedSave() {
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = '送信中...';
+          }
+
+          var actionFunction = isEdit ? 'updateKintaiData' : 'saveKintaiData';
+
+          google.script.run
+            .withSuccessHandler(function(res) {
+              showToast(res.message, res.success);
+              if (res.success) {
+                cancelEditMode();
+                loadStaffHistory();
+                if (typeof loadStaffPendingAlert === 'function') {
+                  loadStaffPendingAlert();
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                if (submitBtn) {
+                  submitBtn.disabled = false;
+                  submitBtn.innerText = isEdit ? '修正を保存する' : '申請を送信する';
+                }
+              }
+            })
+            .withFailureHandler(function(err) {
+              alert('通信エラーが発生しました: ' + err.message);
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = isEdit ? '修正を保存する' : '申請を送信する';
+              }
+            })
+            [actionFunction](data);
+        }
+
+        if (!isEdit) {
+          // 💡 すでに同じ日の申請があるかサーバーに問い合わせる
+          google.script.run.withSuccessHandler(function(existingCount) {
+            if (existingCount > 0) {
+              var msg = '⚠️ 【重複の確認】\n' + workDate + ' はすでに ' + existingCount + '件の勤怠申請が行われています。\n\n同日の2度目の勤務として追加登録しますが、よろしいですか？';
+              if (!confirm(msg)) {
+                return; // キャンセルされたら送信しない
+              }
             }
-          })
-          [actionFunction](data);
+            proceedSave();
+          }).checkKintaiDuplication(data.staffId, workDate);
+        } else {
+          proceedSave();
+        }
       }
 
       var cachedClosedDays = [];

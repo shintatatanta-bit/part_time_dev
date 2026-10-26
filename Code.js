@@ -2766,3 +2766,183 @@ function setMaxStaffLimit(newLimit) {
     return { success: false, message: "保存エラー: " + e.message };
   }
 }
+
+/**
+ * 💡 指定したスタッフ・日付の既存申請件数を数える関数
+ */
+function checkKintaiDuplication(staffId, workDate) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("申請データ");
+    if (!sheet) return 0;
+    
+    var data = sheet.getDataRange().getValues();
+    var count = 0;
+    
+    // 日付を安全に比較するためのフォーマット関数
+    function parseDateStr(raw) {
+      if (!raw) return "";
+      if (raw instanceof Date) return Utilities.formatDate(raw, "Asia/Tokyo", "yyyy-MM-dd");
+      var str = String(raw).trim();
+      if (str.length >= 10) return str.substring(0, 10);
+      var d = new Date(raw);
+      return !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : str;
+    }
+    
+    var targetDateStr = parseDateStr(workDate);
+    
+    for (var i = 1; i < data.length; i++) {
+      var rowStaffId = String(data[i][1] || "").trim();
+      var rowDateStr = parseDateStr(data[i][3]);
+      
+      if (rowStaffId === String(staffId).trim() && rowDateStr === targetDateStr) {
+        count++;
+      }
+    }
+    return count;
+  } catch (e) {
+    return 0;
+  }
+}
+
+/**
+ * 💡 管理者ダッシュボード用：直近で同じ日に複数回（2回以上）申請している「重複勤務」を検出する関数
+ */
+function getDuplicateKintaiAlerts() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("申請データ");
+    if (!sheet) return { success: true, duplicates: [] };
+    
+    var data = sheet.getDataRange().getValues();
+    var map = {}; // "staffId_date" -> { staffName, workDate, count }
+    
+    function parseDateStr(raw) {
+      if (!raw) return "";
+      if (raw instanceof Date) return Utilities.formatDate(raw, "Asia/Tokyo", "yyyy-MM-dd");
+      var str = String(raw).trim();
+      if (str.length >= 10) return str.substring(0, 10);
+      var d = new Date(raw);
+      return !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : str;
+    }
+    
+    for (var i = 1; i < data.length; i++) {
+      var sId = String(data[i][1] || "").trim();
+      var sName = String(data[i][2] || "").trim();
+      var wDate = parseDateStr(data[i][3]);
+      
+      if (!sId || !wDate) continue;
+      
+      var key = sId + "_" + wDate;
+      if (!map[key]) {
+        map[key] = { staffId: sId, staffName: sName, workDate: wDate, count: 0 };
+      }
+      map[key].count++;
+    }
+    
+    var duplicateList = [];
+    for (var key in map) {
+      if (map[key].count > 1) {
+        duplicateList.push(map[key]);
+      }
+    }
+    
+    // 日付の新しい順にソート
+    duplicateList.sort(function(a, b) {
+      return new Date(b.workDate) - new Date(a.workDate);
+    });
+    
+    return { success: true, duplicates: duplicateList.slice(0, 15) }; // 最大15件
+  } catch (e) {
+    return { success: false, duplicates: [], message: e.message };
+  }
+}
+
+/**
+ * 💡 指定したスタッフ・日付の既存申請件数を数える関数
+ */
+function checkKintaiDuplication(staffId, workDate) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("申請データ");
+    if (!sheet) return 0;
+    
+    var data = sheet.getDataRange().getValues();
+    var count = 0;
+    
+    function parseDateStr(raw) {
+      if (!raw) return "";
+      if (raw instanceof Date) return Utilities.formatDate(raw, "Asia/Tokyo", "yyyy-MM-dd");
+      var str = String(raw).trim();
+      if (str.length >= 10) return str.substring(0, 10);
+      var d = new Date(raw);
+      return !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : str;
+    }
+    
+    var targetDateStr = parseDateStr(workDate);
+    
+    for (var i = 1; i < data.length; i++) {
+      var rowStaffId = String(data[i][1] || "").trim();
+      var rowDateStr = parseDateStr(data[i][3]);
+      
+      if (rowStaffId === String(staffId).trim() && rowDateStr === targetDateStr) {
+        count++;
+      }
+    }
+    return count;
+  } catch (e) {
+    return 0;
+  }
+}
+
+/**
+ * 💡 管理者ダッシュボード用：直近で同じ日に複数回（2回以上）申請している「重複勤務」を検出する関数
+ */
+function getDuplicateKintaiAlerts() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("申請データ");
+    if (!sheet) return { success: true, duplicates: [] };
+    
+    var data = sheet.getDataRange().getValues();
+    var map = {}; 
+    
+    function parseDateStr(raw) {
+      if (!raw) return "";
+      if (raw instanceof Date) return Utilities.formatDate(raw, "Asia/Tokyo", "yyyy-MM-dd");
+      var str = String(raw).trim();
+      if (str.length >= 10) return str.substring(0, 10);
+      var d = new Date(raw);
+      return !isNaN(d.getTime()) ? Utilities.formatDate(d, "Asia/Tokyo", "yyyy-MM-dd") : str;
+    }
+    
+    for (var i = 1; i < data.length; i++) {
+      var sId = String(data[i][1] || "").trim();
+      var sName = String(data[i][2] || "").trim();
+      var wDate = parseDateStr(data[i][3]);
+      
+      if (!sId || !wDate) continue;
+      
+      var key = sId + "_" + wDate;
+      if (!map[key]) {
+        map[key] = { staffId: sId, staffName: sName, workDate: wDate, count: 0 };
+      }
+      map[key].count++;
+    }
+    
+    var duplicateList = [];
+    for (var key in map) {
+      if (map[key].count > 1) {
+        duplicateList.push(map[key]);
+      }
+    }
+    
+    duplicateList.sort(function(a, b) {
+      return new Date(b.workDate) - new Date(a.workDate);
+    });
+    
+    return { success: true, duplicates: duplicateList.slice(0, 15) };
+  } catch (e) {
+    return { success: false, duplicates: [], message: e.message };
+  }
+}

@@ -403,6 +403,16 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
       </div>
     </div>
 
+    <!-- 💡 同日重複申請お知らせカード -->
+    <div class="card" id="duplicateAlertCard" style="display: none; border-left: 4px solid #d97706; background: #fffbeb;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <h3 style="margin: 0; color: #b45309; font-size: 0.85rem; font-weight: 700;">🔄 同日の複数回（重複）申請のおしらせ</h3>
+      </div>
+      <p style="font-size: 0.75rem; color: var(--text-sub); margin: 6px 0 0 0;">💡 同じ日に2回以上勤怠申請を行っているスタッフがいます（1日2勤務など）。内容をご確認ください。</p>
+      <div id="duplicateListContainer" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-main);">
+        <!-- ここに動的にリストが差し込まれます -->
+      </div>
+    </div>
     
     <!-- 💡 新着のシフト希望お知らせエリア -->
     <div class="accordion-card" id="acc-shift-notif" style="display: none; border-left: 4px solid var(--accent-color);">
@@ -782,6 +792,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         loadLineHistory();
         loadPendingStaff();
         loadShiftNotifications();
+        loadDuplicateKintaiAlerts();
         
         // 💡 【追加】画面を開いた時にサーバーから上限人数を取得して入力欄にセットする
         google.script.run.withSuccessHandler(function(limit) {
@@ -2351,6 +2362,28 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
             btn.innerText = originalText;
           })
           .setMaxStaffLimit(val);
+      }
+
+      // 💡 重複申請アラートを読み込む関数
+      function loadDuplicateKintaiAlerts() {
+        google.script.run.withSuccessHandler(function(res) {
+          var card = document.getElementById('duplicateAlertCard');
+          var container = document.getElementById('duplicateListContainer');
+          if (!card || !container) return;
+
+          if (!res.success || res.duplicates.length === 0) {
+            card.style.display = 'none';
+            return;
+          }
+
+          card.style.display = 'block';
+          var html = '<ul style="margin: 0; padding-left: 18px; color: #92400e;">';
+          res.duplicates.forEach(function(item) {
+            html += '<li style="margin-bottom: 3px;"><strong>' + escapeHtml(item.staffName) + '</strong> さん: ' + escapeHtml(item.workDate) + ' （申請件数: ' + item.count + '回）</li>';
+          });
+          html += '</ul>';
+          container.innerHTML = html;
+        }).getDuplicateKintaiAlerts();
       }
     </script>
   </body>
