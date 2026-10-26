@@ -1942,8 +1942,8 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
         // 💡 登録人数バッジの表示を更新（10人に達している場合は赤色で警告風にする）
         var badge = document.getElementById('accountCountBadge');
         if (badge) {
-          badge.innerText = "登録人数: " + currentCount + " / 10人";
-          if (currentCount >= 10) {
+          badge.innerText = "登録人数: " + currentCount + " / 9人";
+          if (currentCount >= 9) {
             badge.style.background = "#fee2e2";
             badge.style.color = "#991b1b";
             badge.innerText += " (上限到達)";
