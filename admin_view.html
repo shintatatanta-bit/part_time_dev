@@ -1462,7 +1462,7 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
         return { yearMonth: ym, half: half, periodKey: ym + '_' + half };
       }
 
-      // 💰 時給を反映して集計カードを描画する関数
+      // 💰 時給を反映して集計カードを描画する関数（カード内の個別時給設定を削除）
       function renderSummaryCardsWithWages(staffSummaryList, periodInfo, grandTotal, container, totalBox) {
         var completedCount = 0;
         var grandTotalSalary = 0;
@@ -1484,7 +1484,6 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
             completedCount++;
 
             if (completedCount === staffSummaryList.length) {
-              // 全員の時給取得が完了したらHTMLを構築
               var html = '';
               var gTotalWorkMins = 0;
               var gTotalCost = 0;
@@ -1510,15 +1509,8 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
                 html += '<div style="font-size: 0.7rem; color: var(--text-sub); margin-top:2px;">詳細 ▼</div>';
                 html += '</div></div>';
 
-                // 時給の個別変更用インプットエリア
+                // 💡 カード内の個別時給設定ボックスは削除し、申請明細テーブルのみをすっきりと配置
                 html += '<div class="staff-details">';
-                html += '<div style="background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">';
-                html += '<span style="font-size: 0.8rem; font-weight: bold;">この期（' + periodInfo.yearMonth + ' ' + (periodInfo.half === 'first' ? '前半' : '後半') + '）の時給設定:</span>';
-                html += '<div style="display: flex; gap: 4px; align-items: center;">';
-                html += '<input type="number" id="wage-input-' + item.staffId + '" value="' + wage + '" style="width: 80px; padding: 4px; font-size: 0.8rem; margin:0;" min="0" step="50">';
-                html += '<button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: var(--accent-color); color: #fff; border:none;" onclick="updateStaffWage(\'' + item.staffId + '\', \'' + periodInfo.periodKey + '\')">時給保存</button>';
-                html += '</div></div>';
-
                 if (item.records.length === 0) {
                   html += '<p style="font-size:0.8rem; color:var(--text-sub); text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
                 } else {
