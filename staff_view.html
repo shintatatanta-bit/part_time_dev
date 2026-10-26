@@ -618,14 +618,17 @@
           } else if (isSubmitted) {
             bgStyle = 'background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:600;';
           } else if (isSelected) {
-            bgStyle = 'background:var(--success-color); color:white; font-weight:bold;';
+            // 💡 選択中のスタイル
+            bgStyle = 'background:var(--success-color); color:white; font-weight:bold; border:1px solid var(--success-color);';
             clickAction = 'onclick="toggleDate(\'' + dateStr + '\')"';
           } else {
+            // 💡 未選択のスタイル
             bgStyle = 'background:#fff; border:1px solid var(--border-color);';
             clickAction = 'onclick="toggleDate(\'' + dateStr + '\')"';
           }
           
-          html += '<div style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border-radius:6px; cursor:' + (isSubmitted || isClosed ? 'default' : 'pointer') + '; ' + bgStyle + '" ' + clickAction + '>';
+          // 💡 各セルに一意の id="cell-2026-10-xx" を付与して高速に操作できるようにする
+          html += '<div id="cell-' + dateStr + '" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:0.9rem; border-radius:6px; cursor:' + (isSubmitted || isClosed ? 'default' : 'pointer') + '; ' + bgStyle + '" ' + clickAction + '>';
           html += '<div style="text-align:center;"><span>' + day + '</span>';
           if (isClosed) {
             html += '<span style="font-size:0.5rem; display:block; line-height:1;">休業日</span>';
@@ -646,12 +649,28 @@
       }
 
       function toggleDate(dateStr) {
+        var cellEl = document.getElementById('cell-' + dateStr);
+        if (!cellEl) return;
+
+        // 状態を反転
         if (selectedDatesMap[dateStr] !== undefined) {
           delete selectedDatesMap[dateStr];
+          // 未選択の見た目に即座に変更（ノータイム）
+          cellEl.style.background = '#fff';
+          cellEl.style.color = '';
+          cellEl.style.fontWeight = 'normal';
+          cellEl.style.border = '1px solid var(--border-color)';
         } else {
           selectedDatesMap[dateStr] = "";
+          // 選択中の見た目に即座に変更（ノータイム）
+          cellEl.style.background = 'var(--success-color)';
+          cellEl.style.color = 'white';
+          cellEl.style.fontWeight = 'bold';
+          cellEl.style.border = '1px solid var(--success-color)';
         }
-        renderMiniCalendar();
+        
+        // 選択日数のカウントと伝達事項欄だけを更新
+        updateCountDisplay();
         renderDailyMemos();
       }
 
