@@ -768,7 +768,14 @@
             var html = '<div style="margin-bottom: 8px;"><strong>📅 対象期間:</strong> ' + res.startDate + ' 〜 ' + res.endDate + '</div>';
             html += '<div style="margin-bottom: 8px;"><strong>📊 申請日数:</strong> ' + res.kintaiDays + '日</div>';
             html += '<div style="margin-bottom: 8px;"><strong>⏱️ 労働時間合計:</strong> ' + res.totalWorkHoursStr + '</div>';
+            
+            // 💡 【追加】スタッフ画面に時給と給与総額を表示
+            html += '<div style="margin-bottom: 8px;"><strong>💰 適用時給:</strong> ¥' + (res.hourlyWage ? res.hourlyWage.toLocaleString() : 0) + '</div>';
+            html += '<div style="margin-bottom: 8px; color: var(--success-color); font-weight: bold;"><strong>💵 給与総額:</strong> ¥' + (res.estimatedSalary ? res.estimatedSalary.toLocaleString() : 0) + '</div>';
+            
             html += '<div style="margin-bottom: 12px;"><strong>🚃 交通費合計:</strong> ¥' + res.totalCost.toLocaleString() + '</div>';
+            
+            // 📋 この期間の申請明細テーブル（以降のコードはそのまま）
             
             // 対象期間の申請明細テーブル
             html += '<div style="margin: 12px 0 8px 0; font-weight: bold; font-size: 0.8rem; border-top: 1px solid var(--border-color); padding-top: 8px;">📋 この期間の申請明細</div>';

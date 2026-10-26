@@ -2332,6 +2332,11 @@ function getStaffClosingStatus(data) {
     var totH = Math.floor(totalMinutes / 60);
     var totM = totalMinutes % 60;
     
+    // 💡 スタッフごとの適用時給と給与総額を計算
+    var hourlyWage = getEffectiveHourlyWage(staffId, yearMonth, half);
+    var totalHours = totalMinutes / 60;
+    var estimatedSalary = Math.round(totalHours * hourlyWage);
+
     return {
       success: true,
       startDate: startDateStr,
@@ -2339,6 +2344,8 @@ function getStaffClosingStatus(data) {
       kintaiDays: kintaiDays,
       totalWorkHoursStr: totH + "時間" + totM + "分",
       totalCost: totalCost,
+      hourlyWage: hourlyWage,           // 👈 ここを追加
+      estimatedSalary: estimatedSalary, // 👈 ここを追加
       status: status,
       records: records
     };
