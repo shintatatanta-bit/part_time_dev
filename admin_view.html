@@ -870,7 +870,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var acc = cachedAccountDetails[idx];
         var addUrl = acc.addUrl || "【友だち追加URL未設定】";
         var currentCount = acc.count || 0;
-        var maxLimit = 9; // 💡 上限を9人に設定
+        var maxLimit = Number(document.getElementById('maxStaffLimitInput') ? document.getElementById('maxStaffLimitInput').value : 9);
 
         // 💡 登録人数バッジの表示を更新
         var badge = document.getElementById('accountCountBadge');
