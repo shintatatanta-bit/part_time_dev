@@ -580,6 +580,14 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           <button id="modalTabGuide" class="view-tab-btn" onclick="switchModalTab('guide')">📱 新規登録案内・QR</button>
         </div>
 
+        <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--border-color);">
+  <label style="margin-top:0;">1アカウントあたりの登録上限人数:</label>
+  <div style="display: flex; gap: 8px; margin-top: 4px;">
+    <input type="number" id="maxStaffLimitInput" value="9" min="1" max="50" style="width: 100px; margin:0;">
+    <button type="button" class="secondary" style="background: var(--accent-color); color: #fff; border:none;" onclick="saveMaxLimit()">上限を保存</button>
+  </div>
+</div>
+
         <!-- タブ1: 登録済みスタッフ一覧 -->
         <div id="modalViewList">
           <div style="overflow-x: auto; max-height: 400px;">
@@ -2293,6 +2301,18 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
             hourlyWage: newWage
           });
       }
+
+      function saveMaxLimit() {
+  var val = document.getElementById('maxStaffLimitInput').value;
+  google.script.run
+    .withSuccessHandler(function(res) {
+      showToast(res.message, res.success);
+      if (res.success) {
+        loadAccountQrOptions(); // 画面側の表示も更新
+      }
+    })
+    .setMaxStaffLimit(val);
+}
     </script>
   </body>
 </html>

@@ -1590,13 +1590,13 @@ function registerStaffBySelf(data) {
       }
     }
 
-   // すでに9名以上登録されている場合は登録をブロックする
-    if (activeCount >= 9) { // 👈 閉じ括弧 `)` を追加し、上限を 9 に変更
-      return { 
-        success: false, 
-        message: "⚠️ 登録エラー\n「" + assignedAccount + "」の登録上限（最大9名）に達しているため、これ以上登録できません。別のアカウントをご利用ください。" 
-      };
-    }
+   var maxLimit = getMaxStaffLimit();
+if (activeCount >= maxLimit) {
+  return { 
+    success: false, 
+    message: "⚠️ 登録エラー\n「" + assignedAccount + "」の登録上限（最大" + maxLimit + "名）に達しているため、これ以上登録できません。" 
+  };
+}
     
     var staffId = "st_" + Utilities.getUuid().substring(0, 6);
     var timestamp = new Date();
@@ -2697,4 +2697,34 @@ function isStaffRetired(staffId) {
     }
   }
   return false; // スタッフが見つからない場合は一応開けるようにするか、お好みで
+}
+
+/**
+ * 💡 現在の設定上の登録上限人数を取得する関数（デフォルトは9）
+ */
+function getMaxStaffLimit() {
+  try {
+    var props = PropertiesService.getDocumentProperties();
+    var limit = props.getProperty("MAX_STAFF_LIMIT");
+    return limit ? Number(limit) : 9; // 未設定ならデフォルト9
+  } catch (e) {
+    return 9;
+  }
+}
+
+/**
+ * 💡 登録上限人数をダッシュボードから変更・保存する関数
+ */
+function setMaxStaffLimit(newLimit) {
+  try {
+    var limitNum = Number(newLimit);
+    if (isNaN(limitNum) || limitNum < 1) {
+      return { success: false, message: "有効な数値を入力してください。" };
+    }
+    var props = PropertiesService.getDocumentProperties();
+    props.setProperty("MAX_STAFF_LIMIT", String(limitNum));
+    return { success: true, message: "登録上限を「" + limitNum + "人」に変更しました！" };
+  } catch (e) {
+    return { success: false, message: "保存エラー: " + e.message };
+  }
 }
