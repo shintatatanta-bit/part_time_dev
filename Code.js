@@ -2543,3 +2543,107 @@ function getSlackShiftText(yearMonth) {
     return { success: false, message: "Slackテキスト生成エラー: " + error.message };
   }
 }
+
+/**
+ * 💡 指定したスタッフの指定期（例: 2026-10_first）における有効な時給を引く関数
+ * （設定がない場合は、直近の過去に遡って設定された時給を自動引き継ぎする）
+ */
+function getEffectiveHourlyWage(staffId, yearMonth, half) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("時給管理");
+    if (!sheet) return 1000; // シートがない場合のデフォルト時給（例: 1000円）
+    
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return 1000;
+    
+    // 対象の期を数値化して比較しやすくする（例: "2026-10_first" -> 年月と前半後半）
+    var targetYm = String(yearMonth).trim();
+    var targetHalf = String(half).trim();
+    var targetValue = Number(targetYm.replace("-", "")) * 2 + (targetHalf === "second" ? 1 : 0);
+    
+    var staffWageMap = {}; // this staff's wage history
+    var staffDefaultWage = 1000;
+    
+    for (var i = 1; i < data.length; i++) {
+      var sId = String(data[i][0] || "").trim();
+      var pKey = String(data[i][1] || "").trim(); // "2026-10_first"
+      var wage = Number(data[i][2]) || 0;
+      
+      if (sId === String(staffId).trim()) {
+        if (pKey === "default") {
+          staffDefaultWage = wage;
+        } else if (pKey.indexOf("_") !== -1) {
+          var parts = pKey.split("_");
+          var pYm = parts[0];
+          var pHalf = parts[1];
+          var pVal = Number(pYm.replace("-", "")) * 2 + (pHalf === "second" ? 1 : 0);
+          staffWageMap[pVal] = wage;
+        }
+      }
+    }
+    
+    // ① 完全一致する期があればそれを返す
+    var exactVal = targetValue;
+    if (staffWageMap[exactVal] !== undefined) {
+      return staffWageMap[exactVal];
+    }
+    
+    // ② なければ、過去に向かって最も近い設定済み時給を探して引き継ぐ
+    var bestVal = -1;
+    var bestWage = -1;
+    for (var key in staffWageMap) {
+      var kNum = Number(key);
+      if (kNum <= targetValue && kNum > bestVal) {
+        bestVal = kNum;
+        bestWage = staffWageMap[kNum];
+      }
+    }
+    
+    if (bestWage !== -1) {
+      return bestWage;
+    }
+    
+    return staffDefaultWage;
+  } catch (e) {
+    return 1000;
+  }
+}
+
+/**
+ * 💡 管理者側：スタッフの時給を保存・更新する関数
+ */
+function saveStaffHourlyWage(data) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("時給管理");
+    if (!sheet) {
+      sheet = ss.insertSheet("時給管理");
+      sheet.appendRow(["staffId", "periodKey", "hourlyWage"]);
+    }
+    
+    var staffId = String(data.staffId).trim();
+    var periodKey = String(data.periodKey).trim(); // 例: "2026-10_first" または "default"
+    var hourlyWage = Number(data.hourlyWage) || 0;
+    
+    var values = sheet.getDataRange().getValues();
+    var targetRow = -1;
+    
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][0]).trim() === staffId && String(values[i][1]).trim() === periodKey) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+    
+    if (targetRow !== -1) {
+      sheet.getRange(targetRow, 3).setValue(hourlyWage);
+    } else {
+      sheet.appendRow([staffId, periodKey, hourlyWage]);
+    }
+    
+    return { success: true, message: "時給を保存しました！" };
+  } catch (error) {
+    return { success: false, message: "保存エラー: " + error.message };
+  }
+}

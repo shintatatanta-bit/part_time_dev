@@ -1394,45 +1394,132 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
         container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;">集計中...</div>';
         totalBox.style.display = 'none';
         
+        // 💡 現在選択されている期間から、年月の前半・後半キーを割り出す
+        var periodKeyInfo = getPeriodKeyFromDates(start, end);
+
         google.script.run.withSuccessHandler(function(res) {
           if (!res.success) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger-color); font-size: 0.85rem;">' + res.message + '</div>'; return; }
           
-          // 💡 全体合計の表示を更新
-          if (res.grandTotal) {
-            document.getElementById('grandTotalText').innerText = 
-              '労働合計: ' + res.grandTotal.totalWorkHoursStr + ' ／ 交通費合計: ¥' + res.grandTotal.totalCost.toLocaleString();
-            totalBox.style.display = 'block';
-          }
-
           var list = res.summary;
           if (list.length === 0) { container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.85rem;">スタッフデータがありません</div>'; return; }
-          var html = '';
-          list.forEach(function(item) {
-            html += '<div class="staff-card" id="card-' + item.staffId + '">';
-            html += '<div class="staff-header" onclick="toggleCard(\'card-' + item.staffId + '\')">';
-            
-            html += '<div class="staff-info">';
-            html += '<h4>' + escapeHtml(item.staffName) + ' (' + escapeHtml(item.assignedAccount) + ') <span id="staff-alert-' + item.staffId + '"></span></h4>';
-            html += '<p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p>';
-            html += '</div>';
-            
-            html += '<div class="staff-summary-badge"><div class="badge-main">交通費: ¥' + item.totalCost.toLocaleString() + '</div><div class="badge-sub">休憩合計: ' + item.totalBreakHoursStr + '</div><div style="font-size: 0.7rem; color: var(--text-sub); margin-top:2px;">詳細 ▼</div></div></div>';
-            html += '<div class="staff-details">';
-            if (item.records.length === 0) {
-              html += '<p style="font-size:0.8rem; color:var(--text-sub); text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
-            } else {
-              html += '<table><thead><tr><th>勤務日</th><th>時間</th><th>休憩</th><th>交通費</th></tr></thead><tbody>';
-              item.records.forEach(function(rec) {
-                html += '<tr><td>' + rec.workDate + '</td><td>' + rec.startTime + ' 〜 ' + rec.endTime + '</td><td>' + rec.breakTime + '分</td><td>¥' + rec.transportCost.toLocaleString() + '</td></tr>';
-              });
-              html += '</tbody></table>';
-            }
-            html += '</div></div>';
-            
-            checkStaffAlertBadge(item.staffId);
-          });
-          container.innerHTML = html;
+          
+          // 各スタッフの有効時給を非同期で一括取得してカードをレンダリングする
+          renderSummaryCardsWithWages(list, periodKeyInfo, res.grandTotal, container, totalBox);
         }).getKintaiSummary(start, end);
+      }
+
+      // 📅 開始日・終了日から "2026-10_first" などの periodKey を自動判定するヘルパー
+      function getPeriodKeyFromDates(startStr, endStr) {
+        if (!startStr) return { yearMonth: "2026-10", half: "first" };
+        var parts = startStr.split('-');
+        var y = parts[0], m = parts[1], d = Number(parts[2]);
+        var ym = y + '-' + m;
+        var half = (d <= 15) ? "first" : "second";
+        return { yearMonth: ym, half: half, periodKey: ym + '_' + half };
+      }
+
+      // 💰 時給を反映して集計カードを描画する関数
+      function renderSummaryCardsWithWages(staffSummaryList, periodInfo, grandTotal, container, totalBox) {
+        var completedCount = 0;
+        var grandTotalSalary = 0;
+        var processedData = [];
+
+        staffSummaryList.forEach(function(item, idx) {
+          google.script.run.withSuccessHandler(function(wage) {
+            // 労働時間（分）から時間（小数点あり）を計算して給与を算出
+            var totalHours = item.totalWorkMinutes / 60;
+            var estimatedSalary = Math.round(totalHours * wage);
+            
+            processedData[idx] = {
+              item: item,
+              wage: wage,
+              salary: estimatedSalary
+            };
+
+            grandTotalSalary += estimatedSalary;
+            completedCount++;
+
+            if (completedCount === staffSummaryList.length) {
+              // 全員の時給取得が完了したらHTMLを構築
+              var html = '';
+              var gTotalWorkMins = 0;
+              var gTotalCost = 0;
+
+              processedData.forEach(function(data) {
+                var item = data.item;
+                var wage = data.wage;
+                var salary = data.salary;
+                
+                gTotalCost += item.totalCost;
+
+                html += '<div class="staff-card" id="card-' + item.staffId + '">';
+                html += '<div class="staff-header" onclick="toggleCard(\'card-' + item.staffId + '\')">';
+                
+                html += '<div class="staff-info">';
+                html += '<h4>' + escapeHtml(item.staffName) + ' (' + escapeHtml(item.assignedAccount) + ') <span id="staff-alert-' + item.staffId + '"></span></h4>';
+                html += '<p>勤務日数: ' + item.daysCount + '日 / 労働合計: <strong>' + item.totalWorkHoursStr + '</strong></p>';
+                html += '</div>';
+                
+                html += '<div class="staff-summary-badge">';
+                html += '<div class="badge-main" style="color: var(--success-color);">給与総額: ¥' + salary.toLocaleString() + ' <span style="font-size:0.7rem; color:var(--text-sub);">(時給 ' + wage.toLocaleString() + '円)</span></div>';
+                html += '<div class="badge-sub">交通費: ¥' + item.totalCost.toLocaleString() + ' / 休憩合計: ' + item.totalBreakHoursStr + '</div>';
+                html += '<div style="font-size: 0.7rem; color: var(--text-sub); margin-top:2px;">詳細 ▼</div>';
+                html += '</div></div>';
+
+                // 時給の個別変更用インプットエリア
+                html += '<div class="staff-details">';
+                html += '<div style="background: #f8fafc; padding: 10px; border-radius: 6px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px;">';
+                html += '<span style="font-size: 0.8rem; font-weight: bold;">この期（' + periodInfo.yearMonth + ' ' + (periodInfo.half === 'first' ? '前半' : '後半') + '）の時給設定:</span>';
+                html += '<div style="display: flex; gap: 4px; align-items: center;">';
+                html += '<input type="number" id="wage-input-' + item.staffId + '" value="' + wage + '" style="width: 80px; padding: 4px; font-size: 0.8rem; margin:0;" min="0" step="50">';
+                html += '<button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: var(--accent-color); color: #fff; border:none;" onclick="updateStaffWage(\'' + item.staffId + '\', \'' + periodInfo.periodKey + '\')">時給保存</button>';
+                html += '</div></div>';
+
+                if (item.records.length === 0) {
+                  html += '<p style="font-size:0.8rem; color:var(--text-sub); text-align:center; margin:8px 0;">この期間の申請データはありません</p>';
+                } else {
+                  html += '<table><thead><tr><th>勤務日</th><th>時間</th><th>休憩</th><th>交通費</th></tr></thead><tbody>';
+                  item.records.forEach(function(rec) {
+                    html += '<tr><td>' + rec.workDate + '</td><td>' + rec.startTime + ' 〜 ' + rec.endTime + '</td><td>' + rec.breakTime + '分</td><td>¥' + rec.transportCost.toLocaleString() + '</td></tr>';
+                  });
+                  html += '</tbody></table>';
+                }
+                html += '</div></div>';
+
+                checkStaffAlertBadge(item.staffId);
+              });
+
+              container.innerHTML = html;
+
+              // 全体合計の表示を更新（給与総額も含める）
+              if (grandTotal) {
+                document.getElementById('grandTotalText').innerText = 
+                  '労働合計: ' + grandTotal.totalWorkHoursStr + ' ／ 給与総額合計: ¥' + grandTotalSalary.toLocaleString() + ' ／ 交通費合計: ¥' + gTotalCost.toLocaleString();
+                totalBox.style.display = 'block';
+              }
+            }
+          }).getEffectiveHourlyWage(item.staffId, periodInfo.yearMonth, periodInfo.half);
+        });
+      }
+
+      // 💡 個別スタッフの時給を保存する関数
+      function updateStaffWage(staffId, periodKey) {
+        var inputEl = document.getElementById('wage-input-' + staffId);
+        if (!inputEl) return;
+        var newWage = Number(inputEl.value) || 0;
+
+        google.script.run
+          .withSuccessHandler(function(res) {
+            showToast(res.message, res.success);
+            if (res.success) {
+              fetchSummary(); // 再集計して画面を更新
+            }
+          })
+          .saveStaffHourlyWage({
+            staffId: staffId,
+            periodKey: periodKey,
+            hourlyWage: newWage
+          });
       }
 
       function checkStaffAlertBadge(staffId) {
