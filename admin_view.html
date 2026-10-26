@@ -1017,7 +1017,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         google.script.run
           .withSuccessHandler(function(res) {
             if (res.success) {
-              alert(res.message);
+              showToast(res.message, res.success);
               loadCalendar();
               loadPendingStaff(); // 💡 保存時に未提出者アラートも連動して更新
               var saveBtn = document.getElementById('saveButton');
@@ -1412,8 +1412,8 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
         google.script.run
           .withSuccessHandler(function(res) {
-            if (res.success) { alert(res.message); loadStaffList(); } 
-            else { alert(res.message); }
+            if (res.success) { showToast(res.message, res.success); loadStaffList(); } 
+            else { showToast(res.message, res.success); }
           })
           .updateStaffDisplayChar({ staffId: staffId, displayChar: inputVal });
       }
@@ -1453,7 +1453,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
         google.script.run
           .withSuccessHandler(function(res) {
-            alert(res.message);
+            showToast(res.message, res.success);
             if (res.success) {
               document.getElementById('lineMessageText').value = '';
               loadLineHistory();
@@ -1550,7 +1550,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
         google.script.run
           .withSuccessHandler(function(res) {
-            alert(res.message);
+            showToast(res.message, res.success);
             if (res.success) { closeReminderModal(); loadLineHistory(); }
             btn.disabled = false;
             btn.innerText = '🚀 確認して一斉送信';
@@ -1593,7 +1593,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
       function markAsRead(notifId) {
         google.script.run
-          .withSuccessHandler(function(res) { if (res.success) { loadShiftNotifications(); } else { alert(res.message); } })
+          .withSuccessHandler(function(res) { if (res.success) { loadShiftNotifications(); } else {showToast(res.message, res.success); } })
           .markNotificationAsRead(notifId);
       }
 
@@ -1837,7 +1837,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
         google.script.run
           .withSuccessHandler(function(res) {
-            alert(res.message);
+            showToast(res.message, res.success);
             if (res.success) {
               loadClosingStatus(); // リロード
             }
@@ -1856,7 +1856,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
         google.script.run
           .withSuccessHandler(function(res) {
-            alert(res.message);
+            showToast(res.message, res.success);
             if (res.success) {
               loadClosingStatus();
             }
@@ -1899,6 +1899,34 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
       function closeClosingModal() {
         var modal = document.getElementById('closingModal');
         if (modal) modal.style.display = 'none';
+      }
+
+      // 💡 画面上部にふわっと出して数秒で消えるカスタム通知（トースト）
+      function showToast(message, isSuccess) {
+        // すでに存在していれば削除
+        var existing = document.getElementById('customToast');
+        if (existing) existing.remove();
+
+        var toast = document.createElement('div');
+        toast.id = 'customToast';
+        toast.innerText = message;
+        
+        var bgCol = isSuccess !== false ? '#059669' : '#e11d48'; // 成功なら緑、エラーなら赤
+        
+        toast.style.cssText = 
+          'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); ' +
+          'background: ' + bgCol + '; color: #fff; padding: 12px 24px; ' +
+          'border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); ' +
+          'z-index: 999999; font-size: 0.9rem; font-weight: bold; ' +
+          'transition: opacity 0.3s ease; text-align: center; max-width: 90%;';
+        
+        document.body.appendChild(toast);
+
+        // 3秒後にふわっと消す
+        setTimeout(function() {
+          toast.style.opacity = '0';
+          setTimeout(function() { toast.remove(); }, 300);
+        }, 3000);
       }
     </script>
   </body>
