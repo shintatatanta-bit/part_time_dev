@@ -1590,11 +1590,11 @@ function registerStaffBySelf(data) {
       }
     }
 
-    // すでに10名以上登録されている場合は登録をブロックする
-    if (activeCount >= 1 {
+   // すでに9名以上登録されている場合は登録をブロックする
+    if (activeCount >= 9) { // 👈 閉じ括弧 `)` を追加し、上限を 9 に変更
       return { 
         success: false, 
-        message: "⚠️ 登録エラー\n「" + assignedAccount + "」の登録上限（最大10名）に達しているため、これ以上登録できません。別のアカウントをご利用ください。" 
+        message: "⚠️ 登録エラー\n「" + assignedAccount + "」の登録上限（最大9名）に達しているため、これ以上登録できません。別のアカウントをご利用ください。" 
       };
     }
     
