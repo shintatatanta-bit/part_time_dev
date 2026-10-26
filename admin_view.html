@@ -1201,28 +1201,51 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var yearMonthVal = document.getElementById('calendarMonth').value;
         if (!yearMonthVal) return;
 
+        // 💡 読み込み中のプレースホルダーなどを出す場合はここに記述
+
+        let completedCount = 0;
+        const totalTasks = 4;
+
+        function checkAllLoaded() {
+          completedCount++;
+          if (completedCount === totalTasks) {
+            // すべてのデータが揃ったら一度だけカレンダーを描画＆メモ集計
+            renderCurrentView();
+            renderMonthlyMemoSummary();
+          }
+        }
+
+        // ① 祝日マップを並列取得
         google.script.run
           .withSuccessHandler(function(holidayRes) {
             cachedHolidaysMap = holidayRes.success ? holidayRes.holidays : {};
-            google.script.run
-              .withSuccessHandler(function(closedRes) {
-                cachedClosedDays = closedRes.success ? closedRes.closedDays : [];
-                google.script.run
-                  .withSuccessHandler(function(shiftRes) {
-                    cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
-                    google.script.run
-                      .withSuccessHandler(function(freeRes) {
-                        cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
-                        renderCurrentView();
-                        renderMonthlyMemoSummary(); // 💡 カレンダー描画時に一覧も更新
-                      })
-                      .getFreeSchedules(yearMonthVal);
-                  })
-                  .getShiftSchedule(yearMonthVal);
-              })
-              .getClosedDays(yearMonthVal);
+            checkAllLoaded();
           })
           .getJapaneseHolidays(yearMonthVal);
+
+        // ② 休業日を並列取得
+        google.script.run
+          .withSuccessHandler(function(closedRes) {
+            cachedClosedDays = closedRes.success ? closedRes.closedDays : [];
+            checkAllLoaded();
+          })
+          .getClosedDays(yearMonthVal);
+
+        // ③ シフト予定を並列取得
+        google.script.run
+          .withSuccessHandler(function(shiftRes) {
+            cachedShiftsData = shiftRes.success ? shiftRes.shifts : [];
+            checkAllLoaded();
+          })
+          .getShiftSchedule(yearMonthVal);
+
+        // ④ フリー予定を並列取得
+        google.script.run
+          .withSuccessHandler(function(freeRes) {
+            cachedFreeSchedules = freeRes.success ? freeRes.freeSchedules : [];
+            checkAllLoaded();
+          })
+          .getFreeSchedules(yearMonthVal);
       }
 
       function renderCurrentView() {
