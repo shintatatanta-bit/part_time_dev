@@ -561,6 +561,10 @@
             if (existingCount > 0) {
               var msg = '⚠️ 【重複の確認】\n' + data.workDate + ' はすでに ' + existingCount + '件の勤怠申請が行われています。\n\n同日の2度目の勤務として追加登録しますが、よろしいですか？';
               if (!confirm(msg)) {
+                if (submitBtn) {
+                  submitBtn.disabled = false;
+                  submitBtn.innerText = '申請を送信する';
+                }
                 return; // キャンセルされたら送信しない
               }
             }
