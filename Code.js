@@ -170,14 +170,27 @@ function doGet(e) {
   
   // page=staff の場合はスタッフ用ポータルを表示
   if (page === "staff") {
+    var staffId = params.staffId || "";
+    
+    // 💡 【追加】スタッフのステータスが「退職」または無効な場合はアクセスを拒否する
+    if (isStaffRetired(staffId)) {
+      return HtmlService.createHtmlOutput(
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><title>アクセス不可</title></head>' +
+        '<body style="font-family: sans-serif; text-align: center; padding-top: 50px; background: #f8fafc; color: #333;">' +
+        '<h2 style="color: #e11d48;">🔒 このページにはアクセスできません</h2>' +
+        '<p>このスタッフアカウントは現在無効（または退職済み）です。<br>ご不明な点は管理者へお問い合わせください。</p>' +
+        '</body></html>'
+      ).addMetaTag('viewport', 'width=device-width, initial-scale=1');
+    }
+
     var template = HtmlService.createTemplateFromFile("staff_view");
-    template.staffId = params.staffId || "";
-    template.staffName = getStaffName(params.staffId);
+    template.staffId = staffId;
+    template.staffName = getStaffName(staffId);
     template.mode = params.mode || ""; // 👈 管理者ロック用
     return template.evaluate()
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
-  
+    
   // page=register の場合はスタッフ初回登録画面を表示
   if (page === "register") {
     var regTemplate = HtmlService.createTemplateFromFile("staff_register");
@@ -2702,4 +2715,23 @@ function changeStatus(data) {
   } catch (error) {
     return { success: false, message: "エラー: " + error.message };
   }
+}
+
+/**
+ * 💡 スタッフが退職（無効）状態かどうかを判定する関数
+ */
+function isStaffRetired(staffId) {
+  if (!staffId) return true;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("スタッフマスタ");
+  if (!sheet) return false;
+  
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === String(staffId).trim()) {
+      var status = String(data[i][4] || "").trim(); // E列(5列目)がステータス
+      return (status === "退職");
+    }
+  }
+  return false; // スタッフが見つからない場合は一応開けるようにするか、お好みで
 }
