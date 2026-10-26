@@ -2474,7 +2474,8 @@ function getSlackShiftText(yearMonth) {
         
         if (dateStr.indexOf(yearMonth) === 0) {
           if (!shiftMap[dateStr]) shiftMap[dateStr] = [];
-          var displayName = staffName + dailyMemo; // 例: "山田pm"
+          // 💡 伝達事項（dailyMemo）がある場合はカッコで囲む
+          var displayName = dailyMemo ? (staffName + "（" + dailyMemo + "）") : staffName;
           shiftMap[dateStr].push(displayName);
         }
       }

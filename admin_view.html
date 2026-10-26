@@ -375,6 +375,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           width: 100%;
         }
       }
+      
     </style>
   </head>
 
@@ -477,8 +478,17 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         </div>
 
         <div id="calendarList" class="list-view-container" style="display: none; margin-top: 12px;"></div>
-      </div>
-    </div>
+
+        <!-- 💡 伝達事項一覧エリア -->
+        <div id="monthlyMemoSummaryContainer" class="monthly-memo-summary-box" style="display: none;">
+          <h4 style="margin: 0 0 8px 0; font-size: 0.9rem; color: #b45309;">💬 今月のスタッフ伝達事項・備考一覧</h4>
+          <div id="monthlyMemoListContent" style="display: flex; flex-direction: column; gap: 4px;">
+            <!-- ここに自動で一覧が差し込まれます -->
+          </div>
+        </div>
+
+      </div> <!-- 👈 ここで accordion-content を閉じる -->
+    </div>   <!-- 👈 ここで accordion-card を閉じる -->
 
     <!-- アコーディオン 2: 月半期別 勤怠集計 -->
     <div class="accordion-card" id="acc-summary">
@@ -835,7 +845,6 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         var gridHtml = document.getElementById('calendarGrid').outerHTML;
         var printWin = window.open('', '_blank', 'width=1100,height=800');
         
-        // 💡 A4横に合わせたセル高さとフォントサイズの設定
         var cellMinHeight = '125px';
         var fontSizeNum = '0.9rem';
 
@@ -857,12 +866,17 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         printDoc.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #475569; }');
         printDoc.write('.cal-date-num.sun-or-hol { color: #e11d48; }');
         
-        // 💡 印刷時のスタッフチップ（丸バッジ）を大きく見やすくする調整
-        printDoc.write('.cal-section-shift { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }');
-        printDoc.write('.staff-circle-badge { background: #059669 !important; color: white !important; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10pt !important; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }');
+        // 💡 シフトチップの配置と色をしっかり調整
+        printDoc.write('.cal-section-shift { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; position: relative; }');
+        printDoc.write('.staff-circle-badge { background: #059669 !important; color: white !important; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10pt !important; font-weight: bold; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }');
+        
+        // 💡 伝達事項マーク（💬）の位置をバッジの左上に固定
+        printDoc.write('.memo-badge-icon { position: absolute; top: -6px; left: -6px; font-size: 8pt !important; background: #f59e0b; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; z-index: 10; }');
+        
         printDoc.write('.free-badge { background: #d97706 !important; color: white !important; font-size: 7pt !important; padding: 2px 4px; border-radius: 3px; display: inline-flex; align-items: center; }');
         printDoc.write('.del-x { display: none; }');
-        printDoc.write('</style></head><body>');
+        printDoc.write('</style>');
+        printDoc.write('</head><body>');
         printDoc.write('<h2>' + titleText + '</h2>');
         printDoc.write(gridHtml);
         printDoc.write('</body></html>');
@@ -1279,11 +1293,11 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
               if (sh.dailyMemo) {
                 tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
               }
-="memo-badge-icon" title="伝達事項あり">💬</span>' : '';
+              // 💡 ここが原因になりやすいので正しく修正
+              var memoIcon = sh.dailyMemo ? '<span class="memo-badge-icon" title="伝達事項あり">💬</span>' : '';
 
               html += '<div class="staff-circle-badge" onclick="event.stopPropagation()" title="' + tooltipText + '">';
               html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
-              
               html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
               html += '</div>';
             });
@@ -1659,7 +1673,7 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
                 html += '<td>' + escapeHtml(staff.assignedAccount) + '</td>';
                 html += '<td><input type="text" id="char-' + staff.staffId + '" value="' + escapeHtml(staff.displayChar) + '" style="width: 50px; text-align: center; padding: 4px;" maxlength="4"> ' +
                         '<button class="secondary" style="padding: 2px 6px; font-size: 0.75rem;" onclick="updateChar(\'' + staff.staffId + '\')">変更</button></td>';
-                html += '<td class="url-cell"><a href="' + staff.staffUrl + '" target="_blank">' + staff.staffUrl + '</a></td>';
+                html += '<td class="url-cell"><a href="' + staff.staffUrl + '&mode=admin" target="_blank">' + staff.staffUrl + ' &mode=admin</a></td>';
                 html += '<td style="text-align: center;">' + statusBadge + '</td>';
                 html += '<td>';
                 html += '<button class="secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="copyUrl(\'' + staff.staffUrl + '\')">コピー</button> ';

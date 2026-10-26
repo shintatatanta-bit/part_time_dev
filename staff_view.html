@@ -44,6 +44,25 @@
       .btn-edit:hover { background: #b45309; }
       
       .edit-banner { background: #fef3c7; border: 1px solid #f59e0b; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; font-size: 0.85rem; display: none; justify-content: space-between; align-items: center; color: #92400e; }
+    
+    /* 🔒 管理者閲覧ロック時のスタイル */
+      .locked-overlay {
+        position: relative;
+      }
+      .locked-overlay::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(241, 245, 249, 0.6);
+        z-index: 10;
+        cursor: not-allowed;
+      }
+      .admin-lock-banner {
+        background: #fef3c7; border: 1px solid #f59e0b; color: #92400e;
+        padding: 10px 14px; border-radius: 6px; margin-bottom: 14px;
+        font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;
+        font-weight: bold;
+      }
     </style>
   </head>
   <body>
@@ -54,6 +73,12 @@
       <p style="text-align: center; font-size: 0.9rem; color: var(--text-sub); margin-bottom: 16px;">
         スタッフ名: <strong style="color: var(--text-main);"><?= staffName ?></strong>
       </p>
+
+<!-- 🔒 管理者ロックバナー（初期は非表示、adminモード時のみ表示） -->
+        <div id="adminLockBanner" class="admin-lock-banner" style="display: none;">
+          <span>🔒 管理者閲覧モード（誤操作防止のためロック中）</span>
+          <button type="button" onclick="unlockAdminMode()" style="background: var(--warning-color); color: #fff; border: none; padding: 4px 10px; font-size: 0.75rem; width: auto;">🔓 ロックを解除する</button>
+        </div>
 
       <!-- タブ切り替え（一番上に正しく配置） -->
       <div class="portal-tabs">
@@ -218,7 +243,10 @@
         loadShiftHistory();
         loadStaffPendingAlert();
         validateKintaiForm();
-        renderMiniCalendar(); // 💡 初期表示時にカレンダーを描画
+        renderMiniCalendar(); 
+        
+        // 💡 起動時に管理者ロックモードをチェック
+        checkAdminLockMode();
       };
 
       function loadStaffPendingAlert() {
@@ -800,7 +828,6 @@
 
       // 💡 画面上部にふわっと出して数秒で消えるカスタム通知（トースト）
       function showToast(message, isSuccess) {
-        // すでに存在していれば削除
         var existing = document.getElementById('customToast');
         if (existing) existing.remove();
 
@@ -808,7 +835,7 @@
         toast.id = 'customToast';
         toast.innerText = message;
         
-        var bgCol = isSuccess !== false ? '#059669' : '#e11d48'; // 成功なら緑、エラーなら赤
+        var bgCol = isSuccess !== false ? '#059669' : '#e11d48'; 
         
         toast.style.cssText = 
           'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); ' +
@@ -819,11 +846,49 @@
         
         document.body.appendChild(toast);
 
-        // 3秒後にふわっと消す
         setTimeout(function() {
           toast.style.opacity = '0';
           setTimeout(function() { toast.remove(); }, 300);
         }, 3000);
+      } // 👈 ここで showToast を独立して正しく閉じる！
+
+        // 🔒 以下、管理者ロック用の関数（外側に正しく配置）
+      var isAdminLocked = false;
+
+      function checkAdminLockMode() {
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('mode') === 'admin') {
+          isAdminLocked = true;
+          applyLockState(true);
+          var banner = document.getElementById('adminLockBanner');
+          if (banner) banner.style.display = 'flex';
+        }
+      }
+
+      function applyLockState(isLocked) {
+        var formElements = document.querySelectorAll('#viewKintai input, #viewKintai select, #viewKintai button, #viewPref button');
+        formElements.forEach(function(el) {
+          if (el.id !== 'kintaiSubmitBtn') { 
+            el.disabled = isLocked;
+          }
+        });
+        
+        var kintaiCard = document.getElementById('viewKintai');
+        if (isLocked) {
+          kintaiCard.classList.add('locked-overlay');
+        } else {
+          kintaiCard.classList.remove('locked-overlay');
+        }
+      }
+
+      function unlockAdminMode() {
+        if (confirm('管理者ロックを解除して、入力を許可しますか？')) {
+          isAdminLocked = false;
+          applyLockState(false);
+          var banner = document.getElementById('adminLockBanner');
+          if (banner) banner.style.display = 'none';
+          showToast('ロックを解除しました。', true);
+        }
       }
     </script>
   </body>
