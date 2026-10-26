@@ -1515,6 +1515,9 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
               fetchSummary(); // 再集計して画面を更新
             }
           })
+          .withFailureHandler(function(err) {
+            alert('通信エラー: ' + err.message);
+          })
           .saveStaffHourlyWage({
             staffId: staffId,
             periodKey: periodKey,

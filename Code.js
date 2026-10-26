@@ -164,30 +164,24 @@ function sendLineMultipleRepliesWithToken(replyToken, messagesArray, accessToken
   }
 }
 
-// Code.js の doGet 関数を以下のように変更
 function doGet(e) {
   var params = e && e.parameter ? e.parameter : {};
   var page = params.page || "";
   
   // page=staff の場合はスタッフ用ポータルを表示
   if (page === "staff") {
-    var template = HtmlService.createTemplateFromFile("staff_view"); // ※ファイル名に合わせて変更
+    var template = HtmlService.createTemplateFromFile("staff_view");
     template.staffId = params.staffId || "";
     template.staffName = getStaffName(params.staffId);
-    
-    // 💡 URLパラメータの mode をテンプレートに渡す
-    template.mode = params.mode || ""; 
-    
+    template.mode = params.mode || ""; // 👈 管理者ロック用
     return template.evaluate()
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
   
-  // (以降は省略)
-  
-  // 💡 page=register の場合はスタッフ初回登録画面を表示
+  // page=register の場合はスタッフ初回登録画面を表示
   if (page === "register") {
     var regTemplate = HtmlService.createTemplateFromFile("staff_register");
-    regTemplate.accountName = params.account || ""; // URLからアカウント名を受け取る
+    regTemplate.accountName = params.account || "";
     return regTemplate.evaluate()
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
