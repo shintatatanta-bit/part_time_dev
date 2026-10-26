@@ -1502,42 +1502,37 @@ var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
         });
       }
 
-      // 💡 個別スタッフの時給を保存する関数
+      // 💡 個別スタッフの時給を保存する関数（これ一つに統合します）
       function updateStaffWage(staffId, periodKey) {
         var inputEl = document.getElementById('wage-input-' + staffId);
         if (!inputEl) return;
         var newWage = Number(inputEl.value) || 0;
 
+        // 保存ボタンを「保存中...」にして連打を防ぐとより安全です
+        var btn = event.target;
+        var originalText = btn.innerText;
+        btn.disabled = true;
+        btn.innerText = '保存中...';
+
         google.script.run
           .withSuccessHandler(function(res) {
             showToast(res.message, res.success);
             if (res.success) {
-              fetchSummary(); // 再集計して画面を更新
+              fetchSummary(); // 再集計して画面の給与総額を更新
             }
+            btn.disabled = false;
+            btn.innerText = originalText;
           })
           .withFailureHandler(function(err) {
             alert('通信エラー: ' + err.message);
+            btn.disabled = false;
+            btn.innerText = originalText;
           })
           .saveStaffHourlyWage({
             staffId: staffId,
             periodKey: periodKey,
             hourlyWage: newWage
           });
-      }
-
-      // 💡 サーバー側の saveStaffHourlyWage を呼び出して時給を保存する関数
-      function saveStaffHourlyWage(data) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            showToast(res.message, res.success);
-            if (res.success) {
-              fetchSummary(); // 保存成功したら集計を再読み込み
-            }
-          })
-          .withFailureHandler(function(err) {
-            alert('通信エラー: ' + err.message);
-          })
-          .saveStaffHourlyWage(data);
       }
 
       function checkStaffAlertBadge(staffId) {
