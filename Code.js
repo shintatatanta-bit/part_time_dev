@@ -395,13 +395,15 @@ function registerNewStaff(formData) {
     } while (existingIds.indexOf(staffId) !== -1);
     
     var timestamp = new Date();
-    var liffId = "2012184145-HMvvN2iP"; 
-    var staffUrl = "https://liff.line.me/" + liffId + "?page=staff&staffId=" + staffId;
+    
+    // 💡 通常のWebアプリURLベースで個別URLを発行する
+    var webAppUrl = ScriptApp.getService().getUrl();
+    var staffUrl = webAppUrl + "?page=staff&staffId=" + staffId;
     
     sheet.appendRow([
       staffId,
       formData.staffName,
-      "", 
+      formData.lineUserId || "", // LINE IDも確実に保存
       formData.assignedAccount,
       "有効",
       timestamp,
@@ -2945,4 +2947,11 @@ function getDuplicateKintaiAlerts() {
   } catch (e) {
     return { success: false, duplicates: [], message: e.message };
   }
+}
+
+/**
+ * 💡 管理画面の手動登録タブから呼び出される登録関数
+ */
+function registerStaffByAdmin(data) {
+  return registerNewStaff(data);
 }
