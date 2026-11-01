@@ -1440,6 +1440,7 @@ html += '<div class="staff-circle-badge" style="background: ' + badgeMainColor +
 html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
 html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
 html += '</div>';
+
             }); // 👈 ここで確実に forEach を閉じる
           }
           html += '</div>';
@@ -1525,19 +1526,22 @@ html += '</div>';
     tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
   }
 
-  // 🔽 【ここも同様に追加・差し替える】
-  var rawMemo = sh.dailyMemo || '';
-  var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
-  var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '');
+  // 各スタッフのループ内
+var rawMemo = sh.dailyMemo || '';
+var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
 
- var badgeBgColor = isYellow ? '#ca8a04' : '#f59e0b'; 
- var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: ' + badgeBgColor + ';" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
-  // 🔼 --------------------------------------------------
+// 💡 丸バッジ本体の色：黄色ならゴールド系(#ca8a04)、青（デフォルト）なら従来の緑(#059669)
+var badgeMainColor = isYellow ? '#ca8a04' : '#059669'; 
 
-  html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
-  html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
-  html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-  html += '</div>';
+// 💡 ビックリマークの色：常に共通の色（例: オレンジ系 #f59e0b）にする
+var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: #f59e0b;" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
+
+// 💡 丸バッジ本体に badgeMainColor を適用
+html += '<div class="staff-circle-badge" style="background: ' + badgeMainColor + ';" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + escapeHtml(sh.workDate) + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
+html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
+html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + \'\')">×</span>';
+html += '</div>';
 });
           }
           html += '</div>';
@@ -2347,47 +2351,51 @@ html += '</div>';
         }, 3000);
       }
 
-      // 💡 今月の全シフトから伝達事項があるものを集めて一覧表示する関数
-      function renderMonthlyMemoSummary() {
-        var container = document.getElementById('monthlyMemoSummaryContainer');
-        var contentBox = document.getElementById('monthlyMemoListContent');
-        if (!container || !contentBox) return;
+      // renderMonthlyMemoSummary 関数内
+function renderMonthlyMemoSummary() {
+  var container = document.getElementById('monthlyMemoSummaryContainer');
+  var contentBox = document.getElementById('monthlyMemoListContent');
+  if (!container || !contentBox) return;
 
-        var memosWithDate = [];
-        cachedShiftsData.forEach(function(sh) {
-          if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
-            memosWithDate.push({
-              workDate: sh.workDate,
-              staffName: sh.staffName,
-              memo: sh.dailyMemo
-            });
-          }
+  var memosWithDate = [];
+  cachedShiftsData.forEach(function(sh) {
+    if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
+      // 💡 ||color:yellow などのタグを除去した綺麗なテキストを作る
+      var cleanMemo = sh.dailyMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
+      if (cleanMemo) {
+        memosWithDate.push({
+          workDate: sh.workDate,
+          staffName: sh.staffName,
+          memo: cleanMemo
         });
-
-        // 日付順に並び替え
-        memosWithDate.sort(function(a, b) {
-          return new Date(a.workDate) - new Date(b.workDate);
-        });
-
-        if (memosWithDate.length === 0) {
-          container.style.display = 'none';
-          return;
-        }
-
-        container.style.display = 'block';
-        var html = '';
-        memosWithDate.forEach(function(item) {
-          var p = item.workDate.split('-');
-          var dateDisplay = Number(p[1]) + '/' + Number(p[2]); // 例: "10/19"
-          
-          html += '<div class="monthly-memo-item">';
-          html += '<span style="font-weight: bold; color: var(--accent-color); min-width: 45px;">' + dateDisplay + '</span>';
-          html += '<span style="font-weight: 600; min-width: 80px;">' + escapeHtml(item.staffName) + '</span>';
-          html += '<span style="color: var(--text-main); flex-grow: 1;">📝 ' + escapeHtml(item.memo) + '</span>';
-          html += '</div>';
-        });
-        contentBox.innerHTML = html;
       }
+    }
+  });
+
+  // 日付順に並び替え
+  memosWithDate.sort(function(a, b) {
+    return new Date(a.workDate) - new Date(b.workDate);
+  });
+
+  if (memosWithDate.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+  var html = '';
+  memosWithDate.forEach(function(item) {
+    var p = item.workDate.split('-');
+    var dateDisplay = Number(p[1]) + '/' + Number(p[2]); // 例: "10/19"
+    
+    html += '<div class="monthly-memo-item">';
+    html += '<span style="font-weight: bold; color: var(--accent-color); min-width: 45px;">' + dateDisplay + '</span>';
+    html += '<span style="font-weight: 600; min-width: 80px;">' + escapeHtml(item.staffName) + '</span>';
+    html += '<span style="color: var(--text-main); flex-grow: 1;">📝 ' + escapeHtml(item.memo) + '</span>';
+    html += '</div>';
+  });
+  contentBox.innerHTML = html;
+}
 
       // 💰 時給管理モーダル用の処理
       function openWageModal() {
