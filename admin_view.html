@@ -802,20 +802,41 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
 <!-- 💬 シフト個別メモ編集用モーダル -->
 <div id="memoEditModal" class="modal-overlay">
-  <div class="modal-content" style="max-width: 400px; text-align: left;">
+  <div class="modal-content" style="max-width: 420px; text-align: left;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 12px;">
-      <h4 id="memoModalTitle" style="margin: 0;">📌 シフト伝達事項の編集</h4>
+      <h4 id="memoModalTitle" style="margin: 0;">📌 シフト伝達事項・マークの編集</h4>
       <button type="button" class="secondary" onclick="closeMemoModal()">✕ 閉じる</button>
     </div>
     
-    <p id="memoModalSubText" style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0; margin-bottom: 10px;">スタッフのシフトに対するメモ（例: 14:00まで、など）を入力します。</p>
-    
     <input type="hidden" id="memoTargetShiftId" value="">
     
-    <label>伝達事項・備考</label>
-    <textarea id="memoInputText" rows="3" placeholder="例: 14:00まで" style="resize: vertical;"></textarea>
+    <!-- 💡 マーク（テンプレート）選択ボタン -->
+    <label>よく使うマーク・時間指定</label>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; margin-bottom: 12px;">
+      <button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: #f1f5f9;" onclick="setMemoPreset('AM')">AM</button>
+      <button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: #f1f5f9;" onclick="setMemoPreset('PM')">PM</button>
+      <button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: #f1f5f9;" onclick="setMemoPreset('〜11:00')">〜11:00</button>
+      <button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: #f1f5f9;" onclick="setMemoPreset('〜14:00')">〜14:00</button>
+      <button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: #f1f5f9;" onclick="setMemoPreset('11:00〜')">11:00〜</button>
+      <button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: #f1f5f9;" onclick="setMemoPreset('14:00〜')">14:00〜</button>
+      <button type="button" class="secondary" style="padding: 4px 8px; font-size: 0.75rem; background: #fee2e2; color: #991b1b;" onclick="clearMemoPreset()">クリア</button>
+    </div>
 
-    <div class="modal-btns" style="margin-top: 16px;">
+    <label>伝達事項・備考（自由入力可）</label>
+    <textarea id="memoInputText" rows="2" placeholder="例: 14:00まで、など" style="resize: vertical; margin-bottom: 8px;"></textarea>
+
+    <!-- 💡 カラー選択（初期は青） -->
+    <label>マーク・バッジの色選択</label>
+    <div style="display: flex; gap: 12px; margin-top: 6px; margin-bottom: 16px; align-items: center;">
+      <label style="margin:0; font-weight:normal; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+        <input type="radio" name="memoColorRadio" value="blue" checked style="width:auto; margin:0;"> 🔵 青 (デフォルト)
+      </label>
+      <label style="margin:0; font-weight:normal; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+        <input type="radio" name="memoColorRadio" value="yellow" style="width:auto; margin:0;"> 🟡 黄色
+      </label>
+    </div>
+
+    <div class="modal-btns">
       <button type="button" style="background: var(--success-color);" onclick="saveShiftMemoFromModal()">💾 メモを保存する</button>
       <button type="button" class="secondary" style="width: 100%; text-align: center;" onclick="closeMemoModal()">キャンセル</button>
     </div>
@@ -1394,26 +1415,30 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
-              var dispChar = sh.staffName.substring(0, 1);
-              for (var s = 0; s < cachedStaffList.length; s++) {
-                if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
-              }
-              
-              // 💡 ツールチップとメモアイコン（❗）のロジックを追加
-var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
-              if (sh.dailyMemo) {
-                tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
-              }
-              // 💡 正しく変数に代入する形に修正var memoIcon = sh.dailyMemo ? '<s
-              var memoIcon = sh.dailyMemo ? '<span class="memo-badge-icon" title="伝達事項あり">❗</span>' : '';
+  var dispChar = sh.staffName.substring(0, 1);
+  for (var s = 0; s < cachedStaffList.length; s++) {
+    if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
+  }
+  
+  var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
+  if (sh.dailyMemo) {
+    tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
+  }
 
-html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
-html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
-html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-html += '</div>';
-            });
-          }
-          html += '</div>';
+  // 🔽 【ここに差し替えるか追加してください】
+  var rawMemo = sh.dailyMemo || '';
+  var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+  var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '');
+
+  var badgeBgColor = isYellow ? '#ca8a04' : '#f59e0b'; 
+  var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: ' + badgeBgColor + ';" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
+  // 🔼 --------------------------------------------------
+
+  html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
+  html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
+  html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+  html += '</div>';
+});
 
           html += '<div class="cal-section-free">';
           if (freeMap[dateStr]) {
@@ -1487,23 +1512,29 @@ html += '</div>';
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
-              var dispChar = sh.staffName.substring(0, 1);
-              for (var s = 0; s < cachedStaffList.length; s++) {
-                if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
-              }
-              var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
-              if (sh.dailyMemo) {
-                tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
-              }
-              // 💡 ここが原因になりやすいので正しく修正
-              var memoIcon = sh.dailyMemo ? '<span class="memo-badge-icon" title="伝達事項あり">❗</span>' : '';
+  var dispChar = sh.staffName.substring(0, 1);
+  for (var s = 0; s < cachedStaffList.length; s++) {
+    if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
+  }
+  var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
+  if (sh.dailyMemo) {
+    tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
+  }
 
-              // 修正後（shiftId や staffName, dailyMemo を渡せるようにする）
-html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
-              html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-              html += '</div>';
-            });
+  // 🔽 【ここも同様に追加・差し替える】
+  var rawMemo = sh.dailyMemo || '';
+  var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+  var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '');
+
+  var badgeBgColor = isYellow ? '#ca8a04' : '#f59e0b'; 
+  var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: ' + badgeBgColor + ';" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
+  // 🔼 --------------------------------------------------
+
+  html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
+  html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
+  html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+  html += '</div>';
+});
           }
           html += '</div>';
           html += '<div class="list-section-free">';
@@ -2608,13 +2639,41 @@ function loadAccountOptions() {
 
 var currentEditingShiftId = null;
 
-// モーダルを開く
+// モーダルを開く（カラーやメモの分解に対応）
 function openMemoModal(shiftId, staffName, workDate, currentMemo) {
   currentEditingShiftId = shiftId;
   document.getElementById('memoTargetShiftId').value = shiftId;
   document.getElementById('memoModalTitle').innerText = '📌 伝達事項の編集 (' + staffName + ' / ' + workDate + ')';
-  document.getElementById('memoInputText').value = currentMemo;
+  
+  // "メモ内容||color:yellow" のような形式から、メモ本体と色を分離する
+  var memoText = currentMemo || "";
+  var selectedColor = "blue"; // 初期は青
+  
+  if (memoText.indexOf("||color:yellow") !== -1) {
+    selectedColor = "yellow";
+    memoText = memoText.replace("||color:yellow", "");
+  } else if (memoText.indexOf("||color:blue") !== -1) {
+    selectedColor = "blue";
+    memoText = memoText.replace("||color:blue", "");
+  }
+
+  document.getElementById('memoInputText').value = memoText;
+  
+  var radios = document.getElementsByName('memoColorRadio');
+  for (var i = 0; i < radios.length; i++) {
+    radios[i].checked = (radios[i].value === selectedColor);
+  }
+
   document.getElementById('memoEditModal').style.display = 'flex';
+}
+
+// プリセットボタンが押されたときに入力欄へセットする
+function setMemoPreset(val) {
+  document.getElementById('memoInputText').value = val;
+}
+
+function clearMemoPreset() {
+  document.getElementById('memoInputText').value = "";
 }
 
 // モーダルを閉じる
@@ -2623,15 +2682,30 @@ function closeMemoModal() {
   currentEditingShiftId = null;
 }
 
-// モーダルからメモを保存する
+// モーダルからメモとカラーを保存する
 function saveShiftMemoFromModal() {
   var shiftId = document.getElementById('memoTargetShiftId').value;
-  var newMemo = document.getElementById('memoInputText').value.trim();
+  var textVal = document.getElementById('memoInputText').value.trim();
+  
+  var colorVal = "blue";
+  var radios = document.getElementsByName('memoColorRadio');
+  for (var i = 0; i < radios.length; i++) {
+    if (radios[i].checked) {
+      colorVal = radios[i].value;
+      break;
+    }
+  }
+
+  // テキストと色を組み合わせて保存文字列を作成（色が黄色のときだけカラータグを付与、青はデフォルトなのでそのまま）
+  var finalMemo = textVal;
+  if (textVal && colorVal === "yellow") {
+    finalMemo = textVal + "||color:yellow";
+  }
 
   // キャッシュ内の該当シフトデータを更新
   var target = cachedShiftsData.find(function(s) { return s.shiftId === shiftId; });
   if (target) {
-    target.dailyMemo = newMemo;
+    target.dailyMemo = finalMemo;
   }
 
   // 再描画と下部一覧の更新、未保存フラグの点灯
