@@ -1522,6 +1522,7 @@ html += '</div>';
                 if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
               }
               
+              // 739行目付近（renderGridCalendar内）
               var rawMemo = sh.dailyMemo || '';
               var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
               var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
