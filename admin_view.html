@@ -169,10 +169,10 @@
       .free-badge:hover { background: #b45309; }
 
       .staff-circle-badge {
-        background: var(--success-color); color: white; width: 24px; height: 24px; border-radius: 50%;
-        display: inline-flex; align-items: center; justify-content: center; font-size: 7pt !important; font-weight: 600;
-        position: relative; cursor: pointer; box-shadow: 0 1px 2px rgba(16, 185, 129, 0.2);
-      }
+  color: white; width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 7pt !important; font-weight: 600;
+  position: relative; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
       .staff-circle-badge:hover { background: var(--danger-color); }
       .staff-circle-badge .del-x {
         position: absolute; top: -3px; right: -3px; background: var(--danger-color); color: white;
@@ -1426,16 +1426,20 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
               }
 
               var rawMemo = sh.dailyMemo || '';
-              var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
-              var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '');
+var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '');
 
-              var badgeBgColor = isYellow ? '#ca8a04' : '#f59e0b'; 
-              var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: ' + badgeBgColor + ';" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
+// 💡 バッジ自体の背景色（青選択時は従来の緑/青系 #059669、黄色選択時は鮮やかな黄色/ゴールド系 #ca8a04）
+var badgeMainColor = isYellow ? '#ca8a04' : '#059669'; 
 
-              html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
-              html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
-              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-              html += '</div>';
+// ❗マークはご要望通り全部同じ色（例: オレンジ系 #f59e0b）にする
+var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: #f59e0b;" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
+
+// 💡 style="background: [色];" をバッジ本体に付与する
+html += '<div class="staff-circle-badge" style="background: ' + badgeMainColor + ';" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
+html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
+html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+html += '</div>';
             }); // 👈 ここで確実に forEach を閉じる
           }
           html += '</div>';
