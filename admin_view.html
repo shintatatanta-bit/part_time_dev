@@ -1181,6 +1181,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
       }
 
       function onCellClick(dateStr) {
+        // 💡 修正: スタッフまたはフリー予定のチップが選択されている場合は、その日付に配置する処理を優先する
         if (selectedStaffForClick) {
           if (selectedStaffForClick.type === 'free') {
             var tempId = "local_free_" + Math.random();
@@ -1190,12 +1191,13 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             selectedStaffForClick = null;
             document.querySelectorAll('.staff-chip').forEach(function(c) { c.classList.remove('selected-active'); });
           } else if (selectedStaffForClick.type === 'staff') {
-            // 💡 選択されたスタッフ情報を元にモーダルを開く
+            // 選択されたスタッフの配置モーダルを開く
             openModal(dateStr, selectedStaffForClick.staffId, selectedStaffForClick.staffName, selectedStaffForClick.displayChar);
             selectedStaffForClick = null;
             document.querySelectorAll('.staff-chip').forEach(function(c) { c.classList.remove('selected-active'); });
           }
         } else {
+          // チップが選択されていない通常のタップ時は、これまで通り「休業日」を切り替える
           var index = cachedClosedDays.indexOf(dateStr);
           if (index !== -1) { cachedClosedDays.splice(index, 1); } 
           else { cachedClosedDays.push(dateStr); }
