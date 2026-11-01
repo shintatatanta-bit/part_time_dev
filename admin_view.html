@@ -1415,30 +1415,30 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
             sortedShifts.forEach(function(sh) {
-  var dispChar = sh.staffName.substring(0, 1);
-  for (var s = 0; s < cachedStaffList.length; s++) {
-    if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
-  }
-  
-  var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
-  if (sh.dailyMemo) {
-    tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
-  }
+              var dispChar = sh.staffName.substring(0, 1);
+              for (var s = 0; s < cachedStaffList.length; s++) {
+                if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
+              }
+              
+              var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
+              if (sh.dailyMemo) {
+                tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
+              }
 
-  // 🔽 【ここに差し替えるか追加してください】
-  var rawMemo = sh.dailyMemo || '';
-  var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
-  var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '');
+              var rawMemo = sh.dailyMemo || '';
+              var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+              var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '');
 
-  var badgeBgColor = isYellow ? '#ca8a04' : '#f59e0b'; 
-  var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: ' + badgeBgColor + ';" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
-  // 🔼 --------------------------------------------------
+              var badgeBgColor = isYellow ? '#ca8a04' : '#f59e0b'; 
+              var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: ' + badgeBgColor + ';" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
 
-  html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
-  html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
-  html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
-  html += '</div>';
-});
+              html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
+              html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '</div>';
+            }); // 👈 ここで確実に forEach を閉じる
+          }
+          html += '</div>';
 
           html += '<div class="cal-section-free">';
           if (freeMap[dateStr]) {
