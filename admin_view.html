@@ -1052,8 +1052,11 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         printDoc.open();
         printDoc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titleText + '</title>');
         printDoc.write('<style>');
-        printDoc.write('@page { size: A4 landscape; margin: 10mm; }');
-        printDoc.write('body { font-family: sans-serif; margin: 0; padding: 5px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; box-sizing: border-box; }');
+printDoc.write('@page { size: A4 landscape; margin: 10mm; }');
+// 💡 【追加】背景色やバッジの色を強制的に印刷・PDF出力させる設定
+printDoc.write('* { -webkit-print-color-adjust: exact; print-color-adjust: exact; }'); 
+
+printDoc.write('body { font-family: sans-serif; margin: 0; padding: 5px; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100vh; box-sizing: border-box; }');
         printDoc.write('h2 { text-align: center; margin: 0 0 10px 0; font-size: 1.4rem; }');
         printDoc.write('.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; width: 100%; max-width: 100%; flex-grow: 1; }');
         printDoc.write('.cal-header-cell { text-align: center; font-weight: bold; font-size: 0.9rem; padding: 6px 4px; background: #f1f5f9; border-radius: 4px; }');
