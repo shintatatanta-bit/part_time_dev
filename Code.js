@@ -11,7 +11,9 @@ function doPost(e) {
     var destination = contents.destination; // 宛先ボットのID
     
     var accessToken = getAccessTokenByDestination(destination);
-    var accountName = getAccountNameByDestination(destination); // 💡 アカウント名を特定
+    // 💡 シートへのBot ID書き込みを即座に確定させてからアカウント名を取得する
+    SpreadsheetApp.flush(); 
+    var accountName = getAccountNameByDestination(destination);
     
     for (var i = 0; i < events.length; i++) {
       var event = events[i];
@@ -21,10 +23,10 @@ function doPost(e) {
         var lineUserId = event.source.userId;
         var replyToken = event.replyToken;
         
-        // 🚀 【追加】どのアカウントに届いたメッセージでも、すべてSlackに飛ばす！
+        // 1. まず通常通りSlackへメッセージ受信を通知
         sendToSlack(accountName, lineUserId, userMessage);
         
-        // 既存の「登録」などのキーワード判定処理
+        // 2. 「登録」などのキーワード判定処理
         if (userMessage === "登録" || userMessage === "ID確認" || userMessage === "id") {
           saveLineIdLog(lineUserId);
           
@@ -33,22 +35,21 @@ function doPost(e) {
           
           var messages = [
             { type: "text", text: "お疲れ様です！スタッフ登録を行います。\n\n① まず以下のご自身の【LINE ID】をコピーしてください👇" },
-            { type: "text", text: "＝＝＝＝" },
             { type: "text", text: lineUserId },
-            { type: "text", text: "＝＝＝＝" },
-            { type: "text", text: "② 次に、以下のリンクから登録フォームを開き、コピーしたLINE IDを貼り付けてください。" },
-            { type: "text", text: "＝＝＝＝" },
-            { type: "text", text: "▼ スタッフ初回登録ページ" },
-            { type: "text", text: "＝＝＝＝" },
-            { type: "text", text: registerUrl }
+            { type: "text", text: "② 次に、以下のリンクから登録フォームを開き、コピーしたLINE IDを貼り付けてください。\n\n▼ スタッフ初回登録ページ\n" + registerUrl }
           ];
           
-          sendLineMultipleRepliesWithToken(replyToken, messages, accessToken);
+          // 💡 LINEへ返信を試み、その結果（成功かエラー理由か）を受け取る
+          var debugResult = sendLineMultipleRepliesWithToken(replyToken, messages, accessToken);
+          
+          // 🚀 【診断用】LINEの返信がどうなったかをSlackに報告させる！
+          sendToSlack(accountName, "【システム診断】", "LINE返信処理の結果:\n" + debugResult + "\n(取得トークン有無: " + (accessToken ? "あり" : "なし/空") + ")");
         }
       }
     }
   } catch (error) {
-    Logger.log("doPostエラー: " + error.message);
+    // 万が一途中でエラーが起きたら、そのエラー内容をSlackに飛ばす
+    sendToSlack("アカウントA", "【システムエラー】", "doPost内でエラー発生: " + error.message);
   }
   
   return ContentService.createTextOutput(JSON.stringify({status: "ok"}))
@@ -112,11 +113,8 @@ function getAccessTokenByDestination(destination) {
   }
 }
 
-/**
- * 💡 指定したアクセストークンを使用して複数のメッセージを返信する関数
- * （もしトークンが未特定・不一致だった場合は、全アカウントのトークンを順番に試して確実に返信します）
- */
 function sendLineMultipleRepliesWithToken(replyToken, messagesArray, accessToken) {
+  var logMsg = "";
   try {
     var url = "https://api.line.me/v2/bot/message/reply";
     var payload = JSON.stringify({
@@ -136,15 +134,20 @@ function sendLineMultipleRepliesWithToken(replyToken, messagesArray, accessToken
         muteHttpExceptions: true
       });
       
-      if (res.getResponseCode() === 200) {
-        return; // 送信成功したら終了！
+      var code = res.getResponseCode();
+      var text = res.getContentText();
+      if (code === 200) {
+        return "✅ ①メイン送信で成功 (200 OK)";
       }
+      logMsg += "❌ ①メイン送信失敗 [コード:" + code + " 理由:" + text + "] / ";
+    } else {
+      logMsg += "⚠️ ①メインのトークンが空です / ";
     }
     
-    // ② 万が一①で送信できなかった場合（accessTokenが空など）、アカウントマスタの全トークンを順番に試す
+    // ② 万が一①で送信できなかった場合、アカウントマスタの全トークンを順番に試す
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("アカウントマスタ");
-    if (!sheet) return;
+    if (!sheet) return logMsg + "アカウントマスタシートなし";
     
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
@@ -161,13 +164,17 @@ function sendLineMultipleRepliesWithToken(replyToken, messagesArray, accessToken
         muteHttpExceptions: true
       });
       
-      // ステータス200（成功）が返ってきたら、正しく返信できたのでループを抜ける
-      if (resFallback.getResponseCode() === 200) {
-        break;
+      var fCode = resFallback.getResponseCode();
+      var fText = resFallback.getContentText();
+      if (fCode === 200) {
+        return logMsg + "✅ ②フォールバック(" + data[i][0] + ")で送信成功！";
+      } else {
+        logMsg += "❌ ②(" + data[i][0] + ")失敗 [コード:" + fCode + " 理由:" + fText + "] ";
       }
     }
+    return logMsg;
   } catch (e) {
-    Logger.log("sendLineMultipleRepliesWithTokenエラー: " + e.message);
+    return "関数内例外エラー: " + e.message;
   }
 }
 
