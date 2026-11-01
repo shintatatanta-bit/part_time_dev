@@ -1529,16 +1529,12 @@ html += '</div>';
   // 各スタッフのループ内
 var rawMemo = sh.dailyMemo || '';
 var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
-var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
 
-// 💡 丸バッジ本体の色：黄色ならゴールド系(#ca8a04)、青（デフォルト）なら従来の緑(#059669)
+// 💡 黄色なら #ca8a04、青なら #059669 に切り替える
 var badgeMainColor = isYellow ? '#ca8a04' : '#059669'; 
 
-// 💡 ビックリマークの色：常に共通の色（例: オレンジ系 #f59e0b）にする
-var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: #f59e0b;" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
-
-// 💡 丸バッジ本体に badgeMainColor を適用
-html += '<div class="staff-circle-badge" style="background: ' + badgeMainColor + ';" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + escapeHtml(sh.workDate) + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
+// 💡 バッジ本体の style に badgeMainColor を渡す
+html += '<div class="staff-circle-badge" style="background: ' + badgeMainColor + ';" onclick="event.stopPropagation(); openMemoModal(...)">';
 html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
 html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + \'\')">×</span>';
 html += '</div>';
@@ -2362,14 +2358,14 @@ function renderMonthlyMemoSummary() {
   var memosWithDate = [];
   cachedShiftsData.forEach(function(sh) {
     if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
-      // 💡 ここで ||color:yellow や ||color:blue を綺麗に取り除く
+      // 💡 ここで ||color:yellow をしっかり削除しているか確認
       var cleanMemo = sh.dailyMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
       
       if (cleanMemo) {
         memosWithDate.push({
           workDate: sh.workDate,
           staffName: sh.staffName,
-          memo: cleanMemo // 綺麗なテキストを格納
+          memo: cleanMemo
         });
       }
     }
