@@ -1516,29 +1516,31 @@ html += '</div>';
           html += '<div class="list-section-shift">';
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
+            s// renderGridCalendar 内の該当部分（740行目付近）もこちらに揃えると完璧です
             sortedShifts.forEach(function(sh) {
-  var dispChar = sh.staffName.substring(0, 1);
-  for (var s = 0; s < cachedStaffList.length; s++) {
-    if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
-  }
-  var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
-  if (sh.dailyMemo) {
-    tooltipText += '\n希望/備考: ' + escapeHtml(sh.dailyMemo);
-  }
+              var dispChar = sh.staffName.substring(0, 1);
+              for (var s = 0; s < cachedStaffList.length; s++) {
+                if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
+              }
+              
+              var rawMemo = sh.dailyMemo || '';
+              var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+              var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
 
-  // 各スタッフのループ内
-var rawMemo = sh.dailyMemo || '';
-var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+              var tooltipText = 'スタッフ名: ' + escapeHtml(sh.staffName);
+              if (displayMemoText) {
+                tooltipText += '\n希望/備考: ' + escapeHtml(displayMemoText);
+              }
 
-// 💡 黄色なら #ca8a04、青なら #059669 に切り替える
-var badgeMainColor = isYellow ? '#ca8a04' : '#059669'; 
+              var badgeMainColor = isYellow ? '#ca8a04' : '#059669'; 
+              var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: #f59e0b;" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
 
-// 💡 バッジ本体の style に badgeMainColor を渡す
-html += '<div class="staff-circle-badge" style="background: ' + badgeMainColor + ';" onclick="event.stopPropagation(); openMemoModal(...)">';
-html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
-html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + \'\')">×</span>';
-html += '</div>';
-});
+              html += '<div class="staff-circle-badge" style="background: ' + badgeMainColor + ';" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
+              html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
+              html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
+              html += '</div>';
+            });
+
           }
           html += '</div>';
           html += '<div class="list-section-free">';
@@ -2707,9 +2709,9 @@ function saveShiftMemoFromModal() {
     }
   }
 
-  // テキストと色を組み合わせて保存文字列を作成（色が黄色のときだけカラータグを付与、青はデフォルトなのでそのまま）
+  // 文字が空欄でも黄色が選ばれていれば ||color:yellow を保持する
   var finalMemo = textVal;
-  if (textVal && colorVal === "yellow") {
+  if (colorVal === "yellow") {
     finalMemo = textVal + "||color:yellow";
   }
 
@@ -2727,6 +2729,7 @@ function saveShiftMemoFromModal() {
   closeMemoModal();
   showToast('メモを一時保存しました。「変更内容を保存する」を押して確定させてください。', true);
 }
+
     </script>
   </body>
 </html>

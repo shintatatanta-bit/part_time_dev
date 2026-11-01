@@ -2493,7 +2493,7 @@ function getSlackShiftText(yearMonth) {
       for (var i = 1; i < shiftData.length; i++) {
         var workDate = shiftData[i][1];
         var staffName = String(shiftData[i][3] || "").trim();
-        var dailyMemo = String(shiftData[i][4] || "").trim(); // 例: "pm" など
+        var dailyMemo = String(shiftData[i][4] || "").replace("||color:yellow", "").replace("||color:blue", "").trim();
         
         if (!workDate || !staffName) continue;
         var d = new Date(workDate);
