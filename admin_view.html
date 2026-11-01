@@ -2352,6 +2352,8 @@ html += '</div>';
       }
 
       // renderMonthlyMemoSummary 関数内
+
+// 💡 今月の全シフトから伝達事項があるものを集めて一覧表示する関数
 function renderMonthlyMemoSummary() {
   var container = document.getElementById('monthlyMemoSummaryContainer');
   var contentBox = document.getElementById('monthlyMemoListContent');
@@ -2360,13 +2362,14 @@ function renderMonthlyMemoSummary() {
   var memosWithDate = [];
   cachedShiftsData.forEach(function(sh) {
     if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
-      // 💡 ||color:yellow などのタグを除去した綺麗なテキストを作る
+      // 💡 ここで ||color:yellow や ||color:blue を綺麗に取り除く
       var cleanMemo = sh.dailyMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
+      
       if (cleanMemo) {
         memosWithDate.push({
           workDate: sh.workDate,
           staffName: sh.staffName,
-          memo: cleanMemo
+          memo: cleanMemo // 綺麗なテキストを格納
         });
       }
     }
@@ -2386,7 +2389,7 @@ function renderMonthlyMemoSummary() {
   var html = '';
   memosWithDate.forEach(function(item) {
     var p = item.workDate.split('-');
-    var dateDisplay = Number(p[1]) + '/' + Number(p[2]); // 例: "10/19"
+    var dateDisplay = Number(p[1]) + '/' + Number(p[2]); // 例: "11/2"
     
     html += '<div class="monthly-memo-item">';
     html += '<span style="font-weight: bold; color: var(--accent-color); min-width: 45px;">' + dateDisplay + '</span>';
