@@ -1516,7 +1516,6 @@ html += '</div>';
           html += '<div class="list-section-shift">';
           if (shiftMap[dateStr]) {
             var sortedShifts = sortShiftsByStaffOrder(shiftMap[dateStr]);
-            s// renderGridCalendar 内の該当部分（740行目付近）もこちらに揃えると完璧です
             sortedShifts.forEach(function(sh) {
               var dispChar = sh.staffName.substring(0, 1);
               for (var s = 0; s < cachedStaffList.length; s++) {
@@ -1540,8 +1539,8 @@ html += '</div>';
               html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
               html += '</div>';
             });
-
           }
+
           html += '</div>';
           html += '<div class="list-section-free">';
           if (freeMap[dateStr]) {
