@@ -1526,8 +1526,8 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
   var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
   var displayMemoText = rawMemo.replace('||color:yellow', '').replace('||color:blue', '');
 
-  var badgeBgColor = isYellow ? '#ca8a04' : '#f59e0b'; 
-  var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: ' + badgeBgColor + ';" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
+ var badgeBgColor = isYellow ? '#ca8a04' : '#f59e0b'; 
+ var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: ' + badgeBgColor + ';" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
   // 🔼 --------------------------------------------------
 
   html += '<div class="staff-circle-badge" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
