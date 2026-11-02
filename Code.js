@@ -3199,7 +3199,7 @@ function exportSheetToPdf_(sheet, fileName, folder) {
 
 /**
  * 💡 A4縦2ページ（横に並べるとA3の格子カレンダー＋下部伝達事項）のPDFを直接生成する関数
- * PDFエンジンでも確実に色と丸みが維持されるようにスタイルを最適化版
+ * PDFエンジンでも色が確実に維持される「カラーブロック（角なし四角タグ）」形式
  */
 function generateA3CalendarPdf(yearMonth) {
   try {
@@ -3328,7 +3328,7 @@ function generateA3CalendarPdf(yearMonth) {
               tHtml += ' <span style="font-size:7pt; color:#e11d48; font-weight:bold;">' + esc(cell.holidayName) + '</span>';
             }
             if (cell.isClosed) {
-              tHtml += ' <span style="font-size:7pt; background:#cbd5e1; color:#334155; padding:1px 3px; border-radius:3px;">休</span>';
+              tHtml += ' <span style="font-size:7pt; background:#cbd5e1; color:#334155; padding:1px 3px;">休</span>';
             }
             tHtml += '</div>';
 
@@ -3345,11 +3345,11 @@ function generateA3CalendarPdf(yearMonth) {
                 var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
                 var cleanM = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
                 
-                // 💡 PDFエンジンで確実に色と丸みを反映させるためのテーブルセル構造バッジ
+                // 💡 カラーブロック形式（背景色が確実にPDFに乗るデザイン）
                 var badgeBg = isYellow ? '#ca8a04' : '#059669'; 
-                var memoIndicator = cleanM ? '<span style="background:#f59e0b; color:#ffffff; font-size:6pt; padding:1px 3px; margin-right:2px; font-weight:bold;">!</span>' : '';
+                var memoIndicator = cleanM ? '<span style="background-color:#f59e0b; color:#ffffff; font-size:6pt; padding:1px 3px; margin-right:3px; font-weight:bold;">!</span>' : '';
                 
-                tHtml += '<span style="background-color: ' + badgeBg + '; color: #ffffff; padding: 2px 6px; margin: 1px; display: inline-block; font-size: 8.5pt; font-weight: bold; border-radius: 10px;">' + memoIndicator + esc(dispChar) + '</span>';
+                tHtml += '<span style="background-color: ' + badgeBg + '; color: #ffffff; padding: 2px 6px; margin: 1px; display: inline-block; font-size: 8.5pt; font-weight: bold;">' + memoIndicator + esc(dispChar) + '</span>';
               });
               tHtml += '</div>';
             }
@@ -3377,7 +3377,7 @@ function generateA3CalendarPdf(yearMonth) {
 
     function buildMemosBoxHtml(memoList, subLabel) {
       if (memosWithDate.length === 0) return '';
-      var mHtml = '<div style="margin-top:12px; border:1px solid #f59e0b; background:#fffbeb; padding:8px; border-radius:6px;">';
+      var mHtml = '<div style="margin-top:12px; border:1px solid #f59e0b; background-color:#fffbeb; padding:8px;">';
       mHtml += '<div style="font-weight:bold; font-size:9.5pt; color:#b45309; margin-bottom:4px; border-bottom:1px solid #fde68a; padding-bottom:3px;">📝 スタッフ伝達事項・希望時間一覧 ' + subLabel + '</div>';
       if (memoList.length === 0) {
         mHtml += '<div style="font-size:8.5pt; color:#64748b; padding:4px;">（続きはありません）</div>';
@@ -3410,9 +3410,9 @@ function generateA3CalendarPdf(yearMonth) {
     html += '.page-left { page-break-after: always; }';
     html += 'h2 { margin: 0 0 8px 0; font-size: 14pt; }';
     html += 'table.cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; }';
-    html += 'table.cal-table th { background: #f1f5f9; border: 1px solid #64748b; padding: 5px; font-size: 10pt; text-align: center; }';
+    html += 'table.cal-table th { background-color: #f1f5f9; border: 1px solid #64748b; padding: 5px; font-size: 10pt; text-align: center; }';
     html += 'table.cal-table td { border: 1px solid #64748b; vertical-align: top; padding: 5px; height: ' + cellHeight + '; }';
-    html += '.free-item { display: inline-block; background: #d97706; color: #ffffff; font-size: 7pt; padding: 1px 4px; border-radius: 3px; margin: 1px; }';
+    html += '.free-item { display: inline-block; background-color: #d97706; color: #ffffff; font-size: 7pt; padding: 1px 4px; margin: 1px; font-weight: bold; }';
     html += '</style></head><body>';
 
     // 1ページ目（左側：日〜水曜日の4列 ＋ 伝達事項の前半）
