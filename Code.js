@@ -3198,72 +3198,11 @@ function exportSheetToPdf_(sheet, fileName, folder) {
 }
 
 /**
- * 💡 シフトカレンダーと伝達事項を含むA3横のPDFバイナリを生成して返す関数
+ * 💡 クライアント側から呼び出された際にA3横のPDFを生成して返す関数
  */
 function generateA3CalendarPdf(yearMonth) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    
-    // 対象月のカレンダーシートを取得（例: "2026年 11月度" や当月のシート）
-    if (!yearMonth) {
-      var now = new Date();
-      yearMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-    }
-    var parts = yearMonth.split('-');
-    var sheetName = parts[0] + "年 " + Number(parts[1]) + "月度";
-    var sheet = ss.getSheetByName(sheetName) || ss.getSheetByName(Number(parts[1]) + "月度") || ss.getActiveSheet();
-    
-    var spreadsheetId = ss.getId();
-    var sheetId = sheet.getSheetId();
-    
-    // 💡 A3横サイズでPDFを出力するためのエクスポートURLパラメータ
-    var url = "https://docs.google.com/spreadsheets/d/" + spreadsheetId + "/export?";
-    var options = {
-      exportFormat: "pdf",
-      format: "pdf",
-      size: "11",          // A3サイズ指定 (11 = A3)
-      portrait: "false",   // 横向き (landscape)
-      fitw: "true",        // 幅をページに合わせる
-      gridlines: "false",  // グリッド線非表示
-      printtitle: "false",
-      sheetnames: "false",
-      fzr: "false",
-      gid: sheetId
-    };
-    
-    var urlParts = [];
-    for (var key in options) {
-      urlParts.push(key + "=" + options[key]);
-    }
-    var exportUrl = url + urlParts.join("&");
-    
-    // OAuthトークンを使ってURLからPDFデータを取得
-    var response = UrlFetchApp.fetch(exportUrl, {
-      headers: {
-        "Authorization": "Bearer " + ScriptApp.getOAuthToken(),
-        "MuteHttpExceptions": true
-      }
-    });
-    
-    if (response.getResponseCode() !== 200) {
-      throw new Error("PDFの生成に失敗しました（コード: " + response.getResponseCode() + "）");
-    }
-    
-    var blob = response.getBlob();
-    var fileName = yearMonth + "_シフト予定表_A3横.pdf";
-    blob.setName(fileName);
-    
-    // Base64にエンコードしてクライアント（ブラウザ）に渡す
-    var base64Data = Utilities.base64Encode(blob.getBytes());
-    
-    return {
-      success: true,
-      base64: base64Data,
-      fileName: fileName,
-      mimeType: "application/pdf"
-    };
-    
-  } catch (error) {
-    return { success: false, message: error.message };
-  }
+  // ※この関数はサーバー側（Code.js）に配置するものですが、
+  // 今回はスプレッドシートではなくブラウザの印刷機能を使うため、実際には呼び出されません。
+  // エラーを防ぐためのダミーとして置いておきます。
+  return { success: false, message: "ブラウザ側の印刷機能を使用します。" };
 }
