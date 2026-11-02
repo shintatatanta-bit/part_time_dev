@@ -3198,7 +3198,8 @@ function exportSheetToPdf_(sheet, fileName, folder) {
 }
 
 /**
- * 💡 A4縦2ページ（横に並べるとA3横1枚の大きなカレンダー＋下部伝達事項になる）PDFを直接生成する関数
+ * 💡 A4縦2ページ（横に並べるとA3の格子カレンダー＋下部伝達事項）のPDFを直接生成する関数
+ * スタッフバッジはA4横カレンダーと同じ「色付きの丸（丸型バッジ）」に統一しています
  */
 function generateA3CalendarPdf(yearMonth) {
   try {
@@ -3265,7 +3266,6 @@ function generateA3CalendarPdf(yearMonth) {
       });
     }
 
-    // カレンダーの全週データ（日曜日〜土曜日の7日分×週数）を2次元配列として構築
     var firstDayObj = new Date(year, month - 1, 1);
     var lastDayObj = new Date(year, month, 0);
     var firstDayOfWeek = firstDayObj.getDay();
@@ -3301,7 +3301,6 @@ function generateA3CalendarPdf(yearMonth) {
       weeks.push(allCells.slice(wIdx, wIdx + 7));
     }
 
-    // 指定した曜日範囲（0〜3: 日〜水 / 4〜6: 木〜土）のテーブルHTMLを生成する関数
     var weekDaysAll = ["日", "月", "火", "水", "木", "金", "土"];
     function buildCalendarTableHtml(startCol, endCol) {
       var tHtml = '<table class="cal-table"><thead><tr>';
@@ -3339,15 +3338,18 @@ function generateA3CalendarPdf(yearMonth) {
                 var ob = (staffOrderMap[b.staffId] !== undefined) ? staffOrderMap[b.staffId] : 999;
                 return oa - ob;
               });
-              tHtml += '<div>';
+              tHtml += '<div style="display:flex; flex-wrap:wrap; gap:3px; align-items:center;">';
               dayShifts.forEach(function(sh) {
                 var dispChar = staffCharMap[sh.staffId] || sh.staffName.substring(0, 1);
                 var rawMemo = String(sh.dailyMemo || '');
                 var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
                 var cleanM = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
-                var badgeBg = isYellow ? '#ca8a04' : '#059669';
-                var mark = cleanM ? '!' : '';
-                tHtml += '<span class="badge" style="background:' + badgeBg + ';">' + mark + esc(dispChar) + '</span>';
+                
+                // 💡 スタッフバッジ：A4横カレンダーと同じ「色付きの丸」デザイン
+                var badgeBg = isYellow ? '#ca8a04' : '#059669'; 
+                var memoIcon = cleanM ? '<span style="position:absolute; top:-3px; left:-3px; font-size:6pt; background:#f59e0b; color:#fff; border-radius:50%; width:11px; height:11px; display:flex; align-items:center; justify-content:center; font-weight:bold;">!</span>' : '';
+                
+                tHtml += '<div style="color:#fff; width:22px; height:22px; border-radius:50%; background:' + badgeBg + '; display:inline-flex; align-items:center; justify-content:center; font-size:8pt; font-weight:bold; position:relative;">' + memoIcon + '<span>' + esc(dispChar) + '</span></div>';
               });
               tHtml += '</div>';
             }
@@ -3369,7 +3371,6 @@ function generateA3CalendarPdf(yearMonth) {
       return tHtml;
     }
 
-    // 伝達事項を左右のページ（1枚目と2枚目）に半分ずつ振り分けて複数列表示する関数
     var halfIndex = Math.ceil(memosWithDate.length / 2);
     var leftMemos = memosWithDate.slice(0, halfIndex);
     var rightMemos = memosWithDate.slice(halfIndex);
@@ -3402,7 +3403,6 @@ function generateA3CalendarPdf(yearMonth) {
       return mHtml;
     }
 
-    // 💡 A4縦（A4 portrait）×2ページ構成のHTMLを構築
     var cellHeight = (weeks.length >= 6) ? '92px' : '110px';
     var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>';
     html += '@page { size: A4 portrait; margin: 10mm 8mm; }';
@@ -3412,7 +3412,6 @@ function generateA3CalendarPdf(yearMonth) {
     html += 'table.cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; }';
     html += 'table.cal-table th { background: #f1f5f9; border: 1px solid #64748b; padding: 5px; font-size: 10pt; text-align: center; }';
     html += 'table.cal-table td { border: 1px solid #64748b; vertical-align: top; padding: 5px; height: ' + cellHeight + '; }';
-    html += '.badge { display: inline-block; padding: 2px 5px; border-radius: 10px; text-align: center; color: #ffffff; font-weight: bold; font-size: 8.5pt; margin: 1px; }';
     html += '.free-item { display: inline-block; background: #d97706; color: #ffffff; font-size: 7pt; padding: 1px 4px; border-radius: 3px; margin: 1px; }';
     html += '</style></head><body>';
 
