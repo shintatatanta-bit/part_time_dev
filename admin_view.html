@@ -375,6 +375,22 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           width: 100%;
         }
       }
+
+      .staff-badge {
+  cursor: grab;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+.staff-badge:active {
+  cursor: grabbing;
+}
+.staff-badge.dragging {
+  opacity: 0.4;
+}
+.cal-cell.drag-over {
+  background-color: #e0f2fe !important;
+  border: 2px dashed #0284c7 !important;
+}
       
     </style>
   </head>
@@ -1465,7 +1481,13 @@ var badgeMainColor = isYellow ? '#ca8a04' : '#059669';
 var memoIcon = displayMemoText ? '<span class="memo-badge-icon" style="background: #f59e0b;" title="伝達事項: ' + escapeHtml(displayMemoText) + '">❗</span>' : '';
 
 // 💡 style="background: [色];" をバッジ本体に付与する
-html += '<div class="staff-circle-badge" style="background: ' + badgeMainColor + ';" onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" title="' + tooltipText + '">';
+html += '<div class="staff-circle-badge" draggable="true" ' +
+        'ondragstart="onStaffBadgeDragStart(event, \'' + sh.shiftId + '\', \'' + sh.workDate + '\')" ' +
+        'ondragover="event.preventDefault()" ' +
+        'ondrop="onStaffBadgeDrop(event, \'' + sh.shiftId + '\', \'' + sh.workDate + '\')" ' +
+        'style="background: ' + badgeMainColor + ';" ' +
+        'onclick="event.stopPropagation(); openMemoModal(\'' + sh.shiftId + '\', \'' + escapeHtml(sh.staffName) + '\', \'' + sh.workDate + '\', \'' + escapeHtml(sh.dailyMemo || '') + '\')" ' +
+        'title="' + tooltipText + '">';
 html += memoIcon + '<span>' + escapeHtml(dispChar) + '</span>';
 html += '<span class="del-x" onclick="removeShiftById(\'' + sh.shiftId + '\')">×</span>';
 html += '</div>';
@@ -2114,15 +2136,9 @@ html += '</div>';
       }
 
       function sortShiftsByStaffOrder(shifts) {
-        if (!shifts) return [];
-        return shifts.sort(function(a, b) {
-          var indexA = cachedStaffList.findIndex(function(st) { return st.staffId === a.staffId; });
-          var indexB = cachedStaffList.findIndex(function(st) { return st.staffId === b.staffId; });
-          if (indexA === -1) indexA = 999;
-          if (indexB === -1) indexB = 999;
-          return indexA - indexB;
-        });
-      }
+  // ユーザーが並び替えた順番（配列の順序）をそのまま維持する
+  return shifts || [];
+}
 
       function openModal(dateStr, staffId, staffName, displayChar) {
         console.log("📂 [検証] openModal実行開始！ 引数:", { dateStr, staffId, staffName, displayChar });
@@ -2795,6 +2811,109 @@ function saveShiftMemoFromModal() {
           .generateA3CalendarPdf(ym);
       }
 
+      // スタッフバッジを生成する部分のコード例
+function createStaffBadgeElement(sh, dateStr) {
+  var badge = document.createElement('span');
+  badge.className = 'staff-badge';
+  badge.draggable = true;
+  badge.innerText = sh.staffName; // または表示文字
+  
+  // 💡 ドラッグ開始時のイベント
+  badge.addEventListener('dragstart', function(e) {
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      staffId: sh.staffId,
+      staffName: sh.staffName,
+      sourceDate: dateStr
+    }));
+    badge.classList.add('dragging');
+  });
+
+  badge.addEventListener('dragend', function(e) {
+    badge.classList.remove('dragging');
+  });
+
+  return badge;
+}
+
+// カレンダーの各日付セル（td）へのドロップイベント設定例
+function setupCellDropTarget(cellEl, dateStr) {
+  cellEl.addEventListener('dragover', function(e) {
+    e.preventDefault(); // ドロップを許可するために必須
+    cellEl.classList.add('drag-over');
+  });
+
+  cellEl.addEventListener('dragleave', function(e) {
+    cellEl.classList.remove('drag-over');
+  });
+
+  cellEl.addEventListener('drop', function(e) {
+    e.preventDefault();
+    cellEl.classList.remove('drag-over');
+
+    var rawData = e.dataTransfer.getData('text/plain');
+    if (!rawData) return;
+    
+    var dragData = JSON.parse(rawData);
+    var sourceDate = dragData.sourceDate;
+    var targetDate = dateStr;
+    var staffId = dragData.staffId;
+
+    // メモリ上のシフトデータ構造を更新する処理
+    moveOrReorderStaffShift(staffId, sourceDate, targetDate);
+    
+    // カレンダーの見た目を再描画
+    renderCalendarGrid(); 
+  });
+}
+
+var draggedShiftId = null;
+var draggedSourceDate = null;
+
+// スタッフバッジのドラッグ開始
+function onStaffBadgeDragStart(event, shiftId, workDate) {
+  event.stopPropagation(); // セル全体のドラッグと競合しないようにする
+  draggedShiftId = shiftId;
+  draggedSourceDate = workDate;
+  event.dataTransfer.setData('text/plain', JSON.stringify({ type: 'reorder', shiftId: shiftId, workDate: workDate }));
+}
+
+// 同じ日、または別の日へドロップした時の処理
+function onStaffBadgeDrop(event, targetShiftId, targetWorkDate) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (!draggedShiftId) return;
+
+  // 1. ドラッグされたシフトデータを取得
+  var draggedIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === draggedShiftId; });
+  if (draggedIndex === -1) return;
+  var draggedShift = cachedShiftsData[draggedIndex];
+
+  // 2. 移動先（または同じ日）の日付に更新
+  draggedShift.workDate = targetWorkDate;
+
+  // 3. 同じ日の中での並び替えの場合、配列内の位置を入れ替える
+  if (draggedSourceDate === targetWorkDate && draggedShiftId !== targetShiftId) {
+    var targetIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === targetShiftId; });
+    if (targetIndex !== -1) {
+      // 配列から一度削除して、ドロップ先の位置に挿入する
+      cachedShiftsData.splice(draggedIndex, 1);
+      var newTargetIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === targetShiftId; });
+      // ドロップした位置の前後に挿入
+      cachedShiftsData.splice(newTargetIndex, 0, draggedShift);
+    }
+  } else if (draggedSourceDate !== targetWorkDate) {
+    // 別の日へ移動した場合は配列の末尾（または指定位置）に移動
+    cachedShiftsData.splice(draggedIndex, 1);
+    cachedShiftsData.push(draggedShift);
+  }
+
+  // 4. 状態をリセットして再描画 ＆ 未保存マークを点灯
+  draggedShiftId = null;
+  draggedSourceDate = null;
+  renderCurrentView();
+  markAsUnsaved();
+}
     </script>
   </body>
 </html>
