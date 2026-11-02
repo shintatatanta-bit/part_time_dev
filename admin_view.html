@@ -1186,38 +1186,43 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         markAsUnsaved();
       }
 
-      function onDrop(event, dateStr) {
-        event.preventDefault();
-        document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
+      onDrop(event, dateStr) {
+  event.preventDefault();
+  document.querySelectorAll('.cal-cell, .list-row').forEach(function(el) { el.classList.remove('drag-over'); });
+  
+  var dataStr = event.dataTransfer.getData('text/plain');
+  if (!dataStr) return;
+  
+  try {
+    var data = JSON.parse(dataStr);
+    
+    if (data.type === 'free') {
+      var tempId = "local_free_" + Math.random();
+      cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
+      renderCurrentView();
+      markAsUnsaved();
+    } else if (data.type === 'staff') {
+      openModal(dateStr, data.staffId, data.staffName, data.displayChar);
+    } else if (data.type === 'shift_move' || data.type === 'reorder') {
+      // 💡 既存スタッフのシフト移動（セル内のどこに落としてもその日に移動）
+      var shiftId = data.shiftId;
+      var draggedIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === shiftId; });
+      if (draggedIndex !== -1) {
+        var draggedShift = cachedShiftsData[draggedIndex];
+        draggedShift.workDate = dateStr;
         
-        var dataStr = event.dataTransfer.getData('text/plain');
-        console.log("🔍 [検証] onDrop開始 - 取得したデータ:", dataStr);
+        // 配列から一度外して末尾（またはその日のリストの最後）に移動
+        cachedShiftsData.splice(draggedIndex, 1);
+        cachedShiftsData.push(draggedShift);
         
-        if (!dataStr) {
-          console.log("❌ [検証] データが空です");
-          return;
-        }
-        
-        try {
-          var data = JSON.parse(dataStr);
-          console.log("🔍 [検証] パース成功:", data);
-          
-          if (data.type === 'free') {
-            console.log("📌 [検証] freeタイプとして処理します");
-            var tempId = "local_free_" + Math.random();
-            cachedFreeSchedules.push({ scheduleId: tempId, workDate: dateStr, title: data.title });
-            renderCurrentView();
-            markAsUnsaved();
-          } else if (data.type === 'staff') {
-            console.log("👤 [検証] staffタイプを検出。openModalを呼び出します。 staffId:", data.staffId);
-            openModal(dateStr, data.staffId, data.staffName, data.displayChar);
-          } else {
-            console.log("⚠️ [検証] どの条件にも一致しませんでした type:", data.type);
-          }
-        } catch (e) {
-          console.error("❌ [検証] ドロップデータ解析エラー:", e.message);
-        }
+        renderCurrentView();
+        markAsUnsaved();
       }
+    }
+  } catch (e) {
+    console.error("ドロップデータ解析エラー:", e.message);
+  }
+}
 
       function onCellClick(dateStr) {
         // 💡 修正: スタッフまたはフリー予定のチップが選択されている場合は、その日付に配置する処理を優先する
@@ -2869,51 +2874,55 @@ function setupCellDropTarget(cellEl, dateStr) {
 var draggedShiftId = null;
 var draggedSourceDate = null;
 
-// スタッフバッジのドラッグ開始
+// ① スタッフバッジのドラッグ開始
 function onStaffBadgeDragStart(event, shiftId, workDate) {
   event.stopPropagation(); // セル全体のドラッグと競合しないようにする
   draggedShiftId = shiftId;
   draggedSourceDate = workDate;
-  event.dataTransfer.setData('text/plain', JSON.stringify({ type: 'reorder', shiftId: shiftId, workDate: workDate }));
+  event.dataTransfer.setData('text/plain', JSON.stringify({ 
+    type: 'shift_move', 
+    shiftId: shiftId, 
+    workDate: workDate 
+  }));
 }
 
-// 同じ日、または別の日へドロップした時の処理
+// ③ 他のバッジ上にピンポイントで落とした場合の並び替え
 function onStaffBadgeDrop(event, targetShiftId, targetWorkDate) {
   event.preventDefault();
   event.stopPropagation();
 
-  if (!draggedShiftId) return;
+  var dataStr = event.dataTransfer.getData('text/plain');
+  if (!dataStr) return;
 
-  // 1. ドラッグされたシフトデータを取得
-  var draggedIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === draggedShiftId; });
-  if (draggedIndex === -1) return;
-  var draggedShift = cachedShiftsData[draggedIndex];
+  try {
+    var data = JSON.parse(dataStr);
+    var shiftId = data.shiftId;
+    if (!shiftId) return;
 
-  // 2. 移動先（または同じ日）の日付に更新
-  draggedShift.workDate = targetWorkDate;
+    var draggedIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === shiftId; });
+    if (draggedIndex === -1) return;
+    var draggedShift = cachedShiftsData[draggedIndex];
 
-  // 3. 同じ日の中での並び替えの場合、配列内の位置を入れ替える
-  if (draggedSourceDate === targetWorkDate && draggedShiftId !== targetShiftId) {
+    // 日付を移動先に更新
+    draggedShift.workDate = targetWorkDate;
+
     var targetIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === targetShiftId; });
-    if (targetIndex !== -1) {
-      // 配列から一度削除して、ドロップ先の位置に挿入する
+    if (targetIndex !== -1 && draggedIndex !== targetIndex) {
       cachedShiftsData.splice(draggedIndex, 1);
       var newTargetIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === targetShiftId; });
-      // ドロップした位置の前後に挿入
       cachedShiftsData.splice(newTargetIndex, 0, draggedShift);
+    } else {
+      cachedShiftsData.splice(draggedIndex, 1);
+      cachedShiftsData.push(draggedShift);
     }
-  } else if (draggedSourceDate !== targetWorkDate) {
-    // 別の日へ移動した場合は配列の末尾（または指定位置）に移動
-    cachedShiftsData.splice(draggedIndex, 1);
-    cachedShiftsData.push(draggedShift);
-  }
 
-  // 4. 状態をリセットして再描画 ＆ 未保存マークを点灯
-  draggedShiftId = null;
-  draggedSourceDate = null;
-  renderCurrentView();
-  markAsUnsaved();
+    renderCurrentView();
+    markAsUnsaved();
+  } catch (e) {
+    console.error("バッジドロップエラー:", e.message);
+  }
 }
+
     </script>
   </body>
 </html>
