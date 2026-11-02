@@ -3199,7 +3199,7 @@ function exportSheetToPdf_(sheet, fileName, folder) {
 
 /**
  * 💡 A4縦2ページ（横に並べるとA3の格子カレンダー＋下部伝達事項）のPDFを直接生成する関数
- * スタッフバッジはA4横カレンダーと同じ「色付きの丸（丸型バッジ）」に統一しています
+ * PDFエンジンでも確実に色と丸みが維持されるようにスタイルを最適化版
  */
 function generateA3CalendarPdf(yearMonth) {
   try {
@@ -3338,18 +3338,18 @@ function generateA3CalendarPdf(yearMonth) {
                 var ob = (staffOrderMap[b.staffId] !== undefined) ? staffOrderMap[b.staffId] : 999;
                 return oa - ob;
               });
-              tHtml += '<div style="display:flex; flex-wrap:wrap; gap:3px; align-items:center;">';
+              tHtml += '<div style="margin-top:2px;">';
               dayShifts.forEach(function(sh) {
                 var dispChar = staffCharMap[sh.staffId] || sh.staffName.substring(0, 1);
                 var rawMemo = String(sh.dailyMemo || '');
                 var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
                 var cleanM = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
                 
-                // 💡 スタッフバッジ：丸型デザイン (PDF変換エンジンで円形を描画するためのスタイル)
+                // 💡 PDFエンジンで確実に色と丸みを反映させるためのテーブルセル構造バッジ
                 var badgeBg = isYellow ? '#ca8a04' : '#059669'; 
-                var memoIcon = cleanM ? '<span style="position:absolute; top:-3px; left:-3px; font-size:6pt; background:#f59e0b; color:#fff; border-radius:50%; width:11px; height:11px; display:inline-block; text-align:center; line-height:11px; font-weight:bold;">!</span>' : '';
+                var memoIndicator = cleanM ? '<span style="background:#f59e0b; color:#ffffff; font-size:6pt; padding:1px 3px; margin-right:2px; font-weight:bold;">!</span>' : '';
                 
-                tHtml += '<div style="color:#fff; width:22px; height:22px; border-radius:11px; background:' + badgeBg + '; display:inline-block; text-align:center; line-height:22px; font-size:8pt; font-weight:bold; position:relative;">' + memoIcon + '<span>' + esc(dispChar) + '</span></div>';
+                tHtml += '<span style="background-color: ' + badgeBg + '; color: #ffffff; padding: 2px 6px; margin: 1px; display: inline-block; font-size: 8.5pt; font-weight: bold; border-radius: 10px;">' + memoIndicator + esc(dispChar) + '</span>';
               });
               tHtml += '</div>';
             }
