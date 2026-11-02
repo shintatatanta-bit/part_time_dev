@@ -447,9 +447,10 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
             </div>
           </div>
           <div class="calendar-controls-right">
-            <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="copySlackShiftText()">📋 Slack用シフトコピー</button>
-            <button class="secondary" onclick="openPrintPreview('A4')">🖨️ A4横 印刷</button>
-          </div>
+  <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="copySlackShiftText()">📋 Slack用シフトコピー</button>
+  <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="openPrintPreview()">🖨️ A4横 印刷</button>
+  <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="openPrintSpreadPreview()">🖨️ A4縦 見開き印刷</button>
+</div>
         </div>
 
         <div class="card" style="border: 1px dashed var(--border-color); background: #f8fafc; margin-bottom: 16px; padding: 14px;">
@@ -1036,6 +1037,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         }
       }
 
+      // 1. これまでの「A4横 1枚カレンダー印刷」
       function openPrintPreview() {
         var ym = document.getElementById('calendarMonth').value;
         if (!ym) { alert('対象月を選択してください。'); return; }
@@ -1044,27 +1046,18 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         
         var gridHtml = document.getElementById('calendarGrid').outerHTML;
         
-        // 💡 伝達事項があるシフトを抽出してリスト化
+        // 伝達事項があるシフトを抽出してリスト化
         var memosWithDate = [];
         cachedShiftsData.forEach(function(sh) {
           if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
             var cleanMemo = sh.dailyMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
             if (cleanMemo) {
-              memosWithDate.push({
-                workDate: sh.workDate,
-                staffName: sh.staffName,
-                memo: cleanMemo
-              });
+              memosWithDate.push({ workDate: sh.workDate, staffName: sh.staffName, memo: cleanMemo });
             }
           }
         });
+        memosWithDate.sort(function(a, b) { return new Date(a.workDate) - new Date(b.workDate); });
 
-        // 日付順に並び替え
-        memosWithDate.sort(function(a, b) {
-          return new Date(a.workDate) - new Date(b.workDate);
-        });
-
-        // 💡 2枚目（2ページ目）用の伝達事項一覧HTMLを構築
         var remarksHtml = '';
         if (memosWithDate.length > 0) {
           remarksHtml += '<div style="page-break-before: always; padding-top: 20px;">';
@@ -1086,10 +1079,6 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         }
 
         var printWin = window.open('', '_blank', 'width=1100,height=800');
-        
-        var cellMinHeight = '125px';
-        var fontSizeNum = '0.9rem';
-
         var printDoc = printWin.document;
         printDoc.open();
         printDoc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titleText + '</title>');
@@ -1102,11 +1091,11 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         printDoc.write('.cal-header-cell { text-align: center; font-weight: bold; font-size: 0.9rem; padding: 6px 4px; background: #f1f5f9; border-radius: 4px; }');
         printDoc.write('.cal-header-cell:nth-child(1) { color: #e11d48; }');
         printDoc.write('.cal-header-cell:nth-child(7) { color: #2563eb; }');
-        printDoc.write('.cal-cell { min-height: ' + cellMinHeight + '; background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px; box-sizing: border-box; position: relative; }');
+        printDoc.write('.cal-cell { min-height: 125px; background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px; box-sizing: border-box; position: relative; }');
         printDoc.write('.cal-cell.other-month { background: #f8fafc; opacity: 0.3; }');
         printDoc.write('.cal-cell.closed-day { background: #f1f5f9 !important; border: 1px dashed #cbd5e1 !important; }');
         printDoc.write('.cal-date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }');
-        printDoc.write('.cal-date-num { font-size: ' + fontSizeNum + '; font-weight: bold; color: #475569; }');
+        printDoc.write('.cal-date-num { font-size: 0.9rem; font-weight: bold; color: #475569; }');
         printDoc.write('.cal-date-num.sun-or-hol { color: #e11d48; }');
         printDoc.write('.cal-section-shift { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; position: relative; }');
         printDoc.write('.staff-circle-badge { color: white !important; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10pt !important; font-weight: bold; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }');
@@ -1117,11 +1106,140 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         printDoc.write('</head><body>');
         printDoc.write('<h2>' + titleText + '</h2>');
         printDoc.write(gridHtml);
+        if (remarksHtml) { printDoc.write(remarksHtml); }
+        printDoc.write('</body></html>');
+        printDoc.close();
+        printWin.focus();
+        setTimeout(function() { printWin.print(); printWin.close(); }, 500);
+      }
+
+      // 2. 新しい「A4縦 見開き印刷（1枚目:日〜木 / 2枚目:金土＋伝達事項）」
+      function openPrintSpreadPreview() {
+        var ym = document.getElementById('calendarMonth').value;
+        if (!ym) { alert('対象月を選択してください。'); return; }
+        var parts = ym.split('-');
+        var year = Number(parts[0]);
+        var month = Number(parts[1]);
+        var titleText = parts[0] + '年 ' + Number(parts[1]) + '月度 アルバイト勤務シフト予定表';
         
-        // 💡 伝達事項がある場合のみ、2ページ目（2枚目）としてテーブルを出力
-        if (remarksHtml) {
-          printDoc.write(remarksHtml);
+        var shiftMap = {};
+        cachedShiftsData.forEach(function(s) {
+          if (!shiftMap[s.workDate]) shiftMap[s.workDate] = [];
+          shiftMap[s.workDate].push(s);
+        });
+
+        var memosWithDate = [];
+        cachedShiftsData.forEach(function(sh) {
+          if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
+            var cleanMemo = sh.dailyMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
+            if (cleanMemo) {
+              memosWithDate.push({ workDate: sh.workDate, staffName: sh.staffName, memo: cleanMemo });
+            }
+          }
+        });
+        memosWithDate.sort(function(a, b) { return new Date(a.workDate) - new Date(b.workDate); });
+
+        function generatePartialGrid(startDayOfWeek, endDayOfWeek) {
+          var firstDayObj = new Date(year, month - 1, 1);
+          var lastDayObj = new Date(year, month, 0);
+          var firstDayOfWeek = firstDayObj.getDay();
+          var totalDays = lastDayObj.getDate();
+          
+          var colsCount = (endDayOfWeek - startDayOfWeek + 1);
+          var html = '<div style="display: grid; grid-template-columns: repeat(' + colsCount + ', 1fr); gap: 4px; width: 100%;">';
+          
+          var weekDaysAll = ["日", "月", "火", "水", "木", "金", "土"];
+          for (var w = startDayOfWeek; w <= endDayOfWeek; w++) {
+            var colColor = (w === 0) ? '#e11d48' : (w === 6 ? '#2563eb' : '#475569');
+            html += '<div style="text-align: center; font-weight: bold; font-size: 0.8rem; padding: 4px; background: #f1f5f9; color: ' + colColor + '; border-radius: 4px;">' + weekDaysAll[w] + '</div>';
+          }
+
+          for (var day = 1; day <= totalDays; day++) {
+            var dObj = new Date(year, month - 1, day);
+            var wNum = dObj.getDay();
+            
+            if (wNum >= startDayOfWeek && wNum <= endDayOfWeek) {
+              var mStr = String(month).padStart(2, '0');
+              var dStr = String(day).padStart(2, '0');
+              var dateStr = year + '-' + mStr + '-' + dStr;
+              var isClosed = cachedClosedDays.includes(dateStr);
+              var holidayName = cachedHolidaysMap[dateStr] || '';
+              
+              var cellBg = isClosed ? '#f1f5f9' : '#fff';
+              html += '<div style="min-height: 95px; background: ' + cellBg + '; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; box-sizing: border-box;">';
+              html += '<div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; margin-bottom: 2px;"><span>' + day + '</span>';
+              if (holidayName) html += '<span style="font-size: 5pt; color: #e11d48;">' + holidayName + '</span>';
+              html += '</div>';
+
+              if (shiftMap[dateStr]) {
+                html += '<div style="display: flex; flex-wrap: wrap; gap: 3px;">';
+                shiftMap[dateStr].forEach(function(sh) {
+                  var dispChar = sh.staffName.substring(0, 1);
+                  for (var s = 0; s < cachedStaffList.length; s++) {
+                    if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
+                  }
+                  var rawMemo = sh.dailyMemo || '';
+                  var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+                  var badgeBg = isYellow ? '#ca8a04' : '#059669';
+                  var memoIcon = (rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim()) ? '<span style="position:absolute; top:-4px; left:-4px; font-size:6pt; background:#f59e0b; color:#fff; border-radius:50%; width:12px; height:12px; display:flex; align-items:center; justify-content:center;">❗</span>' : '';
+                  
+                  html += '<div style="color:#fff; width:22px; height:22px; border-radius:50%; background:' + badgeBg + '; display:inline-flex; align-items:center; justify-content:center; font-size:8pt; font-weight:bold; position:relative;">' + memoIcon + '<span>' + dispChar + '</span></div>';
+                });
+                html += '</div>';
+              }
+              html += '</div>';
+            }
+          }
+          html += '</div>';
+          return html;
         }
+
+        var printWin = window.open('', '_blank', 'width=1100,height=800');
+        var printDoc = printWin.document;
+        printDoc.open();
+        printDoc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titleText + '</title>');
+        printDoc.write('<style>');
+        printDoc.write('@page { size: A4 portrait; margin: 8mm; }');
+        printDoc.write('* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }');
+        printDoc.write('body { font-family: sans-serif; margin: 0; padding: 0; color: #333; box-sizing: border-box; }');
+        printDoc.write('.page { height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; page-break-after: always; box-sizing: border-box; }');
+        printDoc.write('</style>');
+        printDoc.write('</head><body>');
+
+        // 1枚目：日〜木曜日のカレンダー
+        printDoc.write('<div class="page">');
+        printDoc.write('<h2 style="text-align: center; margin: 0 0 8px 0; font-size: 1.2rem;">' + titleText + ' (1/2: 日〜木)</h2>');
+        printDoc.write(generatePartialGrid(0, 4));
+        printDoc.write('</div>');
+
+        // 2枚目：左に金・土、右に伝達事項一覧
+        printDoc.write('<div class="page" style="page-break-before: always;">');
+        printDoc.write('<h2 style="text-align: center; margin: 0 0 8px 0; font-size: 1.2rem;">' + titleText + ' (2/2: 金土・伝達事項)</h2>');
+        printDoc.write('<div style="display: flex; gap: 12px; width: 100%; flex-grow: 1;">');
+        
+        printDoc.write('<div style="width: 40%;">');
+        printDoc.write(generatePartialGrid(5, 6));
+        printDoc.write('</div>');
+
+        printDoc.write('<div style="width: 60%; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; box-sizing: border-box;">');
+        printDoc.write('<h3 style="font-size: 0.95rem; margin: 0 0 6px 0; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px;">📝 伝達事項・希望時間一覧</h3>');
+        if (memosWithDate.length === 0) {
+          printDoc.write('<p style="font-size: 0.8rem; color: #64748b;">今月の伝達事項はありません。</p>');
+        } else {
+          printDoc.write('<table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">');
+          printDoc.write('<tr style="background:#e2e8f0;"><th style="border:1px solid #cbd5e1; padding:4px;">日付</th><th style="border:1px solid #cbd5e1; padding:4px;">スタッフ</th><th style="border:1px solid #cbd5e1; padding:4px;">備考</th></tr>');
+          memosWithDate.forEach(function(item) {
+            var p = item.workDate.split('-');
+            printDoc.write('<tr><td style="border:1px solid #cbd5e1; padding:4px; font-weight:bold; text-align:center;">' + Number(p[1]) + '/' + Number(p[2]) + '</td>');
+            printDoc.write('<td style="border:1px solid #cbd5e1; padding:4px; font-weight:bold;">' + escapeHtml(item.staffName) + '</td>');
+            printDoc.write('<td style="border:1px solid #cbd5e1; padding:4px;">' + escapeHtml(item.memo) + '</td></tr>');
+          });
+          printDoc.write('</table>');
+        }
+        printDoc.write('</div>');
+
+        printDoc.write('</div>');
+        printDoc.write('</div>');
 
         printDoc.write('</body></html>');
         printDoc.close();
