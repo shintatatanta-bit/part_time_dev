@@ -3199,7 +3199,7 @@ function exportSheetToPdf_(sheet, fileName, folder) {
 
 /**
  * 💡 A4縦2ページ（横に並べるとA3の格子カレンダー＋下部伝達事項）のPDFを直接生成する関数
- * PDFエンジンでも色が確実に維持される「カラーブロック（角なし四角タグ）」形式
+ * 背景色や角丸が効かないPDF変換エンジンの仕様に対応し、スタッフ名（文字色）にカラーを反映させる形式
  */
 function generateA3CalendarPdf(yearMonth) {
   try {
@@ -3338,18 +3338,18 @@ function generateA3CalendarPdf(yearMonth) {
                 var ob = (staffOrderMap[b.staffId] !== undefined) ? staffOrderMap[b.staffId] : 999;
                 return oa - ob;
               });
-              tHtml += '<div style="margin-top:2px;">';
+              tHtml += '<div style="margin-top:2px; font-size:9.5pt; font-weight:bold;">';
               dayShifts.forEach(function(sh) {
                 var dispChar = staffCharMap[sh.staffId] || sh.staffName.substring(0, 1);
                 var rawMemo = String(sh.dailyMemo || '');
                 var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
                 var cleanM = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
                 
-                // 💡 カラーブロック形式（背景色が確実にPDFに乗るデザイン）
-                var badgeBg = isYellow ? '#ca8a04' : '#059669'; 
-                var memoIndicator = cleanM ? '<span style="background-color:#f59e0b; color:#ffffff; font-size:6pt; padding:1px 3px; margin-right:3px; font-weight:bold;">!</span>' : '';
+                // 💡 文字色でスタッフカラーを確実に表現（緑系 #047857 または 黄色・ゴールド系 #b45309）
+                var textColor = isYellow ? '#b45309' : '#047857'; 
+                var memoIndicator = cleanM ? '<span style="color:#d97706; font-size:8pt; font-weight:bold; margin-right:2px;">[!]</span>' : '';
                 
-                tHtml += '<span style="background-color: ' + badgeBg + '; color: #ffffff; padding: 2px 6px; margin: 1px; display: inline-block; font-size: 8.5pt; font-weight: bold;">' + memoIndicator + esc(dispChar) + '</span>';
+                tHtml += '<span style="color: ' + textColor + '; margin-right: 6px; display: inline-block;">' + memoIndicator + esc(dispChar) + '</span>';
               });
               tHtml += '</div>';
             }
