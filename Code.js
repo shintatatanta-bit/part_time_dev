@@ -3345,11 +3345,11 @@ function generateA3CalendarPdf(yearMonth) {
                 var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
                 var cleanM = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
                 
-                // 💡 スタッフバッジ：A4横カレンダーと同じ「色付きの丸」デザイン
+                // 💡 スタッフバッジ：丸型デザイン (PDF変換エンジンで円形を描画するためのスタイル)
                 var badgeBg = isYellow ? '#ca8a04' : '#059669'; 
-                var memoIcon = cleanM ? '<span style="position:absolute; top:-3px; left:-3px; font-size:6pt; background:#f59e0b; color:#fff; border-radius:50%; width:11px; height:11px; display:flex; align-items:center; justify-content:center; font-weight:bold;">!</span>' : '';
+                var memoIcon = cleanM ? '<span style="position:absolute; top:-3px; left:-3px; font-size:6pt; background:#f59e0b; color:#fff; border-radius:50%; width:11px; height:11px; display:inline-block; text-align:center; line-height:11px; font-weight:bold;">!</span>' : '';
                 
-                tHtml += '<div style="color:#fff; width:22px; height:22px; border-radius:50%; background:' + badgeBg + '; display:inline-flex; align-items:center; justify-content:center; font-size:8pt; font-weight:bold; position:relative;">' + memoIcon + '<span>' + esc(dispChar) + '</span></div>';
+                tHtml += '<div style="color:#fff; width:22px; height:22px; border-radius:11px; background:' + badgeBg + '; display:inline-block; text-align:center; line-height:22px; font-size:8pt; font-weight:bold; position:relative;">' + memoIcon + '<span>' + esc(dispChar) + '</span></div>';
               });
               tHtml += '</div>';
             }
