@@ -449,7 +449,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           <div class="calendar-controls-right">
   <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="copySlackShiftText()">📋 Slack用シフトコピー</button>
   <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="openPrintPreview()">🖨️ A4横 印刷</button>
-  <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="openPrintSpreadPreview()">🖨️ A4縦 見開き印刷</button>
+  <button class="secondary" style="background: #0f172a; color: #fff; border: none;" onclick="downloadA3Pdf()">📥 A3横 PDFダウンロード</button>
 </div>
         </div>
 
@@ -2887,6 +2887,42 @@ function saveShiftMemoFromModal() {
 
   closeMemoModal();
   showToast('メモを一時保存しました。「変更内容を保存する」を押して確定させてください。', true);
+}
+
+function downloadA3Pdf() {
+  var ym = document.getElementById('calendarMonth').value;
+  if (!ym) { alert('対象月を選択してください。'); return; }
+  
+  showToast('A3横PDFを生成中です...', true);
+  
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (res.success) {
+        // Base64データを元にブラウザで自動ダウンロードさせる処理
+        var byteCharacters = atob(res.base64);
+        var byteNumbers = new Array(byteCharacters.length);
+        for (var i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        var byteArray = new Uint8Array(byteNumbers);
+        var blob = new Blob([byteArray], { type: res.mimeType });
+        
+        var link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = res.fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('A3横PDFのダウンロードが完了しました！', true);
+      } else {
+        alert('PDF生成失敗: ' + res.message);
+      }
+    })
+    .withFailureHandler(function(err) {
+      alert('通信エラー: ' + err.message);
+    })
+    .generateA3CalendarPdf(ym);
 }
 
     </script>
