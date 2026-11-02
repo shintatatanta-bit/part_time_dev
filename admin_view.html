@@ -2877,7 +2877,7 @@ var draggedSourceDate = null;
         }));
       }
 
-      // ② 他のバッジ上にピンポイントで落とした場合の並び替え
+      // 💡 バッジの左右どちらに落とされたかを判定して、前後に挿入できるように改良した関数
       function onStaffBadgeDrop(event, targetShiftId, targetWorkDate) {
         event.preventDefault();
         event.stopPropagation();
@@ -2899,9 +2899,20 @@ var draggedSourceDate = null;
 
           var targetIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === targetShiftId; });
           if (targetIndex !== -1 && draggedIndex !== targetIndex) {
+            // 💡 ターゲットバッジの幅に対するマウスのドロップ位置（左右）を計算
+            var rect = event.currentTarget.getBoundingClientRect();
+            var offsetX = event.clientX - rect.left;
+            var isRightSide = offsetX > (rect.width / 2); // 右半分かどうか
+
             cachedShiftsData.splice(draggedIndex, 1);
             var newTargetIndex = cachedShiftsData.findIndex(function(s) { return s.shiftId === targetShiftId; });
-            cachedShiftsData.splice(newTargetIndex, 0, draggedShift);
+            
+            // 右半分ならターゲットの「次（後ろ）」、左半分なら「前」に挿入
+            if (isRightSide) {
+              cachedShiftsData.splice(newTargetIndex + 1, 0, draggedShift);
+            } else {
+              cachedShiftsData.splice(newTargetIndex, 0, draggedShift);
+            }
           } else {
             cachedShiftsData.splice(draggedIndex, 1);
             cachedShiftsData.push(draggedShift);
