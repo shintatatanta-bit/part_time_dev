@@ -2925,6 +2925,99 @@ function downloadA3Pdf() {
     .generateA3CalendarPdf(ym);
 }
 
+function generateA3CalendarPdf(yearMonth) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    if (!yearMonth) {
+      var now = new Date();
+      yearMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    }
+    var parts = yearMonth.split('-');
+    var targetYear = parts[0];
+    var targetMonth = Number(parts[1]);
+    
+    // 💡 「申請データ」や「スタッフマスタ」などを除外し、カレンダーとして使っているシートを正確に探す
+    var sheet = null;
+    var sheets = ss.getSheets();
+    
+    for (var i = 0; i < sheets.length; i++) {
+      var sName = sheets[i].getName();
+      // "月度" という文字が含まれているか、または対象月の年月が含まれるシートを優先的に探す
+      if (sName.indexOf(targetMonth + "月度") !== -1 || sName.indexOf(targetYear) !== -1) {
+        if (sName !== "申請データ" && sName !== "スタッフマスタ" && sName !== "アカウントマスタ" && sName !== "シフト予定") {
+          sheet = sheets[i];
+          break;
+        }
+      }
+    }
+    
+    // それでも見つからない場合は、"申請データ" 以外のシートを上から順に探す
+    if (!sheet) {
+      for (var j = 0; j < sheets.length; j++) {
+        var name = sheets[j].getName();
+        if (name !== "申請データ" && name !== "スタッフマスタ" && name !== "アカウントマスタ" && name !== "シフト予定" && name !== "希望通知ログ" && name !== "連絡履歴") {
+          sheet = sheets[j];
+          break;
+        }
+      }
+    }
+    
+    if (!sheet) {
+      throw new Error("対象のカレンダーシートが見つかりませんでした。");
+    }
+    
+    var spreadsheetId = ss.getId();
+    var sheetId = sheet.getSheetId();
+    
+    var url = "https://docs.google.com/spreadsheets/d/" + spreadsheetId + "/export?";
+    var options = {
+      exportFormat: "pdf",
+      format: "pdf",
+      size: "11",          // A3サイズ
+      portrait: "false",   // 横向き (landscape)
+      fitw: "true",        // 幅をページに合わせる
+      gridlines: "false",  // グリッド線非表示
+      printtitle: "false",
+      sheetnames: "false",
+      fzr: "false",
+      gid: sheetId
+    };
+    
+    var urlParts = [];
+    for (var key in options) {
+      urlParts.push(key + "=" + options[key]);
+    }
+    var exportUrl = url + urlParts.join("&");
+    
+    var response = UrlFetchApp.fetch(exportUrl, {
+      headers: {
+        "Authorization": "Bearer " + ScriptApp.getOAuthToken(),
+        "MuteHttpExceptions": true
+      }
+    });
+    
+    if (response.getResponseCode() !== 200) {
+      throw new Error("PDFの生成に失敗しました（コード: " + response.getResponseCode() + "）");
+    }
+    
+    var blob = response.getBlob();
+    var fileName = yearMonth + "_シフト予定表_A3横.pdf";
+    blob.setName(fileName);
+    
+    var base64Data = Utilities.base64Encode(blob.getBytes());
+    
+    return {
+      success: true,
+      base64: base64Data,
+      fileName: fileName,
+      mimeType: "application/pdf"
+    };
+    
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+}
     </script>
   </body>
 </html>
