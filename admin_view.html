@@ -2759,32 +2759,41 @@ function saveShiftMemoFromModal() {
   showToast('メモを一時保存しました。「変更内容を保存する」を押して確定させてください。', true);
 }
 
-// 💡 ブラウザ側でA3横の格子カレンダーと下部伝達事項を綺麗に組み立てて印刷・PDF保存する関数
+// 💡 GAS側で生成した「A4縦2ページ（見開きA3）PDF」を受け取ってダウンロードする関数
       function downloadA3Pdf() {
         var ym = document.getElementById('calendarMonth').value;
         if (!ym) { alert('対象月を選択してください。'); return; }
-        var parts = ym.split('-');
-        var year = Number(parts[0]);
-        var month = Number(parts[1]);
-        var titleText = parts[0] + '年 ' + Number(parts[1]) + '月度 アルバイト勤務シフト予定表';
         
-        var shiftMap = {};
-        cachedShiftsData.forEach(function(s) {
-          if (!shiftMap[s.workDate]) shiftMap[s.workDate] = [];
-          shiftMap[s.workDate].push(s);
-        });
-
-        // 伝達事項の抽出
-        var memosWithDate = [];
-        cachedShiftsData.forEach(function(sh) {
-          if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
-            var cleanMemo = sh.dailyMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
-            if (cleanMemo) {
-              memosWithDate.push({ workDate: sh.workDate, staffName: sh.staffName, memo: cleanMemo });
+        showToast('A4縦2枚（見開きA3）のPDFを生成中です...', true);
+        
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              var byteCharacters = atob(res.base64);
+              var byteNumbers = new Array(byteCharacters.length);
+              for (var i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              var byteArray = new Uint8Array(byteNumbers);
+              var blob = new Blob([byteArray], { type: res.mimeType });
+              
+              var link = document.createElement('a');
+              link.href = window.URL.createObjectURL(blob);
+              link.download = res.fileName;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              showToast('PDFのダウンロードが完了しました！', true);
+            } else {
+              alert('PDF生成失敗: ' + res.message);
             }
-          }
-        });
-        memosWithDate.sort(function(a, b) { return new Date(a.workDate) - new Date(b.workDate); });
+          })
+          .withFailureHandler(function(err) {
+            alert('通信エラー: ' + err.message);
+          })
+          .generateA3CalendarPdf(ym);
+      }
 
         // 画面上の格子カレンダーと同じ構造をA3横用に構築
         function generateFullGridHtml() {
