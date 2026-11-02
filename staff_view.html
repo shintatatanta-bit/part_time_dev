@@ -371,6 +371,7 @@
                 }
 
                 var html = '';
+
                 res.history.forEach(function(item, idx) {
                   var isLocked = lockedDatesMap[item.workDate] === true;
                   
@@ -923,9 +924,10 @@
           .withSuccessHandler(function(res) {
             showToast(res.message, res.success);
             if (res.success) {
-              loadStaffHistory(); // 履歴リストを再読み込み
+              // 💡 削除成功後、即座に履歴リストと未提出アラートを再読み込みして自動更新します
+              loadStaffHistory(); 
               if (typeof loadStaffPendingAlert === 'function') {
-                loadStaffPendingAlert(); // 未提出アラートも連動して更新
+                loadStaffPendingAlert();
               }
             }
           })
@@ -934,6 +936,7 @@
           })
           .deleteKintaiData({ requestId: requestId });
       }
+      
     </script>
   </body>
 </html>
