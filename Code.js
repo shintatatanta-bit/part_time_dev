@@ -3199,7 +3199,7 @@ function exportSheetToPdf_(sheet, fileName, folder) {
 
 /**
  * 💡 A4縦2ページ（横に並べるとA3の格子カレンダー＋下部伝達事項）のPDFを直接生成する関数
- * 背景色や角丸が効かないPDF変換エンジンの仕様に対応し、スタッフ名（文字色）にカラーを反映させる形式
+ * 伝達事項の [!] マークをスタッフ名のすぐ後ろに配置して分かりやすくした版
  */
 function generateA3CalendarPdf(yearMonth) {
   try {
@@ -3338,18 +3338,18 @@ function generateA3CalendarPdf(yearMonth) {
                 var ob = (staffOrderMap[b.staffId] !== undefined) ? staffOrderMap[b.staffId] : 999;
                 return oa - ob;
               });
-              tHtml += '<div style="margin-top:2px; font-size:9.5pt; font-weight:bold;">';
+              tHtml += '<div style="margin-top:2px; line-height: 1.5;">';
               dayShifts.forEach(function(sh) {
                 var dispChar = staffCharMap[sh.staffId] || sh.staffName.substring(0, 1);
                 var rawMemo = String(sh.dailyMemo || '');
                 var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
                 var cleanM = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
                 
-                // 💡 文字色でスタッフカラーを確実に表現（緑系 #047857 または 黄色・ゴールド系 #b45309）
                 var textColor = isYellow ? '#b45309' : '#047857'; 
-                var memoIndicator = cleanM ? '<span style="color:#d97706; font-size:8pt; font-weight:bold; margin-right:2px;">[!]</span>' : '';
+                // 💡 [!] マークをスタッフ名の【後ろ】にくっつけて表示する
+                var memoIndicator = cleanM ? '<span style="color:#d97706; font-size:8pt; font-weight:bold; margin-left:2px;">[!]</span>' : '';
                 
-                tHtml += '<span style="color: ' + textColor + '; margin-right: 6px; display: inline-block;">' + memoIndicator + esc(dispChar) + '</span>';
+                tHtml += '<span style="color: ' + textColor + '; margin-right: 8px; display: inline-block; font-weight: bold; font-size: 9.5pt;">' + esc(dispChar) + memoIndicator + '</span>';
               });
               tHtml += '</div>';
             }
@@ -3442,6 +3442,6 @@ function generateA3CalendarPdf(yearMonth) {
       mimeType: 'application/pdf'
     };
   } catch (error) {
-    return { success: false, message: 'PDF作成エラー: ' + error.message };
+    return { success: false, message: 'PDF出力エラー: ' + error.message };
   }
 }
