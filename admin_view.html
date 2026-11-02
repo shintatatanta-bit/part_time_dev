@@ -1112,7 +1112,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
         setTimeout(function() { printWin.print(); printWin.close(); }, 500);
       }
 
-      // 2. 新しい「A3横 見開き印刷（7列カレンダー ＋ 下部に伝達事項一覧）」
+      // A3横（A4用紙2枚分）の広々とした格子カレンダー ＋ 下部に伝達事項一覧をブラウザ側で綺麗に組み立てて印刷・PDF保存する関数
       function openPrintSpreadPreview() {
         var ym = document.getElementById('calendarMonth').value;
         if (!ym) { alert('対象月を選択してください。'); return; }
@@ -1127,6 +1127,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           shiftMap[s.workDate].push(s);
         });
 
+        // 伝達事項の抽出
         var memosWithDate = [];
         cachedShiftsData.forEach(function(sh) {
           if (sh.dailyMemo && sh.dailyMemo.trim() !== "") {
@@ -1137,6 +1138,117 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
           }
         });
         memosWithDate.sort(function(a, b) { return new Date(a.workDate) - new Date(b.workDate); });
+
+        // 💡 画面上の格子カレンダーと同じ構造をA3横用に構築
+        function generateFullGridHtml() {
+          var firstDayObj = new Date(year, month - 1, 1);
+          var lastDayObj = new Date(year, month, 0);
+          var firstDayOfWeek = firstDayObj.getDay();
+          var totalDays = lastDayObj.getDate();
+          var prevLastDayObj = new Date(year, month - 1, 0);
+          var prevLastDay = prevLastDayObj.getDate();
+
+          var html = '<div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; box-sizing: border-box;">';
+          
+          var weekDaysAll = ["日", "月", "火", "水", "木", "金", "土"];
+          for (var w = 0; w < 7; w++) {
+            var colColor = (w === 0) ? '#e11d48' : (w === 6 ? '#2563eb' : '#475569');
+            html += '<div style="text-align: center; font-weight: bold; font-size: 0.9rem; padding: 8px; background: #f1f5f9; color: ' + colColor + '; border-radius: 6px;">' + weekDaysAll[w] + '</div>';
+          }
+
+          // 前月のはみ出し日数
+          for (var i = 0; i < firstDayOfWeek; i++) {
+            var pDay = prevLastDay - (firstDayOfWeek - 1 - i);
+            html += '<div style="min-height: 110px; background: #f8fafc; opacity: 0.3; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px;"><div style="font-size: 0.8rem; color: #94a3b8;">' + pDay + '</div></div>';
+          }
+
+          // 当月の日付
+          for (var day = 1; day <= totalDays; day++) {
+            var mStr = String(month).padStart(2, '0');
+            var dStr = String(day).padStart(2, '0');
+            var dateStr = year + '-' + mStr + '-' + dStr;
+            
+            var dObj = new Date(year, month - 1, day);
+            var isSun = (dObj.getDay() === 0);
+            var holidayName = cachedHolidaysMap[dateStr] || '';
+            var isClosed = cachedClosedDays.includes(dateStr);
+            var isSunOrHol = isSun || (holidayName !== '');
+
+            var dateNumColor = isSunOrHol ? '#e11d48' : (dObj.getDay() === 6 ? '#2563eb' : '#475569');
+            var cellBg = isClosed ? '#f1f5f9' : '#fff';
+
+            html += '<div style="min-height: 120px; background: ' + cellBg + '; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; box-sizing: border-box; position: relative;">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">';
+            html += '<span style="font-size: 0.95rem; font-weight: bold; color: ' + dateNumColor + ';">' + day + '</span>';
+            if (holidayName) html += '<span style="font-size: 6pt; color: #e11d48; font-weight: bold;">' + holidayName + '</span>';
+            if (isClosed) html += '<span style="font-size: 0.65rem; color: #475569; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold;">休業日</span>';
+            html += '</div>';
+
+            // シフトバッジの配置
+            if (shiftMap[dateStr]) {
+              html += '<div style="display: flex; flex-wrap: wrap; gap: 5px;">';
+              shiftMap[dateStr].forEach(function(sh) {
+                var dispChar = sh.staffName.substring(0, 1);
+                for (var s = 0; s < cachedStaffList.length; s++) {
+                  if (cachedStaffList[s].staffId === sh.staffId) { dispChar = cachedStaffList[s].displayChar; break; }
+                }
+                var rawMemo = sh.dailyMemo || '';
+                var isYellow = rawMemo.indexOf('||color:yellow') !== -1;
+                var badgeBg = isYellow ? '#ca8a04' : '#059669';
+                var memoIcon = (rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim()) ? '<span style="position:absolute; top:-5px; left:-5px; font-size:7pt; background:#f59e0b; color:#fff; border-radius:50%; width:15px; height:15px; display:flex; align-items:center; justify-content:center; font-weight:bold;">❗</span>' : '';
+                
+                html += '<div style="color:#fff; width:30px; height:30px; border-radius:50%; background:' + badgeBg + '; display:inline-flex; align-items:center; justify-content:center; font-size:10pt; font-weight:bold; position:relative; box-shadow: 0 1px 2px rgba(0,0,0,0.15);">' + memoIcon + '<span>' + escapeHtml(dispChar) + '</span></div>';
+              });
+              html += '</div>';
+            }
+            html += '</div>';
+          }
+
+          html += '</div>';
+          return html;
+        }
+
+        // 印刷用ウィンドウを開いてHTMLを流し込む
+        var printWin = window.open('', '_blank', 'width=1200,height=900');
+        var printDoc = printWin.document;
+        printDoc.open();
+        printDoc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titleText + '</title>');
+        printDoc.write('<style>');
+        // 💡 A3横サイズに設定
+        printDoc.write('@page { size: A3 landscape; margin: 10mm; }');
+        printDoc.write('* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }');
+        printDoc.write('body { font-family: sans-serif; margin: 0; padding: 10px; color: #0f172a; box-sizing: border-box; background: #fff; }');
+        printDoc.write('h2 { text-align: center; margin: 0 0 15px 0; font-size: 1.8rem; font-weight: bold; }');
+        printDoc.write('</style>');
+        printDoc.write('</head><body>');
+
+        printDoc.write('<h2>' + titleText + '</h2>');
+        printDoc.write(generateFullGridHtml());
+
+        // 💡 下部の伝達事項一覧（複数列レイアウト）
+        if (memosWithDate.length > 0) {
+          printDoc.write('<div style="margin-top: 24px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 14px; box-sizing: border-box;">');
+          printDoc.write('<h3 style="font-size: 1.1rem; margin: 0 0 10px 0; color: #b45309; border-bottom: 2px solid #fde68a; padding-bottom: 6px;">📝 今月のスタッフ伝達事項・希望時間一覧</h3>');
+          
+          printDoc.write('<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.85rem;">');
+          memosWithDate.forEach(function(item) {
+            var p = item.workDate.split('-');
+            var dateDisplay = Number(p[1]) + '/' + Number(p[2]);
+            printDoc.write('<div style="background: #fff; border: 1px solid #fde68a; border-radius: 6px; padding: 8px 12px; display: flex; gap: 12px; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">');
+            printDoc.write('<span style="font-weight: bold; color: #2563eb; min-width: 50px;">' + dateDisplay + '</span>');
+            printDoc.write('<span style="font-weight: bold; min-width: 80px; color: #0f172a;">' + escapeHtml(item.staffName) + '</span>');
+            printDoc.write('<span style="color: #334155; flex-grow: 1;">' + escapeHtml(item.memo) + '</span>');
+            printDoc.write('</div>');
+          });
+          printDoc.write('</div>');
+          printDoc.write('</div>');
+        }
+
+        printDoc.write('</body></html>');
+        printDoc.close();
+        printWin.focus();
+        setTimeout(function() { printWin.print(); printWin.close(); }, 500);
+      }
 
         function generateFullGrid() {
           var firstDayObj = new Date(year, month - 1, 1);
