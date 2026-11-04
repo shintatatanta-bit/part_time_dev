@@ -179,7 +179,7 @@
         border-radius: 50%; width: 13px; height: 13px; font-size: 6pt !important; display: none;
         align-items: center; justify-content: center;
       }
-      .staff-circle-badge:hover .del-x { display: flex; }
+      .staff-circle-badge .del-x { display: none !important; }
 
 /* /* 💡 伝達事項マークを大きく目立たせる */
 .staff-circle-badge .memo-badge-icon {
@@ -855,6 +855,13 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
     <div class="modal-btns">
       <button type="button" style="background: var(--success-color);" onclick="saveShiftMemoFromModal()">💾 メモを保存する</button>
+      <button type="button" class="secondary" style="width: 100%; text-align: center;" onclick="closeMemoModal()">キャンセル</button>
+    </div>
+
+    <div class="modal-btns">
+      <button type="button" style="background: var(--success-color);" onclick="saveShiftMemoFromModal()">💾 メモを保存する</button>
+      <!-- 💡 追加：ポップアップ内からシフトを削除するボタン -->
+      <button type="button" style="background: var(--danger-color);" onclick="deleteShiftFromModal()">🗑️ このシフトを消去する</button>
       <button type="button" class="secondary" style="width: 100%; text-align: center;" onclick="closeMemoModal()">キャンセル</button>
     </div>
   </div>
@@ -2769,6 +2776,28 @@ function saveShiftMemoFromModal() {
 
   closeMemoModal();
   showToast('メモを一時保存しました。「変更内容を保存する」を押して確定させてください。', true);
+}
+
+
+// 💡 ポップアップ（モーダル）内からシフトを削除する関数
+function deleteShiftFromModal() {
+  var shiftId = document.getElementById('memoTargetShiftId').value;
+  if (!shiftId) return;
+
+  if (!confirm('このスタッフのシフト（予定）を消去しますか？')) {
+    return;
+  }
+
+  // 配列から該当シフトを除外
+  cachedShiftsData = cachedShiftsData.filter(function(s) { return s.shiftId !== shiftId; });
+
+  // 画面の再描画、下部一覧の更新、未保存フラグの点灯
+  renderCurrentView();
+  renderMonthlyMemoSummary();
+  markAsUnsaved();
+
+  closeMemoModal();
+  showToast('シフトを消去しました。「変更内容を保存する」を押して確定させてください。', true);
 }
 
 // 💡 GAS側で生成した「A4縦2ページ（見開きA3）PDF」を受け取ってダウンロードする関数
