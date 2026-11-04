@@ -392,6 +392,16 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
   border: 2px dashed #0284c7 !important;
 }
       
+/* 💡 横長のカラー選択ボタン用スタイル */
+      .color-select-group { display: flex; gap: 8px; margin-top: 6px; margin-bottom: 16px; }
+      .color-btn { 
+        flex: 1; padding: 10px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; 
+        cursor: pointer; border: 2px solid var(--border-color); background: #f8fafc; color: var(--text-sub); 
+        transition: all 0.15s; text-align: center; 
+      }
+      .color-btn.active-green { background: #059669 !important; color: #fff !important; border-color: #047857 !important; box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2); }
+      .color-btn.active-yellow { background: #ca8a04 !important; color: #fff !important; border-color: #b45309 !important; box-shadow: 0 2px 4px rgba(202, 138, 4, 0.2); }
+
     </style>
   </head>
 
@@ -842,16 +852,14 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
     <label>伝達事項・備考（自由入力可）</label>
     <textarea id="memoInputText" rows="2" placeholder="例: 14:00まで、など" style="resize: vertical; margin-bottom: 8px;"></textarea>
 
-    <!-- 💡 カラー選択（初期は青） -->
+    <!-- 💡 カラー選択ボタン -->
     <label>マーク・バッジの色選択</label>
-    <div style="display: flex; gap: 12px; margin-top: 6px; margin-bottom: 16px; align-items: center;">
-      <label style="margin:0; font-weight:normal; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
-        <input type="radio" name="memoColorRadio" value="blue" checked style="width:auto; margin:0;"> 🔵 青 (デフォルト)
-      </label>
-      <label style="margin:0; font-weight:normal; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
-        <input type="radio" name="memoColorRadio" value="yellow" style="width:auto; margin:0;"> 🟡 黄色
-      </label>
+    <div class="color-select-group">
+      <div id="colorBtnGreen" class="color-btn active-green" onclick="selectColorMode('green')">🟢 緑 (デフォルト)</div>
+      <div id="colorBtnYellow" class="color-btn" onclick="selectColorMode('yellow')">🟡 黄色</div>
     </div>
+    <!-- 内部で選択状態を保持する隠しフィールド -->
+    <input type="hidden" id="selectedColorVal" value="green">
 
     <div class="modal-btns">
       <button type="button" style="background: var(--success-color);" onclick="saveShiftMemoFromModal()">💾 メモを保存する</button>
@@ -860,6 +868,7 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
       <button type="button" class="secondary" style="width: 100%; text-align: center;" onclick="closeMemoModal()">キャンセル</button>
     </div>
   </div>
+
 </div>
 
     <script>
@@ -2695,30 +2704,27 @@ function loadAccountOptions() {
 
 var currentEditingShiftId = null;
 
-// モーダルを開く（カラーやメモの分解に対応）
+// モーダルを開くときのカラー復元部分
 function openMemoModal(shiftId, staffName, workDate, currentMemo) {
   currentEditingShiftId = shiftId;
   document.getElementById('memoTargetShiftId').value = shiftId;
   document.getElementById('memoModalTitle').innerText = '📌 伝達事項の編集 (' + staffName + ' / ' + workDate + ')';
   
-  // "メモ内容||color:yellow" のような形式から、メモ本体と色を分離する
   var memoText = currentMemo || "";
-  var selectedColor = "blue"; // 初期は青
+  var selectedColor = "green"; // 初期は緑
   
   if (memoText.indexOf("||color:yellow") !== -1) {
     selectedColor = "yellow";
     memoText = memoText.replace("||color:yellow", "");
-  } else if (memoText.indexOf("||color:blue") !== -1) {
-    selectedColor = "blue";
-    memoText = memoText.replace("||color:blue", "");
+  } else if (memoText.indexOf("||color:blue") !== -1 || memoText.indexOf("||color:green") !== -1) {
+    selectedColor = "green";
+    memoText = memoText.replace("||color:blue", "").replace("||color:green", "");
   }
 
   document.getElementById('memoInputText').value = memoText;
   
-  var radios = document.getElementsByName('memoColorRadio');
-  for (var i = 0; i < radios.length; i++) {
-    radios[i].checked = (radios[i].value === selectedColor);
-  }
+  // ボタンの見た目を更新
+  selectColorMode(selectedColor);
 
   document.getElementById('memoEditModal').style.display = 'flex';
 }
@@ -2738,19 +2744,46 @@ function closeMemoModal() {
   currentEditingShiftId = null;
 }
 
-// モーダルからメモとカラーを保存する
+// 💡 緑または黄色のボタンがクリックされたときの見た目＆値切替
+function selectColorMode(mode) {
+  var btnGreen = document.getElementById('colorBtnGreen');
+  var btnYellow = document.getElementById('colorBtnYellow');
+  var inputVal = document.getElementById('selectedColorVal');
+
+  if (mode === 'green') {
+    btnGreen.className = 'color-btn active-green';
+    btnYellow.className = 'color-btn';
+    inputVal.value = 'green';
+  } else {
+    btnGreen.className = 'color-btn';
+    btnYellow.className = 'color-btn active-yellow';
+    inputVal.value = 'yellow';
+  }
+}
+
+// 修正した保存関数
 function saveShiftMemoFromModal() {
   var shiftId = document.getElementById('memoTargetShiftId').value;
   var textVal = document.getElementById('memoInputText').value.trim();
-  
-  var colorVal = "blue";
-  var radios = document.getElementsByName('memoColorRadio');
-  for (var i = 0; i < radios.length; i++) {
-    if (radios[i].checked) {
-      colorVal = radios[i].value;
-      break;
-    }
+  var colorVal = document.getElementById('selectedColorVal').value;
+
+  var finalMemo = textVal;
+  if (colorVal === "yellow") {
+    finalMemo = textVal + "||color:yellow";
   }
+
+  var target = cachedShiftsData.find(function(s) { return s.shiftId === shiftId; });
+  if (target) {
+    target.dailyMemo = finalMemo;
+  }
+
+  renderCurrentView();
+  renderMonthlyMemoSummary();
+  markAsUnsaved();
+
+  closeMemoModal();
+  showToast('メモを一時保存しました。「変更内容を保存する」を押して確定させてください。', true);
+}
 
   // 文字が空欄でも黄色が選ばれていれば ||color:yellow を保持する
   var finalMemo = textVal;
