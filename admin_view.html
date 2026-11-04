@@ -2704,7 +2704,7 @@ function loadAccountOptions() {
 
 var currentEditingShiftId = null;
 
-// モーダルを開くときのカラー復元部分
+// 💡 モーダルを開くときのカラー復元部分
 function openMemoModal(shiftId, staffName, workDate, currentMemo) {
   currentEditingShiftId = shiftId;
   document.getElementById('memoTargetShiftId').value = shiftId;
@@ -2729,21 +2729,6 @@ function openMemoModal(shiftId, staffName, workDate, currentMemo) {
   document.getElementById('memoEditModal').style.display = 'flex';
 }
 
-// プリセットボタンが押されたときに入力欄へセットする
-function setMemoPreset(val) {
-  document.getElementById('memoInputText').value = val;
-}
-
-function clearMemoPreset() {
-  document.getElementById('memoInputText').value = "";
-}
-
-// モーダルを閉じる
-function closeMemoModal() {
-  document.getElementById('memoEditModal').style.display = 'none';
-  currentEditingShiftId = null;
-}
-
 // 💡 緑または黄色のボタンがクリックされたときの見た目＆値切替
 function selectColorMode(mode) {
   var btnGreen = document.getElementById('colorBtnGreen');
@@ -2761,7 +2746,7 @@ function selectColorMode(mode) {
   }
 }
 
-// 修正した保存関数
+// 💡 修正した保存関数
 function saveShiftMemoFromModal() {
   var shiftId = document.getElementById('memoTargetShiftId').value;
   var textVal = document.getElementById('memoInputText').value.trim();
@@ -2785,29 +2770,7 @@ function saveShiftMemoFromModal() {
   showToast('メモを一時保存しました。「変更内容を保存する」を押して確定させてください。', true);
 }
 
-  // 文字が空欄でも黄色が選ばれていれば ||color:yellow を保持する
-  var finalMemo = textVal;
-  if (colorVal === "yellow") {
-    finalMemo = textVal + "||color:yellow";
-  }
-
-  // キャッシュ内の該当シフトデータを更新
-  var target = cachedShiftsData.find(function(s) { return s.shiftId === shiftId; });
-  if (target) {
-    target.dailyMemo = finalMemo;
-  }
-
-  // 再描画と下部一覧の更新、未保存フラグの点灯
-  renderCurrentView();
-  renderMonthlyMemoSummary();
-  markAsUnsaved();
-
-  closeMemoModal();
-  showToast('メモを一時保存しました。「変更内容を保存する」を押して確定させてください。', true);
-}
-
-
-// 💡 ポップアップ（モーダル）内からシフトを削除する関数
+// 💡 ポップアップ内からシフトを削除する関数
 function deleteShiftFromModal() {
   var shiftId = document.getElementById('memoTargetShiftId').value;
   if (!shiftId) return;
@@ -2816,10 +2779,8 @@ function deleteShiftFromModal() {
     return;
   }
 
-  // 配列から該当シフトを除外
   cachedShiftsData = cachedShiftsData.filter(function(s) { return s.shiftId !== shiftId; });
 
-  // 画面の再描画、下部一覧の更新、未保存フラグの点灯
   renderCurrentView();
   renderMonthlyMemoSummary();
   markAsUnsaved();
@@ -2827,6 +2788,22 @@ function deleteShiftFromModal() {
   closeMemoModal();
   showToast('シフトを消去しました。「変更内容を保存する」を押して確定させてください。', true);
 }
+
+// プリセットボタンが押されたときに入力欄へセットする
+function setMemoPreset(val) {
+  document.getElementById('memoInputText').value = val;
+}
+
+function clearMemoPreset() {
+  document.getElementById('memoInputText').value = "";
+}
+
+// モーダルを閉じる
+function closeMemoModal() {
+  document.getElementById('memoEditModal').style.display = 'none';
+  currentEditingShiftId = null;
+}
+
 
 // 💡 GAS側で生成した「A4縦2ページ（見開きA3）PDF」を受け取ってダウンロードする関数
       function downloadA3Pdf() {
