@@ -511,7 +511,14 @@
         var submitBtn = document.getElementById('kintaiSubmitBtn');
         var isEdit = !!requestId;
 
+        // 💡 【追加】ボタンを押した瞬間にすぐ非効化して連打を防ぐ
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerText = '送信中...';
+        }
+
         function proceedSave() {
+          // （ここは既にsubmitBtnを無効化していますが、念のため残してもOKです）
           if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerText = '送信中...';
@@ -740,6 +747,7 @@
         };
 
         var btn = event.target;
+        // 💡 【追加】ボタンを押した瞬間にすぐ非活性化
         if (btn) {
           btn.disabled = true;
           btn.innerText = '送信中...';
