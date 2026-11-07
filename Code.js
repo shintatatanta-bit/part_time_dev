@@ -450,14 +450,21 @@ function getStaffList() {
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       if (row[0]) {
+        var staffName = String(row[1] || "").trim();
+        
+        // 💡 【追加】スタッフ名に「テスト」が含まれている場合はダッシュボードに表示しない
+        if (staffName.indexOf("テスト") !== -1) {
+          continue; 
+        }
+
         staffList.push({
           staffId: row[0],
-          staffName: row[1],
+          staffName: staffName,
           lineUserId: row[2],
           assignedAccount: row[3],
           status: row[4],
           staffUrl: row[6] || "",
-          displayChar: row[7] || row[1].substring(0, 1)
+          displayChar: row[7] || staffName.substring(0, 1)
         });
       }
     }
