@@ -3354,7 +3354,12 @@ function generateA3CalendarPdf(yearMonth) {
             tHtml += '</div>';
 
             if (shiftMap[cell.dateStr]) {
+              // 💡 画面上の「スタッフ管理（または並び順）」の順番に完全に従ってソートする
               var dayShifts = shiftMap[cell.dateStr].sort(function(a, b) {
+                var oa = (staffOrderMap[a.staffId] !== undefined) ? staffOrderMap[a.staffId] : 999;
+                var ob = (staffOrderMap[b.staffId] !== undefined) ? staffOrderMap[b.staffId] : 999;
+                return oa - ob;
+              });
                 var oa = (staffOrderMap[a.staffId] !== undefined) ? staffOrderMap[a.staffId] : 999;
                 var ob = (staffOrderMap[b.staffId] !== undefined) ? staffOrderMap[b.staffId] : 999;
                 return oa - ob;
