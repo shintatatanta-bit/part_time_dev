@@ -3285,7 +3285,8 @@ function generateA3CalendarPdf(yearMonth) {
 
     var firstDayObj = new Date(year, month - 1, 1);
     var lastDayObj = new Date(year, month, 0);
-    var firstDayOfWeek = firstDayObj.getDay();
+    // 💡 月曜始まりの計算に変更
+    var firstDayOfWeek = (firstDayObj.getDay() + 6) % 7;
     var totalDays = lastDayObj.getDate();
     var prevLastDay = new Date(year, month - 1, 0).getDate();
 
@@ -3318,13 +3319,16 @@ function generateA3CalendarPdf(yearMonth) {
       weeks.push(allCells.slice(wIdx, wIdx + 7));
     }
 
-    var weekDaysAll = ["日", "月", "火", "水", "木", "金", "土"];
+    // 💡 月曜始まりの配列に変更
+    var weekDaysAll = ["月", "火", "水", "木", "金", "土", "日"];
     function buildCalendarTableHtml(startCol, endCol) {
       var tHtml = '<table class="cal-table"><thead><tr>';
       for (var c = startCol; c <= endCol; c++) {
-        var thColor = (c === 0) ? '#e11d48' : (c === 6 ? '#2563eb' : '#334155');
+        // 💡 5番目が土曜(青)、6番目が日曜(赤)
+        var thColor = (c === 6) ? '#e11d48' : (c === 5 ? '#2563eb' : '#334155');
         tHtml += '<th style="color:' + thColor + ';">' + weekDaysAll[c] + '</th>';
       }
+
       tHtml += '</tr></thead><tbody>';
 
       weeks.forEach(function(weekRow) {
@@ -3433,16 +3437,17 @@ function generateA3CalendarPdf(yearMonth) {
     html += '</style></head><body>';
 
     // 1ページ目（左側：日〜水曜日の4列 ＋ 伝達事項の前半）
+    // 1ページ目（左側：月〜木曜日の4列）
     html += '<div class="page-left">';
-    html += '<h2 style="text-align: left;">' + esc(titleText) + ' <span style="font-size:10pt; font-weight:normal; color:#475569;">(1/2 左側：日〜水)</span></h2>';
-    html += buildCalendarTableHtml(0, 3);
+    html += '<h2 style="text-align: left;">' + esc(titleText) + ' <span style="font-size:10pt; font-weight:normal; color:#475569;">(1/2 左側：月〜木)</span></h2>';
+    html += buildCalendarTableHtml(0, 3); // 0〜3列目 (月〜木)
     html += buildMemosBoxHtml(leftMemos, '(1/2)');
     html += '</div>';
 
-    // 2ページ目（右側：木〜土曜日の3列 ＋ 伝達事項の後半）
+    // 2ページ目（右側：金〜日曜日の3列）
     html += '<div class="page-right">';
-    html += '<h2 style="text-align: right;">' + esc(titleText) + ' <span style="font-size:10pt; font-weight:normal; color:#475569;">(2/2 右側：木〜土)</span></h2>';
-    html += buildCalendarTableHtml(4, 6);
+    html += '<h2 style="text-align: right;">' + esc(titleText) + ' <span style="font-size:10pt; font-weight:normal; color:#475569;">(2/2 右側：金〜日)</span></h2>';
+    html += buildCalendarTableHtml(4, 6); // 4〜6列目 (金〜日)
     html += buildMemosBoxHtml(rightMemos, '(2/2)');
     html += '</div>';
 

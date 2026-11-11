@@ -1433,13 +1433,8 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
         var firstDayObj = new Date(year, month - 1, 1);
         var lastDayObj = new Date(year, month, 0);
-        
-        // 💡 修正前：日曜日始まりのインデックス (0=日, 1=月...6=土)
-        // var firstDayOfWeek = firstDayObj.getDay();
-        
-        // 💡 修正後：月曜日始まりのインデックスに変換 (0=月, 1=火...6=日)
+        // 💡 月曜始まりのインデックスに変換 (月=0, 火=1, ..., 日=6)
         var firstDayOfWeek = (firstDayObj.getDay() + 6) % 7;
-        
         var totalDays = lastDayObj.getDate();
         var prevLastDayObj = new Date(year, month - 1, 0);
         var prevLastDay = prevLastDayObj.getDate();
