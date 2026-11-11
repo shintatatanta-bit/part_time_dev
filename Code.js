@@ -3355,17 +3355,16 @@ function generateA3CalendarPdf(yearMonth) {
 
             if (shiftMap[cell.dateStr]) {
               // 💡 画面上の並び順（スタッフの登録・並び順）に完全に従ってソートする
+              if (shiftMap[cell.dateStr]) {
+              // 💡 画面上の並び順（スタッフの登録・並び順）に完全に従ってソートする
               var dayShifts = shiftMap[cell.dateStr].sort(function(a, b) {
                 var oa = (staffOrderMap[a.staffId] !== undefined) ? staffOrderMap[a.staffId] : 999;
                 var ob = (staffOrderMap[b.staffId] !== undefined) ? staffOrderMap[b.staffId] : 999;
                 return oa - ob;
               });
-              
-                var oa = (staffOrderMap[a.staffId] !== undefined) ? staffOrderMap[a.staffId] : 999;
-                var ob = (staffOrderMap[b.staffId] !== undefined) ? staffOrderMap[b.staffId] : 999;
-                return oa - ob;
-              });
+
               tHtml += '<div style="margin-top:2px; line-height: 1.5;">';
+              
               dayShifts.forEach(function(sh) {
                 var dispChar = staffCharMap[sh.staffId] || sh.staffName.substring(0, 1);
                 var rawMemo = String(sh.dailyMemo || '');
