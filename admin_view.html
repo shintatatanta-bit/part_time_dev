@@ -505,14 +505,15 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
         <p style="font-size: 0.75rem; color: var(--text-sub); margin: 12px 0 12px 0;">💡 スマホ・PC共通：上のパレットから**チップをタップして選択**し、配置したい日付枠をタップしてください。</p>
 
+        <!-- 修正後（月曜始まりに変更） -->
         <div class="cal-grid" id="calendarGrid">
-          <div class="cal-header-cell">日</div>
           <div class="cal-header-cell">月</div>
           <div class="cal-header-cell">火</div>
           <div class="cal-header-cell">水</div>
           <div class="cal-header-cell">木</div>
           <div class="cal-header-cell">金</div>
-          <div class="cal-header-cell">土</div>
+          <div class="cal-header-cell" style="color: var(--accent-color);">土</div>
+          <div class="cal-header-cell" style="color: var(--danger-color);">日</div>
         </div>
 
         <div id="calendarList" class="list-view-container" style="display: none; margin-top: 12px;"></div>
@@ -1432,7 +1433,13 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
 
         var firstDayObj = new Date(year, month - 1, 1);
         var lastDayObj = new Date(year, month, 0);
-        var firstDayOfWeek = firstDayObj.getDay();
+        
+        // 💡 修正前：日曜日始まりのインデックス (0=日, 1=月...6=土)
+        // var firstDayOfWeek = firstDayObj.getDay();
+        
+        // 💡 修正後：月曜日始まりのインデックスに変換 (0=月, 1=火...6=日)
+        var firstDayOfWeek = (firstDayObj.getDay() + 6) % 7;
+        
         var totalDays = lastDayObj.getDate();
         var prevLastDayObj = new Date(year, month - 1, 0);
         var prevLastDay = prevLastDayObj.getDate();
