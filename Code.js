@@ -697,13 +697,15 @@ function getShiftSchedule(yearMonth) {
     
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
-      var shiftId = row[0];
+      // 💡 万が一、スプレッドシート側で勝手に日付型にされてもエラー（null）にならないよう、すべて強制的に「文字（String）」に変換する
+      var shiftId = String(row[0] || "").trim();
       var workDate = row[1];
-      var staffId = row[2];
-      var staffName = row[3];
-      var dailyMemo = row[4] || ""; // E列から取得
+      var staffId = String(row[2] || "").trim();
+      var staffName = String(row[3] || "").trim();
+      var dailyMemo = String(row[4] || "").trim(); // ← 🚨ここが超重要！
       
       if (!workDate || !staffId) continue;
+      
       var d = new Date(workDate);
       if (isNaN(d.getTime())) continue;
       
@@ -712,8 +714,6 @@ function getShiftSchedule(yearMonth) {
       var day = ('0' + d.getDate()).slice(-2);
       var dateStr = y + '-' + m + '-' + day;
       
-      if (!workDate || !staffId) continue;
-      // ...(中略)...
       if (dateStr.indexOf(yearMonth) === 0) {
         shifts.push({ shiftId: shiftId, workDate: dateStr, staffId: staffId, staffName: staffName, dailyMemo: dailyMemo });
       }
@@ -3241,10 +3241,8 @@ function generateA3CalendarPdf(yearMonth) {
     var freeSchedules = freeRes.success ? freeRes.freeSchedules : [];
 
     var staffCharMap = {};
-    var staffIdOrder = []; // 💡 画面上のスタッフIDの並び順をそのまま保持する配列
-    staffList.forEach(function(st, idx) {
+    staffList.forEach(function(st) {
       staffCharMap[st.staffId] = st.displayChar || st.staffName.substring(0, 1);
-      staffIdOrder.push(String(st.staffId).trim());
     });
 
     var shiftMap = {};
@@ -3324,9 +3322,11 @@ function generateA3CalendarPdf(yearMonth) {
     function buildCalendarTableHtml(startCol, endCol) {
       var tHtml = '<table class="cal-table"><thead><tr>';
       for (var c = startCol; c <= endCol; c++) {
+        // 💡 5番目が土曜(青)、6番目が日曜(赤)
         var thColor = (c === 6) ? '#e11d48' : (c === 5 ? '#2563eb' : '#334155');
         tHtml += '<th style="color:' + thColor + ';">' + weekDaysAll[c] + '</th>';
       }
+
       tHtml += '</tr></thead><tbody>';
 
       weeks.forEach(function(weekRow) {
@@ -3351,11 +3351,12 @@ function generateA3CalendarPdf(yearMonth) {
             }
             tHtml += '</div>';
 
-            // 💡 シフトデータの処理（スプレッドシートの並び順をそのまま反映）
             if (shiftMap[cell.dateStr]) {
+              // 💡 スプレッドシートの並び順をそのまま維持する（ソート処理を削除）
               var dayShifts = shiftMap[cell.dateStr];
 
               tHtml += '<div style="margin-top:2px; line-height: 1.5;">';
+              
               dayShifts.forEach(function(sh) {
                 var dispChar = staffCharMap[sh.staffId] || sh.staffName.substring(0, 1);
                 var rawMemo = String(sh.dailyMemo || '');
@@ -3363,6 +3364,7 @@ function generateA3CalendarPdf(yearMonth) {
                 var cleanM = rawMemo.replace('||color:yellow', '').replace('||color:blue', '').trim();
                 
                 var textColor = isYellow ? '#b45309' : '#047857'; 
+                // 💡 [!] マークをスタッフ名の【後ろ】にくっつけて表示する
                 var memoIndicator = cleanM ? '<span style="color:#d97706; font-size:8pt; font-weight:bold; margin-left:2px;">[!]</span>' : '';
                 
                 tHtml += '<span style="color: ' + textColor + '; margin-right: 8px; display: inline-block; font-weight: bold; font-size: 9.5pt;">' + esc(dispChar) + memoIndicator + '</span>';
@@ -3370,7 +3372,6 @@ function generateA3CalendarPdf(yearMonth) {
               tHtml += '</div>';
             }
 
-            // 💡 フリー予定の処理
             if (freeMap[cell.dateStr]) {
               tHtml += '<div style="margin-top:2px;">';
               freeMap[cell.dateStr].forEach(function(fs) {
@@ -3378,7 +3379,6 @@ function generateA3CalendarPdf(yearMonth) {
               });
               tHtml += '</div>';
             }
-            
             tHtml += '</td>';
           }
         }
@@ -3433,7 +3433,6 @@ function generateA3CalendarPdf(yearMonth) {
     html += '.free-item { display: inline-block; background-color: #d97706; color: #ffffff; font-size: 7pt; padding: 1px 4px; margin: 1px; font-weight: bold; }';
     html += '</style></head><body>';
 
-    // 1ページ目（左側：日〜水曜日の4列 ＋ 伝達事項の前半）
     // 1ページ目（左側：月〜木曜日の4列）
     html += '<div class="page-left">';
     html += '<h2 style="text-align: left;">' + esc(titleText) + ' <span style="font-size:10pt; font-weight:normal; color:#475569;">(1/2 左側：月〜木)</span></h2>';
