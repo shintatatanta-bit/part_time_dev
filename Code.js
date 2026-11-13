@@ -2838,7 +2838,7 @@ function checkKintaiDuplication(staffId, workDate) {
 }
 
 /**
- * 💡 管理者ダッシュボード用：直近で同じ日に複数回（2回以上）申請している「重複勤務」を検出する関数
+ * 💡 管理者ダッシュボード用：過去20日間で同じ日に複数回（2回以上）申請している「重複勤務」を検出する関数
  */
 function getDuplicateKintaiAlerts() {
   try {
@@ -2847,8 +2847,14 @@ function getDuplicateKintaiAlerts() {
     if (!sheet) return { success: true, duplicates: [] };
     
     var data = sheet.getDataRange().getValues();
-    var map = {}; // "staffId_date" -> { staffName, workDate, count }
+    var map = {}; 
     
+    // 💡 基準日（過去20日前）を計算
+    var today = new Date();
+    var limitDate = new Date();
+    limitDate.setDate(today.getDate() - 20);
+    var limitDateStr = Utilities.formatDate(limitDate, "Asia/Tokyo", "yyyy-MM-dd");
+
     function parseDateStr(raw) {
       if (!raw) return "";
       if (raw instanceof Date) return Utilities.formatDate(raw, "Asia/Tokyo", "yyyy-MM-dd");
@@ -2865,6 +2871,9 @@ function getDuplicateKintaiAlerts() {
       
       if (!sId || !wDate) continue;
       
+      // 💡 勤務日が過去20日より前のデータはチェックから除外する
+      if (wDate < limitDateStr) continue;
+
       var key = sId + "_" + wDate;
       if (!map[key]) {
         map[key] = { staffId: sId, staffName: sName, workDate: wDate, count: 0 };
@@ -2879,12 +2888,13 @@ function getDuplicateKintaiAlerts() {
       }
     }
     
-    // 日付の新しい順にソート
+    // 日付の新しい順（降順）に並べ替え
     duplicateList.sort(function(a, b) {
       return new Date(b.workDate) - new Date(a.workDate);
     });
     
-    return { success: true, duplicates: duplicateList.slice(0, 15) }; // 最大15件
+    // 最新15件を切り出して画面へ返す
+    return { success: true, duplicates: duplicateList.slice(0, 15) };
   } catch (e) {
     return { success: false, duplicates: [], message: e.message };
   }
