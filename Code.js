@@ -1494,7 +1494,7 @@ function sendKintaiReminderLine(data) {
 }
 
 /**
- * 管理者向けに未読の「シフト希望申請通知」を取得する関数（新しいもの順・最大20件）
+ * 管理者向けに未読の「シフト希望申請通知」を取得する関数（新しいもの順・最大5件）
  */
 function getUnreadShiftNotifications() {
   try {
@@ -1554,12 +1554,13 @@ function getUnreadShiftNotifications() {
     // 💡 最も新しい通知のタイムスタンプを取得しておく
     var latestTimestamp = notifications.length > 0 ? notifications[0].timestamp : "";
 
-    notifications = notifications.slice(0, 20);
+    // 💡 ここで最新の5件に絞り込む（以前は20件でした）
+    notifications = notifications.slice(0, 5);
 
     return { 
       success: true, 
       notifications: notifications, 
-      latestTimestamp: latestTimestamp // 👈 追加
+      latestTimestamp: latestTimestamp
     };
   } catch (error) {
     return { success: true, notifications: [], latestTimestamp: "", message: error.message };
