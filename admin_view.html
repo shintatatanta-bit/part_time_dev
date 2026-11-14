@@ -410,8 +410,12 @@ overflow: visible !important; /* 👈 スティッキーが隠れたり途切れ
     <div class="header-container">
       <h2>🛠️ ダッシュボード</h2>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <!-- 💡 追加：時給設定を開くボタン -->
+        <!-- 💰 時給設定ボタン -->
         <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openWageModal()">💰 時給設定</button>
+        
+        <!-- 💸 【追加】月の支払額一覧ボタン -->
+        <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openPaymentModal()">💸 月の支払額一覧</button>
+        
         <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openClosingModal()">🔒 締め作業・確認</button>
         <button type="button" class="secondary" style="background: #0f172a; color: #fff; border: none; padding: 8px 16px;" onclick="openStaffModal()">⚙️ スタッフ管理</button>
       </div>
