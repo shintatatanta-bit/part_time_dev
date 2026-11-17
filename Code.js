@@ -3859,7 +3859,7 @@ function getInvoiceSummaryData(yearMonth, half) {
 }
 
 /**
- * 💡 テンプレートに転記しPDFを生成・ダウンロードURLを返す関数（ドライブ保存なし版）
+ * 💡 テンプレートに転記しPDFを生成・ダウンロードURLを返す関数（ドライブ保存なし版・振込期日自動計算付き）
  */
 function generateInvoicePdf(summaryData) {
   try {
@@ -3872,11 +3872,11 @@ function generateInvoicePdf(summaryData) {
     var workSheetName = "Invoice_" + summaryData.periodKey + "_" + Utilities.getUuid().substring(0, 6);
     workSheet.setName(workSheetName);
 
-    // 2. データの転記
+    // 2. データの転記 (対象期間と交通費)
     workSheet.getRange("B8").setValue("対象期間：" + summaryData.periodDisplay);
     workSheet.getRange("I23").setValue(summaryData.totalTransportCost);
 
-    // テンプレートの17行目〜22行目に時給ごとのデータを流し込む
+    // 3. テンプレートの17行目〜22行目に時給ごとのデータを流し込む
     var targetRows = { 1280: 17, 1300: 18, 1350: 19, 1400: 20, 1450: 21, 1500: 22 }; 
     
     // 一旦F17:F22を "0:00" にリセットし、I17:I22の金額を0にする
@@ -3893,9 +3893,33 @@ function generateInvoicePdf(summaryData) {
       }
     });
 
+    // 4. お振込期日の計算と転記 💡ここを追加！
+    // summaryData.periodKey は "2026-11_first" のような形式
+    var parts = summaryData.periodKey.split("_");
+    var ymParts = parts[0].split("-");
+    var year = Number(ymParts[0]);
+    var month = Number(ymParts[1]);
+    var half = parts[1]; // "first" または "second"
+
+    var dueDateDisplay = "";
+    if (half === "first") {
+      // 15日締め → その月の末日
+      var lastDay = new Date(year, month, 0).getDate();
+      dueDateDisplay = year + "年" + month + "月" + lastDay + "日";
+    } else {
+      // 末日締め → 翌月15日
+      var nextMonthDate = new Date(year, month, 15); // monthは0始まりではないので注意（JavaScriptのDateの仕様を考慮）
+      // Dateオブジェクトを使うと月またぎ・年またぎが自動処理される安全な方法
+      var safeDate = new Date(year, month - 1 + 1, 15); // 当月(month-1)の翌月(+1)
+      dueDateDisplay = safeDate.getFullYear() + "年" + (safeDate.getMonth() + 1) + "月15日";
+    }
+    
+    // 💡 振込期日を書き込むセル番地（仮にC46セルとしています。テンプレートに合わせて変更してください）
+    workSheet.getRange("C46").setValue("お振込期日：" + dueDateDisplay);
+
     SpreadsheetApp.flush(); // 計算を確定させる
 
-    // 3. PDFエクスポート (ドライブ保存なし)
+    // 5. PDFエクスポート (ドライブ保存なし)
     var fileName = "請求書_" + summaryData.periodDisplay;
     
     var url = "https://docs.google.com/spreadsheets/d/" + ss.getId() + "/export?";
@@ -3920,9 +3944,8 @@ function generateInvoicePdf(summaryData) {
     });
     
     var blob = response.getBlob().setName(fileName + ".pdf");
-    // ※ここでドライブ保存 (folder.createFile) は行いません
 
-    // 4. 履歴への記録 (リンクの代わりにダウンロード済と記載)
+    // 6. 履歴への記録 (リンクの代わりにダウンロード済と記載)
     var histSheet = ss.getSheetByName("請求書発行履歴");
     if (!histSheet) {
       histSheet = ss.insertSheet("請求書発行履歴");
@@ -3930,7 +3953,7 @@ function generateInvoicePdf(summaryData) {
     }
     histSheet.appendRow([new Date(), summaryData.periodDisplay, summaryData.grandTotal, "ダウンロード済"]);
 
-    // 5. 作業用シートの削除
+    // 7. 作業用シートの削除
     ss.deleteSheet(workSheet);
 
     // HTML側にBase64でPDFデータを返し、ブラウザに直接ダウンロードさせる
