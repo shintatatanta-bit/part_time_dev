@@ -3859,7 +3859,7 @@ function getInvoiceSummaryData(yearMonth, half) {
 }
 
 /**
- * 💡 テンプレートに転記しPDFを生成・ダウンロードURLを返す関数
+ * 💡 テンプレートに転記しPDFを生成・ダウンロードURLを返す関数（ドライブ保存なし版）
  */
 function generateInvoicePdf(summaryData) {
   try {
@@ -3876,11 +3876,10 @@ function generateInvoicePdf(summaryData) {
     workSheet.getRange("B8").setValue("対象期間：" + summaryData.periodDisplay);
     workSheet.getRange("I23").setValue(summaryData.totalTransportCost);
 
-    // テンプレートの17行目〜22行目に時給ごとのデータを流し込む (1280円, 1300円, 1350円, 1400円, 1450円, 1500円 と想定)
-    // 💡 テンプレートのF列(数量)に文字列として "時間:分" を入力します。
-    var targetRows = { 1280: 17, 1300: 18, 1350: 19, 1400: 20, 1450: 21, 1500: 22 }; // ※テンプレートの時給と行番号の対応
+    // テンプレートの17行目〜22行目に時給ごとのデータを流し込む
+    var targetRows = { 1280: 17, 1300: 18, 1350: 19, 1400: 20, 1450: 21, 1500: 22 }; 
     
-    // 一旦F17:F22を "0:00" にリセットし、I17:I22の金額を0にする (数式が入っている場合は値として上書きされます)
+    // 一旦F17:F22を "0:00" にリセットし、I17:I22の金額を0にする
     for (var row = 17; row <= 22; row++) {
       workSheet.getRange("F" + row).setValue("0:00");
       workSheet.getRange("I" + row).setValue(0);
@@ -3889,7 +3888,6 @@ function generateInvoicePdf(summaryData) {
     summaryData.details.forEach(function(item) {
       var r = targetRows[item.wage];
       if (r) {
-        // "1:30"のような文字列がスプレッドシート上で時刻と誤認されるのを防ぐため、先頭にシングルクォーテーションを入れる
         workSheet.getRange("F" + r).setValue("'" + item.hoursStr);
         workSheet.getRange("I" + r).setValue(item.amount);
       }
@@ -3897,8 +3895,7 @@ function generateInvoicePdf(summaryData) {
 
     SpreadsheetApp.flush(); // 計算を確定させる
 
-    // 3. PDFエクスポート
-    var folder = DriveApp.getRootFolder(); // 💡 保存先フォルダ（指定があればIDを入れる）
+    // 3. PDFエクスポート (ドライブ保存なし)
     var fileName = "請求書_" + summaryData.periodDisplay;
     
     var url = "https://docs.google.com/spreadsheets/d/" + ss.getId() + "/export?";
@@ -3923,15 +3920,15 @@ function generateInvoicePdf(summaryData) {
     });
     
     var blob = response.getBlob().setName(fileName + ".pdf");
-    var file = folder.createFile(blob); // ドライブに保存
+    // ※ここでドライブ保存 (folder.createFile) は行いません
 
-    // 4. 履歴への記録
+    // 4. 履歴への記録 (リンクの代わりにダウンロード済と記載)
     var histSheet = ss.getSheetByName("請求書発行履歴");
     if (!histSheet) {
       histSheet = ss.insertSheet("請求書発行履歴");
-      histSheet.appendRow(["発行日時", "対象期間", "請求総額", "PDFリンク"]);
+      histSheet.appendRow(["発行日時", "対象期間", "請求総額", "ステータス"]);
     }
-    histSheet.appendRow([new Date(), summaryData.periodDisplay, summaryData.grandTotal, file.getUrl()]);
+    histSheet.appendRow([new Date(), summaryData.periodDisplay, summaryData.grandTotal, "ダウンロード済"]);
 
     // 5. 作業用シートの削除
     ss.deleteSheet(workSheet);
@@ -3942,7 +3939,7 @@ function generateInvoicePdf(summaryData) {
       base64: Utilities.base64Encode(blob.getBytes()),
       fileName: fileName + ".pdf",
       mimeType: "application/pdf",
-      message: "請求書を発行し、履歴に記録しました！"
+      message: "請求書を発行しました！（パソコンに直接ダウンロードされます）"
     };
 
   } catch (e) {
