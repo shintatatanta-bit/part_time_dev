@@ -3287,18 +3287,18 @@ var draggedSourceDate = null;
     <div class="flex-row" style="align-items: flex-end; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
       <div class="flex-col" style="min-width: 130px;">
         <label>対象月</label>
-        <input type="month" id="invoiceMonthInput" style="margin-top:4px;">
+        <input type="month" id="invoiceMonthInput" onchange="previewInvoiceData()" style="margin-top:4px;">
       </div>
       <div class="flex-col" style="min-width: 140px;">
         <label>対象期間（半期）</label>
-        <select id="invoiceHalfInput" style="margin-top:4px;">
+        <select id="invoiceHalfInput" onchange="previewInvoiceData()" style="margin-top:4px;">
           <option value="first">前半 (1日 〜 15日)</option>
           <option value="second">後半 (16日 〜 末日)</option>
         </select>
       </div>
       <div class="flex-col" style="min-width: 120px;">
         <label>請求区分</label>
-        <select id="invoiceCategoryInput" style="margin-top:4px; font-weight:bold;">
+        <select id="invoiceCategoryInput" onchange="previewInvoiceData()" style="margin-top:4px; font-weight:bold;">
           <option value="製造">🏭 製造</option>
           <option value="レストラン">🍽️ レストラン</option>
         </select>
